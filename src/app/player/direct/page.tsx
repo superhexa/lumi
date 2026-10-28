@@ -4,6 +4,7 @@
 import * as Vidstack from '@vidstack/react';
 // @ts-expect-error Next.js bundles this ESM client dependency; Node16 module checking expects require().
 import * as VidstackLayout from '@vidstack/react/player/layouts/default';
+import { X } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -14,14 +15,20 @@ import '@vidstack/react/player/styles/default/layouts/video.css';
 const { MediaPlayer, MediaProvider } = Vidstack;
 const { DefaultVideoLayout, defaultLayoutIcons } = VidstackLayout;
 
+interface DismissibleMenuElement extends HTMLElement {
+  close?: (trigger?: Event) => void;
+}
+
 function DirectPlayer() {
   const params = useSearchParams();
   const { t } = useTranslation();
   const player = useRef<Vidstack.MediaPlayerInstance>(null);
+  const shell = useRef<HTMLElement>(null);
   const [streamUrl, setStreamUrl] = useState('');
   const [title, setTitle] = useState('');
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  const [menuOpen, setMenuOpen] = useState(false);
   const resumeValue = Number(params.get('t'));
   const resume = Number.isFinite(resumeValue) ? Math.max(0, resumeValue) : 0;
   const query = new URLSearchParams({
@@ -88,6 +95,31 @@ function DirectPlayer() {
     return () => window.removeEventListener('message', seek);
   }, []);
 
+  useEffect(() => {
+    const root = shell.current;
+    if (!root || !streamUrl) return;
+
+    const syncMenuState = () => {
+      setMenuOpen(root.querySelector('media-menu[data-open]') !== null);
+    };
+    const observer = new MutationObserver(syncMenuState);
+    observer.observe(root, {
+      attributes: true,
+      attributeFilter: ['data-open'],
+      childList: true,
+      subtree: true,
+    });
+    syncMenuState();
+
+    return () => observer.disconnect();
+  }, [streamUrl]);
+
+  const closePlayerMenus = () => {
+    shell.current
+      ?.querySelectorAll<DismissibleMenuElement>('media-menu[data-open]')
+      .forEach((menu) => menu.close?.());
+  };
+
   const send = (event: string) => {
     if (!player.current) return;
     window.parent.postMessage(
@@ -105,6 +137,8 @@ function DirectPlayer() {
 
   return (
     <main
+      ref={shell}
+      className='direct-player-shell'
       style={{
         position: 'fixed',
         inset: 0,
@@ -113,6 +147,17 @@ function DirectPlayer() {
         color: '#fff',
       }}
     >
+      {menuOpen ? (
+        <button
+          type='button'
+          aria-label={t('common.close')}
+          title={t('common.close')}
+          onClick={closePlayerMenus}
+          className='direct-player-menu-close ui-glass-control absolute right-3 top-3 z-[10000000] h-11 w-11 items-center justify-center rounded-full'
+        >
+          <X className='mx-auto h-5 w-5' />
+        </button>
+      ) : null}
       {streamUrl && !failed ? (
         <MediaPlayer
           ref={player}
@@ -131,7 +176,10 @@ function DirectPlayer() {
           onError={() => setFailed(true)}
         >
           <MediaProvider />
-          <DefaultVideoLayout icons={defaultLayoutIcons} />
+          <DefaultVideoLayout
+            icons={defaultLayoutIcons}
+            menuContainer='.direct-player-shell'
+          />
         </MediaPlayer>
       ) : (
         <div className='flex h-full flex-col items-center justify-center gap-4 p-6 text-center'>

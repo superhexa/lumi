@@ -2325,6 +2325,32 @@ function PlayPageClient() {
         <div className='relative z-[1] flex flex-col gap-3 px-5 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-[calc(env(safe-area-inset-top)+4.25rem)] md:pb-4 md:pt-4 lg:px-[3rem] 2xl:px-20'>
           <div className='hidden h-12 md:block' aria-hidden='true' />
           <div>
+            <div className='mb-3 flex items-center justify-between gap-3 px-1 md:hidden'>
+              <h1 className='line-clamp-2 min-w-0 flex-1 text-xl font-semibold leading-tight tracking-wide text-white drop-shadow-lg'>
+                {displayTitle}
+              </h1>
+              <button
+                type='button'
+                aria-label={t(
+                  isPlayerFullscreen
+                    ? 'play.exitFullscreen'
+                    : 'play.enterFullscreen'
+                )}
+                title={t(
+                  isPlayerFullscreen
+                    ? 'play.exitFullscreen'
+                    : 'play.enterFullscreen'
+                )}
+                onClick={() => void togglePlayerFullscreen()}
+                className='ui-glass-control cinema-player-fullscreen-mobile inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl'
+              >
+                {isPlayerFullscreen ? (
+                  <Minimize2 className='h-5 w-5' />
+                ) : (
+                  <Maximize2 className='h-5 w-5' />
+                )}
+              </button>
+            </div>
             <div
               className={`ui-player-surface relative min-w-0 ${
                 tmdbMode ? 'pb-16' : ''
@@ -2370,7 +2396,7 @@ function PlayPageClient() {
                         : 'play.enterFullscreen'
                     )}
                     onClick={() => void togglePlayerFullscreen()}
-                    className='ui-glass-control absolute right-3 top-3 z-[510] inline-flex h-10 w-10 items-center justify-center rounded-xl'
+                    className='ui-glass-control cinema-player-fullscreen-trigger absolute right-3 top-3 z-[510] inline-flex h-10 w-10 items-center justify-center rounded-xl'
                   >
                     {isPlayerFullscreen ? (
                       <Minimize2 className='h-5 w-5' />
