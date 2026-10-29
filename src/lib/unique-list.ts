@@ -13,7 +13,7 @@ export function uniqueById<T extends IdentifiableListItem>(items: T[]): T[] {
 
 export function mergeUniqueById<T extends IdentifiableListItem>(
   previousItems: T[],
-  nextItems: T[]
+  nextItems: T[],
 ): T[] {
   if (previousItems.length === 0) return uniqueById(nextItems);
 

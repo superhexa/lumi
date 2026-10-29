@@ -441,11 +441,11 @@ export default function PersonDetailPage() {
         setError(null);
         const response = await fetch(
           `/api/tmdb/person/${idNum}?tmdbLanguage=${encodeURIComponent(
-            getCurrentTmdbLanguage()
+            getCurrentTmdbLanguage(),
           )}`,
           {
             signal: controller.signal,
-          }
+          },
         );
         const payload = (await response.json()) as PersonDetail & {
           error?: string;
@@ -472,14 +472,14 @@ export default function PersonDetailPage() {
   const movieCredits = useMemo(() => {
     if (!detail?.credits?.length) return [];
     return dedupeCreditsByMedia(
-      detail.credits.filter((item) => item.mediaType === 'movie')
+      detail.credits.filter((item) => item.mediaType === 'movie'),
     );
   }, [detail]);
 
   const showCredits = useMemo(() => {
     if (!detail?.credits?.length) return [];
     return dedupeCreditsByMedia(
-      detail.credits.filter((item) => item.mediaType === 'tv')
+      detail.credits.filter((item) => item.mediaType === 'tv'),
     );
   }, [detail]);
 

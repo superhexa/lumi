@@ -15,7 +15,7 @@ import TmdbHeroBanner, {
 } from '@/components/TmdbHeroBanner';
 
 function playRecordsToRecommendationSeeds(
-  records: Record<string, PlayRecord>
+  records: Record<string, PlayRecord>,
 ): TmdbHeroRecommendationSeed[] {
   return Object.entries(records)
     .filter(([, record]) => (record.title || record.search_title || '').trim())
@@ -44,11 +44,11 @@ function playRecordsToRecommendationSeeds(
 }
 
 function favoritesToRecommendationSeeds(
-  favorites: Record<string, Favorite>
+  favorites: Record<string, Favorite>,
 ): TmdbHeroRecommendationSeed[] {
   return Object.entries(favorites)
     .filter(([, favorite]) =>
-      (favorite.title || favorite.search_title || '').trim()
+      (favorite.title || favorite.search_title || '').trim(),
     )
     .map(([key, favorite]) => {
       const { source, id } = parseStorageKey(key);
@@ -70,7 +70,7 @@ function favoritesToRecommendationSeeds(
 
 function toRecommendationSeeds(
   records: Record<string, PlayRecord>,
-  favorites: Record<string, Favorite>
+  favorites: Record<string, Favorite>,
 ): TmdbHeroRecommendationSeed[] {
   const allSeeds = [
     ...favoritesToRecommendationSeeds(favorites),

@@ -66,16 +66,16 @@ For Docker, Vercel, Cloudflare Workers, storage backends, and environment variab
 
 ## Tech Stack
 
-| Area               | Main Dependencies                                                         |
-| ------------------ | ------------------------------------------------------------------------- |
-| Framework          | [Next.js 15](https://nextjs.org/) App Router                              |
-| UI and Styling     | [Tailwind CSS 3](https://tailwindcss.com/), next-themes, Framer Motion    |
-| Language           | TypeScript 5                                                              |
-| Data and Storage   | localStorage, Redis, Cloudflare D1, Upstash Redis                         |
-| Personal Data      | Browser localStorage for favorites, search history, and watch progress    |
-| Content Enrichment | TMDB API, category feeds, image proxy                                     |
-| Code Quality       | ESLint, Prettier, Jest                                                    |
-| Deployment         | Docker, Vercel, Cloudflare Workers, OpenNext                              |
+| Area               | Main Dependencies                                                      |
+| ------------------ | ---------------------------------------------------------------------- |
+| Framework          | [Next.js 15](https://nextjs.org/) App Router                           |
+| UI and Styling     | [Tailwind CSS 3](https://tailwindcss.com/), next-themes, Framer Motion |
+| Language           | TypeScript 5                                                           |
+| Data and Storage   | localStorage, Redis, Cloudflare D1, Upstash Redis                      |
+| Personal Data      | Browser localStorage for favorites, search history, and watch progress |
+| Content Enrichment | TMDB API, category feeds, image proxy                                  |
+| Code Quality       | ESLint, Prettier, Jest                                                 |
+| Deployment         | Docker, Vercel, Cloudflare Workers, OpenNext                           |
 
 ## License
 

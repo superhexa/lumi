@@ -131,7 +131,7 @@ function scoreMatch(title: string, query: string): number {
 function buildTmdbSearchParams(
   apiKey: string,
   query: string,
-  tmdbLanguage: string
+  tmdbLanguage: string,
 ): URLSearchParams {
   return new URLSearchParams({
     api_key: apiKey,
@@ -147,13 +147,13 @@ async function fetchTmdbList<T>(
   apiKey: string,
   query: string,
   tmdbLanguage: string,
-  signal: AbortSignal
+  signal: AbortSignal,
 ): Promise<T[]> {
   try {
     const params = buildTmdbSearchParams(apiKey, query, tmdbLanguage);
     const response = await fetch(
       `${TMDB_API_BASE_URL}${endpointPath}?${params.toString()}`,
-      { signal }
+      { signal },
     );
     if (!response.ok) return [];
     const payload = (await response.json()) as TmdbSearchResponse<T>;
@@ -165,7 +165,7 @@ async function fetchTmdbList<T>(
 
 function mapMovieCandidate(
   raw: TmdbMovieItem,
-  query: string
+  query: string,
 ): SearchMediaCandidate | null {
   if (!raw.poster_path || !Number.isInteger(raw.id) || !raw.id) return null;
   const title = normalizeText(raw.title);
@@ -196,7 +196,7 @@ function mapMovieCandidate(
 
 function mapTvCandidate(
   raw: TmdbTvItem,
-  query: string
+  query: string,
 ): SearchMediaCandidate | null {
   if (!raw.poster_path || !Number.isInteger(raw.id) || !raw.id) return null;
   if ((raw.genre_ids || []).includes(TALK_SHOW_GENRE_ID)) return null;
@@ -226,7 +226,7 @@ function mapTvCandidate(
 }
 
 function getCachedTvMetadata(
-  id: number
+  id: number,
 ): { count: number; runtime: number } | null {
   const cached = tvEpisodeCountCache.get(id);
   if (!cached) return null;
@@ -249,7 +249,7 @@ async function fetchTvMetadata(
   id: number,
   apiKey: string,
   tmdbLanguage: string,
-  signal: AbortSignal
+  signal: AbortSignal,
 ): Promise<{ count: number; runtime: number } | null> {
   const cached = getCachedTvMetadata(id);
   if (cached && cached.count > 0) return cached;
@@ -261,7 +261,7 @@ async function fetchTvMetadata(
     });
     const response = await fetch(
       `${TMDB_API_BASE_URL}/tv/${id}?${params.toString()}`,
-      { signal }
+      { signal },
     );
     if (!response.ok) return null;
     const payload = (await response.json()) as TmdbTvDetailItem;
@@ -282,10 +282,10 @@ async function hydrateTvEpisodeCounts(
   candidates: SearchMediaCandidate[],
   apiKey: string,
   tmdbLanguage: string,
-  signal: AbortSignal
+  signal: AbortSignal,
 ): Promise<void> {
   const tvCandidates = candidates.filter(
-    (item) => item.result.type_name === 'tv'
+    (item) => item.result.type_name === 'tv',
   );
   if (tvCandidates.length === 0) return;
 
@@ -297,7 +297,7 @@ async function hydrateTvEpisodeCounts(
       if (!metadata) return;
       candidate.result.total_episodes = metadata.count;
       candidate.result.runtime = metadata.runtime;
-    })
+    }),
   );
 }
 
@@ -305,7 +305,7 @@ async function hydrateMovieRuntimes(
   candidates: SearchMediaCandidate[],
   apiKey: string,
   tmdbLanguage: string,
-  signal: AbortSignal
+  signal: AbortSignal,
 ): Promise<void> {
   const movies = candidates.filter((item) => item.result.type_name === 'movie');
   await Promise.all(
@@ -319,7 +319,7 @@ async function hydrateMovieRuntimes(
           `${TMDB_API_BASE_URL}/movie/${
             candidate.result.id
           }?${params.toString()}`,
-          { signal }
+          { signal },
         );
         if (!response.ok) return;
         const payload = (await response.json()) as TmdbMovieDetailItem;
@@ -329,7 +329,7 @@ async function hydrateMovieRuntimes(
       } catch {
         // Runtime metadata is best-effort.
       }
-    })
+    }),
   );
 }
 
@@ -380,14 +380,14 @@ export async function GET(request: Request) {
   if (!apiKey) {
     return NextResponse.json(
       { error: 'tmdb api key missing', ...emptySearchResponse() },
-      { status: 500, headers: buildNoStoreHeaders() }
+      { status: 500, headers: buildNoStoreHeaders() },
     );
   }
 
   const controller = new AbortController();
   const timeoutId = setTimeout(
     () => controller.abort(),
-    TMDB_SEARCH_TIMEOUT_MS
+    TMDB_SEARCH_TIMEOUT_MS,
   );
 
   try {
@@ -397,21 +397,21 @@ export async function GET(request: Request) {
         apiKey,
         query,
         tmdbLanguage,
-        controller.signal
+        controller.signal,
       ),
       fetchTmdbList<TmdbTvItem>(
         '/search/tv',
         apiKey,
         query,
         tmdbLanguage,
-        controller.signal
+        controller.signal,
       ),
       fetchTmdbList<TmdbPersonItem>(
         '/search/person',
         apiKey,
         query,
         tmdbLanguage,
-        controller.signal
+        controller.signal,
       ),
     ]);
 
@@ -434,13 +434,13 @@ export async function GET(request: Request) {
         mediaCandidates,
         apiKey,
         tmdbLanguage,
-        controller.signal
+        controller.signal,
       ),
       hydrateMovieRuntimes(
         mediaCandidates,
         apiKey,
         tmdbLanguage,
-        controller.signal
+        controller.signal,
       ),
     ]);
 
@@ -453,7 +453,7 @@ export async function GET(request: Request) {
   } catch {
     return NextResponse.json(
       { error: 'tmdb search failed', ...emptySearchResponse() },
-      { status: 500, headers: buildNoStoreHeaders() }
+      { status: 500, headers: buildNoStoreHeaders() },
     );
   } finally {
     clearTimeout(timeoutId);

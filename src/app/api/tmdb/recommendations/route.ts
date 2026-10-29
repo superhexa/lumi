@@ -7,7 +7,6 @@ import {
 } from '@/lib/tmdb-language';
 import { normalizeReleaseDate } from '@/lib/tmdbRelease';
 
-
 const TMDB_API_BASE_URL = 'https://api.themoviedb.org/3';
 const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p';
 const RECOMMENDATION_TIMEOUT_MS = 14000;
@@ -270,7 +269,7 @@ function normalizeMediaFilter(value?: string): HeroMediaFilter {
 
 function matchesMediaFilter(
   mediaType: TmdbMediaType,
-  mediaFilter: HeroMediaFilter
+  mediaFilter: HeroMediaFilter,
 ): boolean {
   return mediaFilter === 'all' || mediaFilter === mediaType;
 }
@@ -339,7 +338,10 @@ function normalizeTmdbId(value?: string): number | null {
   return Number.isInteger(id) && id > 0 ? id : null;
 }
 
-function getRecordWeight(record: RecommendationRecordInput, now: number): number {
+function getRecordWeight(
+  record: RecommendationRecordInput,
+  now: number,
+): number {
   const isFavorite = record.seed_type === 'favorite';
   const saveTime =
     typeof record.save_time === 'number' && record.save_time > 0
@@ -367,15 +369,13 @@ function getRecordWeight(record: RecommendationRecordInput, now: number): number
       : 0.55;
 
   return (
-    1.2 +
-    recency * 1 +
-    progress * 1.1 +
-    episodeProgress * 0.7 +
-    sameDayBoost
+    1.2 + recency * 1 + progress * 1.1 + episodeProgress * 0.7 + sameDayBoost
   );
 }
 
-function buildExcludedTitleKeys(records: RecommendationRecordInput[]): Set<string> {
+function buildExcludedTitleKeys(
+  records: RecommendationRecordInput[],
+): Set<string> {
   const keys = new Set<string>();
   records.forEach((record) => {
     [
@@ -394,15 +394,14 @@ function getRequestBodyRecords(body: unknown): RecommendationRecordInput[] {
   const records = (body as { records?: unknown }).records;
   if (!Array.isArray(records)) return [];
 
-  return records
-    .filter((item): item is RecommendationRecordInput =>
-      Boolean(item && typeof item === 'object')
-    );
+  return records.filter((item): item is RecommendationRecordInput =>
+    Boolean(item && typeof item === 'object'),
+  );
 }
 
 function buildWeightedSeeds(
   records: RecommendationRecordInput[],
-  mediaFilter: HeroMediaFilter
+  mediaFilter: HeroMediaFilter,
 ): WeightedSeed[] {
   const now = Date.now();
   const seedMap = new Map<string, WeightedSeed>();
@@ -479,8 +478,8 @@ function getCandidateTitleKeys(candidate: TmdbSearchItem): string[] {
         candidate.original_name,
       ]
         .map((value) => normalizeTitleKey(value))
-        .filter(Boolean)
-    )
+        .filter(Boolean),
+    ),
   );
 }
 
@@ -489,13 +488,14 @@ async function resolveSeedToTmdb(
   apiKey: string,
   signal: AbortSignal,
   mediaFilter: HeroMediaFilter,
-  tmdbLanguage: string
+  tmdbLanguage: string,
 ): Promise<{ id: number; mediaType: TmdbMediaType } | null> {
   const endpointOrder: Array<TmdbMediaType | 'multi'> =
     seed.preferredMediaType === 'tv'
       ? ['tv', 'movie', 'multi']
       : ['movie', 'tv', 'multi'];
-  let best: { id: number; mediaType: TmdbMediaType; score: number } | null = null;
+  let best: { id: number; mediaType: TmdbMediaType; score: number } | null =
+    null;
 
   for (const endpoint of endpointOrder) {
     const params = new URLSearchParams({
@@ -507,7 +507,10 @@ async function resolveSeedToTmdb(
     });
 
     if (seed.year && endpoint !== 'multi') {
-      params.set(endpoint === 'movie' ? 'year' : 'first_air_date_year', seed.year);
+      params.set(
+        endpoint === 'movie' ? 'year' : 'first_air_date_year',
+        seed.year,
+      );
     }
 
     try {
@@ -518,7 +521,7 @@ async function resolveSeedToTmdb(
           headers: {
             Accept: 'application/json',
           },
-        }
+        },
       );
       if (!response.ok) continue;
 
@@ -538,7 +541,7 @@ async function resolveSeedToTmdb(
         const titleKeys = getCandidateTitleKeys(item);
         const titleScore = Math.max(
           ...titleKeys.map((key) => getTitleSimilarity(seed.titleKey, key)),
-          0
+          0,
         );
         if (titleScore < 0.48) continue;
 
@@ -571,7 +574,7 @@ async function fetchTmdbDetailRaw(
   apiKey: string,
   signal: AbortSignal,
   appendToResponse: string,
-  tmdbLanguage: string
+  tmdbLanguage: string,
 ): Promise<TmdbDetailRawResponse | null> {
   const params = new URLSearchParams({
     api_key: apiKey,
@@ -593,7 +596,7 @@ async function fetchTmdbDetailRaw(
         headers: {
           Accept: 'application/json',
         },
-      }
+      },
     );
     if (!response.ok) return null;
     return (await response.json()) as TmdbDetailRawResponse;
@@ -607,17 +610,11 @@ async function resolveSeedDetail(
   apiKey: string,
   signal: AbortSignal,
   mediaFilter: HeroMediaFilter,
-  tmdbLanguage: string
+  tmdbLanguage: string,
 ): Promise<ResolvedSeed | null> {
   const resolved = seed.tmdbId
     ? { id: seed.tmdbId, mediaType: seed.preferredMediaType }
-    : await resolveSeedToTmdb(
-        seed,
-        apiKey,
-        signal,
-        mediaFilter,
-        tmdbLanguage
-      );
+    : await resolveSeedToTmdb(seed, apiKey, signal, mediaFilter, tmdbLanguage);
   if (!resolved) return null;
 
   const detail = await fetchTmdbDetailRaw(
@@ -626,7 +623,7 @@ async function resolveSeedDetail(
     apiKey,
     signal,
     'recommendations,similar,keywords,credits',
-    tmdbLanguage
+    tmdbLanguage,
   );
   if (!detail) return null;
 
@@ -640,7 +637,7 @@ async function resolveSeedDetail(
 
 function selectBestLogoPath(
   logos: TmdbLogoItem[],
-  tmdbLanguage: string
+  tmdbLanguage: string,
 ): string {
   const getLanguagePriority = (lang?: string | null): number => {
     if (normalizeTmdbLanguage(tmdbLanguage) === 'zh-CN') {
@@ -671,7 +668,11 @@ function selectBestLogoPath(
   );
 }
 
-function addMapWeight(map: Map<number, number>, id: number, weight: number): void {
+function addMapWeight(
+  map: Map<number, number>,
+  id: number,
+  weight: number,
+): void {
   if (!Number.isInteger(id) || id <= 0) return;
   map.set(id, (map.get(id) || 0) + weight);
 }
@@ -679,14 +680,17 @@ function addMapWeight(map: Map<number, number>, id: number, weight: number): voi
 function addStringMapWeight(
   map: Map<string, number>,
   key: string,
-  weight: number
+  weight: number,
 ): void {
   const normalized = key.trim().toLowerCase();
   if (!normalized) return;
   map.set(normalized, (map.get(normalized) || 0) + weight);
 }
 
-function getTopMapEntries<T>(map: Map<T, number>, limit: number): Array<[T, number]> {
+function getTopMapEntries<T>(
+  map: Map<T, number>,
+  limit: number,
+): Array<[T, number]> {
   return Array.from(map.entries())
     .sort((a, b) => b[1] - a[1])
     .slice(0, limit);
@@ -696,13 +700,15 @@ function getRawGenreIds(raw: TmdbCandidateRawItem): number[] {
   return Array.from(
     new Set(
       (raw.genre_ids || []).filter(
-        (id) => typeof id === 'number' && Number.isInteger(id) && id > 0
-      )
-    )
+        (id) => typeof id === 'number' && Number.isInteger(id) && id > 0,
+      ),
+    ),
   );
 }
 
-function getDetailKeywordItems(detail: TmdbDetailRawResponse): TmdbKeywordItem[] {
+function getDetailKeywordItems(
+  detail: TmdbDetailRawResponse,
+): TmdbKeywordItem[] {
   return detail.keywords?.keywords || detail.keywords?.results || [];
 }
 
@@ -729,7 +735,11 @@ function getCandidateViabilityScore(raw: TmdbCandidateRawItem): number {
   const ratingScore = clamp((rating - 6) / 2.8, 0, 1);
   const enoughVotesScore = clamp(Math.log10(voteCount + 1) / 4.5, 0, 1);
   const logPopularity = Math.log10(popularity + 1);
-  const midPopularityScore = clamp(1 - Math.abs(logPopularity - 1.45) / 2.2, 0, 1);
+  const midPopularityScore = clamp(
+    1 - Math.abs(logPopularity - 1.45) / 2.2,
+    0,
+    1,
+  );
   const blockbusterPenalty =
     popularity > 600 ? 0.1 : popularity > 300 ? 0.05 : 0;
 
@@ -743,7 +753,7 @@ function getCandidateViabilityScore(raw: TmdbCandidateRawItem): number {
 
 function getMinimumCandidateSignals(
   mediaType: TmdbMediaType,
-  source: CandidateSource
+  source: CandidateSource,
 ): { voteCount: number; popularity: number } {
   const isDiscover = source.startsWith('discover_');
   if (mediaType === 'movie') {
@@ -762,7 +772,7 @@ function getMinimumCandidateSignals(
 function passesCandidateQualityGate(
   raw: TmdbCandidateRawItem,
   mediaType: TmdbMediaType,
-  source: CandidateSource
+  source: CandidateSource,
 ): boolean {
   const rating = typeof raw.vote_average === 'number' ? raw.vote_average : 0;
   const voteCount = typeof raw.vote_count === 'number' ? raw.vote_count : 0;
@@ -781,7 +791,7 @@ function addCandidate(
   mediaFilter: HeroMediaFilter,
   watchedIds: Set<string>,
   watchedTitleKeys: Set<string>,
-  source: CandidateSource
+  source: CandidateSource,
 ): void {
   const id = Number(raw.id);
   if (!Number.isInteger(id) || id <= 0) return;
@@ -808,7 +818,9 @@ function addCandidate(
   if (existing) {
     existing.score += finalScore * 0.65;
     existing.sourceHits += 1;
-    existing.genreIds = Array.from(new Set([...existing.genreIds, ...genreIds]));
+    existing.genreIds = Array.from(
+      new Set([...existing.genreIds, ...genreIds]),
+    );
     if (!existing.language && language) {
       existing.language = language;
     }
@@ -840,7 +852,7 @@ function createMediaWeightMaps(): Record<TmdbMediaType, Map<number, number>> {
 
 function collectTasteProfile(
   seeds: ResolvedSeed[],
-  mediaFilter: HeroMediaFilter
+  mediaFilter: HeroMediaFilter,
 ): TasteProfile {
   const genreWeightsByMedia: Record<TmdbMediaType, Map<number, number>> = {
     movie: new Map(),
@@ -858,15 +870,26 @@ function collectTasteProfile(
   seeds.forEach((seed) => {
     watchedIds.add(`${seed.mediaType}:${seed.id}`);
     watchedTitleKeys.add(seed.titleKey);
-    addStringMapWeight(languageWeights, seed.detail.original_language || '', seed.weight);
-    mediaWeights.set(seed.mediaType, (mediaWeights.get(seed.mediaType) || 0) + seed.weight);
+    addStringMapWeight(
+      languageWeights,
+      seed.detail.original_language || '',
+      seed.weight,
+    );
+    mediaWeights.set(
+      seed.mediaType,
+      (mediaWeights.get(seed.mediaType) || 0) + seed.weight,
+    );
     totalWeight += seed.weight;
 
     if (!matchesMediaFilter(seed.mediaType, mediaFilter)) return;
 
     (seed.detail.genres || []).forEach((genre) => {
       if (typeof genre.id === 'number') {
-        addMapWeight(genreWeightsByMedia[seed.mediaType], genre.id, seed.weight);
+        addMapWeight(
+          genreWeightsByMedia[seed.mediaType],
+          genre.id,
+          seed.weight,
+        );
       }
     });
 
@@ -877,7 +900,7 @@ function collectTasteProfile(
         addMapWeight(
           keywordWeightsByMedia[seed.mediaType],
           keyword.id,
-          seed.weight * Math.max(0.35, 1 - index * 0.08)
+          seed.weight * Math.max(0.35, 1 - index * 0.08),
         );
       });
 
@@ -890,7 +913,7 @@ function collectTasteProfile(
         addMapWeight(
           peopleWeightsByMedia[seed.mediaType],
           person.id,
-          seed.weight * Math.max(0.25, 0.85 - index * 0.08)
+          seed.weight * Math.max(0.25, 0.85 - index * 0.08),
         );
       });
 
@@ -905,7 +928,7 @@ function collectTasteProfile(
     [
       ...(seed.detail.created_by || []),
       ...(seed.detail.credits?.crew || []).filter((person) =>
-        crewJobs.has((person.job || '').toLowerCase())
+        crewJobs.has((person.job || '').toLowerCase()),
       ),
     ]
       .slice(0, MAX_PROFILE_PEOPLE)
@@ -914,13 +937,17 @@ function collectTasteProfile(
         addMapWeight(
           peopleWeightsByMedia[seed.mediaType],
           person.id,
-          seed.weight * Math.max(0.35, 0.75 - index * 0.07)
+          seed.weight * Math.max(0.35, 0.75 - index * 0.07),
         );
       });
 
     const decade = getDecade(getDetailYear(seed.detail));
     if (typeof decade === 'number') {
-      addMapWeight(decadeWeightsByMedia[seed.mediaType], decade, seed.weight * 0.55);
+      addMapWeight(
+        decadeWeightsByMedia[seed.mediaType],
+        decade,
+        seed.weight * 0.55,
+      );
     }
   });
 
@@ -937,11 +964,14 @@ function collectTasteProfile(
   };
 }
 
-function getSeedAffinityScore(raw: TmdbCandidateRawItem, seed: ResolvedSeed): number {
+function getSeedAffinityScore(
+  raw: TmdbCandidateRawItem,
+  seed: ResolvedSeed,
+): number {
   const seedGenreIds = new Set(
     (seed.detail.genres || [])
       .map((genre) => genre.id)
-      .filter((id): id is number => typeof id === 'number' && id > 0)
+      .filter((id): id is number => typeof id === 'number' && id > 0),
   );
   const rawGenreIds = getRawGenreIds(raw);
   const genreOverlap = rawGenreIds.filter((id) => seedGenreIds.has(id)).length;
@@ -959,16 +989,18 @@ function getSeedAffinityScore(raw: TmdbCandidateRawItem, seed: ResolvedSeed): nu
 function getProfileAffinityScore(
   raw: TmdbCandidateRawItem,
   mediaType: TmdbMediaType,
-  profile: TasteProfile
+  profile: TasteProfile,
 ): number {
   const totalWeight = Math.max(1, profile.totalWeight);
   const rawGenreIds = getRawGenreIds(raw);
   const genreWeight = rawGenreIds.reduce(
     (sum, id) => sum + (profile.genreWeightsByMedia[mediaType].get(id) || 0),
-    0
+    0,
   );
   const language = (raw.original_language || '').trim().toLowerCase();
-  const languageWeight = language ? profile.languageWeights.get(language) || 0 : 0;
+  const languageWeight = language
+    ? profile.languageWeights.get(language) || 0
+    : 0;
   const decade = getDecade(getRawYear(raw));
   const decadeWeight =
     typeof decade === 'number'
@@ -985,7 +1017,7 @@ function getProfileAffinityScore(
 function buildCandidatePool(
   seeds: ResolvedSeed[],
   mediaFilter: HeroMediaFilter,
-  profile: TasteProfile
+  profile: TasteProfile,
 ): Map<string, Candidate> {
   const candidates = new Map<string, Candidate>();
 
@@ -997,7 +1029,7 @@ function buildCandidatePool(
         const profileAffinityScore = getProfileAffinityScore(
           item,
           seed.mediaType,
-          profile
+          profile,
         );
         if (index > 8 && seedAffinityScore + profileAffinityScore < 0.52) {
           return;
@@ -1015,38 +1047,36 @@ function buildCandidatePool(
           mediaFilter,
           profile.watchedIds,
           profile.watchedTitleKeys,
-          'recommendation'
+          'recommendation',
         );
       });
 
-    (seed.detail.similar?.results || [])
-      .slice(0, 24)
-      .forEach((item, index) => {
-        const seedAffinityScore = getSeedAffinityScore(item, seed);
-        const profileAffinityScore = getProfileAffinityScore(
-          item,
-          seed.mediaType,
-          profile
-        );
-        if (index > 10 && seedAffinityScore + profileAffinityScore < 0.48) {
-          return;
-        }
+    (seed.detail.similar?.results || []).slice(0, 24).forEach((item, index) => {
+      const seedAffinityScore = getSeedAffinityScore(item, seed);
+      const profileAffinityScore = getProfileAffinityScore(
+        item,
+        seed.mediaType,
+        profile,
+      );
+      if (index > 10 && seedAffinityScore + profileAffinityScore < 0.48) {
+        return;
+      }
 
-        const rankScore =
-          Math.max(0.55, 2.35 - index * 0.065) +
-          seedAffinityScore * 1.3 +
-          profileAffinityScore * 1.5;
-        addCandidate(
-          candidates,
-          item,
-          seed.mediaType,
-          seed.weight * rankScore,
-          mediaFilter,
-          profile.watchedIds,
-          profile.watchedTitleKeys,
-          'similar'
-        );
-      });
+      const rankScore =
+        Math.max(0.55, 2.35 - index * 0.065) +
+        seedAffinityScore * 1.3 +
+        profileAffinityScore * 1.5;
+      addCandidate(
+        candidates,
+        item,
+        seed.mediaType,
+        seed.weight * rankScore,
+        mediaFilter,
+        profile.watchedIds,
+        profile.watchedTitleKeys,
+        'similar',
+      );
+    });
   });
 
   return candidates;
@@ -1059,25 +1089,26 @@ async function addDiscoverCandidates(
   mediaFilter: HeroMediaFilter,
   profile: TasteProfile,
   dailyKey: string,
-  tmdbLanguage: string
+  tmdbLanguage: string,
 ): Promise<void> {
   const mediaTypes: TmdbMediaType[] =
     mediaFilter === 'all' ? ['movie', 'tv'] : [mediaFilter];
-  const topLanguage = getTopMapEntries(profile.languageWeights, 1)[0]?.[0] || '';
+  const topLanguage =
+    getTopMapEntries(profile.languageWeights, 1)[0]?.[0] || '';
   const totalSignalWeight = Math.max(1, profile.totalWeight);
 
   const plans = mediaTypes.flatMap((mediaType) => {
     const topGenres = getTopMapEntries(
       profile.genreWeightsByMedia[mediaType],
-      MAX_PROFILE_GENRES
+      MAX_PROFILE_GENRES,
     );
     const topKeywords = getTopMapEntries(
       profile.keywordWeightsByMedia[mediaType],
-      MAX_DISCOVER_KEYWORD_PLANS
+      MAX_DISCOVER_KEYWORD_PLANS,
     );
     const topPeople = getTopMapEntries(
       profile.peopleWeightsByMedia[mediaType],
-      MAX_DISCOVER_PEOPLE_PLANS
+      MAX_DISCOVER_PEOPLE_PLANS,
     );
     const genreQuery = topGenres
       .slice(0, 2)
@@ -1111,7 +1142,8 @@ async function addDiscoverCandidates(
       const params = createParams();
       params.set('with_genres', genreQuery);
       const genreScore =
-        topGenres.reduce((sum, [, weight]) => sum + weight, 0) / totalSignalWeight;
+        topGenres.reduce((sum, [, weight]) => sum + weight, 0) /
+        totalSignalWeight;
       basePlans.push({
         mediaType,
         source: 'discover_genre',
@@ -1158,14 +1190,14 @@ async function addDiscoverCandidates(
           dailyKey,
           a.mediaType,
           a.source,
-          a.params.toString()
+          a.params.toString(),
         ) * DAILY_DISCOVER_VARIATION_WEIGHT;
       const bDailyScore =
         getDailyRotationScore(
           dailyKey,
           b.mediaType,
           b.source,
-          b.params.toString()
+          b.params.toString(),
         ) * DAILY_DISCOVER_VARIATION_WEIGHT;
       return b.signalScore + bDailyScore - (a.signalScore + aDailyScore);
     })
@@ -1181,7 +1213,7 @@ async function addDiscoverCandidates(
             headers: {
               Accept: 'application/json',
             },
-          }
+          },
         );
         if (!response.ok) return;
 
@@ -1193,7 +1225,7 @@ async function addDiscoverCandidates(
           const profileAffinityScore = getProfileAffinityScore(
             item,
             mediaType,
-            profile
+            profile,
           );
           if (profileAffinityScore < MIN_PROFILE_AFFINITY_FOR_DISCOVER) {
             return;
@@ -1211,20 +1243,20 @@ async function addDiscoverCandidates(
             mediaFilter,
             profile.watchedIds,
             profile.watchedTitleKeys,
-            source
+            source,
           );
         });
       } catch {
         return;
       }
-    })
+    }),
   );
 }
 
 function rankCandidates(
   candidates: Candidate[],
   limit: number,
-  dailyKey: string
+  dailyKey: string,
 ): Candidate[] {
   const sortedCandidates = [...candidates].sort((a, b) => b.score - a.score);
   const maxScore = Math.max(sortedCandidates[0]?.score || 1, 1);
@@ -1238,7 +1270,7 @@ function rankCandidates(
           dailyKey,
           candidate.mediaType,
           String(candidate.id),
-          candidate.titleKey
+          candidate.titleKey,
         ) - 0.5;
 
       return {
@@ -1258,7 +1290,7 @@ async function hydrateCandidate(
   candidate: Candidate,
   apiKey: string,
   signal: AbortSignal,
-  tmdbLanguage: string
+  tmdbLanguage: string,
 ): Promise<TmdbHeroItem | null> {
   const raw = await fetchTmdbDetailRaw(
     candidate.mediaType,
@@ -1266,7 +1298,7 @@ async function hydrateCandidate(
     apiKey,
     signal,
     'images',
-    tmdbLanguage
+    tmdbLanguage,
   );
   if (!raw) return null;
 
@@ -1279,9 +1311,7 @@ async function hydrateCandidate(
   if (!logoPath) return null;
 
   const runtime =
-    candidate.mediaType === 'movie'
-      ? raw.runtime
-      : raw.episode_run_time?.[0];
+    candidate.mediaType === 'movie' ? raw.runtime : raw.episode_run_time?.[0];
 
   return {
     id: raw.id || candidate.id,
@@ -1293,8 +1323,7 @@ async function hydrateCandidate(
     releaseDate: normalizeReleaseDate(raw.release_date || raw.first_air_date),
     backdrop,
     poster,
-    runtime:
-      typeof runtime === 'number' && runtime > 0 ? runtime : null,
+    runtime: typeof runtime === 'number' && runtime > 0 ? runtime : null,
     seasons:
       candidate.mediaType === 'tv' &&
       typeof raw.number_of_seasons === 'number' &&
@@ -1313,13 +1342,12 @@ async function hydrateCandidate(
 
 export async function POST(request: Request) {
   const apiKey =
-    process.env.TMDB_API_KEY ||
-    process.env.NEXT_PUBLIC_TMDB_API_KEY;
+    process.env.TMDB_API_KEY || process.env.NEXT_PUBLIC_TMDB_API_KEY;
 
   if (!apiKey) {
     return NextResponse.json(
       { results: [] },
-      { status: 200, headers: buildNoStoreHeaders() }
+      { status: 200, headers: buildNoStoreHeaders() },
     );
   }
 
@@ -1340,12 +1368,15 @@ export async function POST(request: Request) {
   if (seeds.length === 0) {
     return NextResponse.json(
       { results: [] },
-      { status: 200, headers: buildNoStoreHeaders() }
+      { status: 200, headers: buildNoStoreHeaders() },
     );
   }
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), RECOMMENDATION_TIMEOUT_MS);
+  const timeoutId = setTimeout(
+    () => controller.abort(),
+    RECOMMENDATION_TIMEOUT_MS,
+  );
 
   try {
     const resolvedResults = await Promise.allSettled(
@@ -1355,9 +1386,9 @@ export async function POST(request: Request) {
           apiKey,
           controller.signal,
           mediaFilter,
-          generationLanguage
-        )
-      )
+          generationLanguage,
+        ),
+      ),
     );
     const resolvedSeeds = resolvedResults
       .map((result) => (result.status === 'fulfilled' ? result.value : null))
@@ -1366,7 +1397,7 @@ export async function POST(request: Request) {
     if (resolvedSeeds.length === 0) {
       return NextResponse.json(
         { results: [] },
-        { status: 200, headers: buildNoStoreHeaders() }
+        { status: 200, headers: buildNoStoreHeaders() },
       );
     }
 
@@ -1382,20 +1413,20 @@ export async function POST(request: Request) {
         mediaFilter,
         profile,
         dailyKey,
-        generationLanguage
+        generationLanguage,
       );
     }
 
     const sortedCandidates = rankCandidates(
       Array.from(candidates.values()),
       MAX_CANDIDATES_TO_HYDRATE,
-      dailyKey
+      dailyKey,
     );
 
     const hydratedResults = await Promise.allSettled(
       sortedCandidates.map((candidate) =>
-        hydrateCandidate(candidate, apiKey, controller.signal, tmdbLanguage)
-      )
+        hydrateCandidate(candidate, apiKey, controller.signal, tmdbLanguage),
+      ),
     );
     const results = hydratedResults
       .map((result) => (result.status === 'fulfilled' ? result.value : null))
@@ -1406,12 +1437,12 @@ export async function POST(request: Request) {
       { results },
       {
         headers: buildNoStoreHeaders(),
-      }
+      },
     );
   } catch {
     return NextResponse.json(
       { results: [] },
-      { status: 200, headers: buildNoStoreHeaders() }
+      { status: 200, headers: buildNoStoreHeaders() },
     );
   } finally {
     clearTimeout(timeoutId);

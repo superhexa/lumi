@@ -200,7 +200,7 @@ const SORT_OPTIONS: SortOption[] = [
 
 function resolveDiscoverSortBy(
   sortMode: DiscoverSortMode,
-  mediaType: 'movie' | 'tv'
+  mediaType: 'movie' | 'tv',
 ): string {
   if (sortMode === 'rating') return 'vote_average.desc';
   if (sortMode === 'date') {
@@ -255,11 +255,11 @@ function DiscoverPageClient() {
 
   const mergedGenres = useMemo(
     () => Array.from(new Set([...filters.selectedGenres])),
-    [filters.selectedGenres]
+    [filters.selectedGenres],
   );
   const mergedExcludedGenres = useMemo(
     () => Array.from(new Set([...filters.excludedGenres])),
-    [filters.excludedGenres]
+    [filters.excludedGenres],
   );
   const genreOptions = useMemo(() => {
     if (type === 'anime') return ANIME_KEYWORD_OPTIONS;
@@ -269,7 +269,7 @@ function DiscoverPageClient() {
   const showCountryFilter = useMemo(() => {
     if (!showCountries.length) return '';
     const selected = new Set(
-      showCountries.map((code) => code.trim().toUpperCase()).filter(Boolean)
+      showCountries.map((code) => code.trim().toUpperCase()).filter(Boolean),
     );
     return SHOW_COUNTRY_OPTIONS.map((option) => option.value)
       .filter((value) => selected.has(value))
@@ -293,7 +293,7 @@ function DiscoverPageClient() {
     if (type === 'anime') {
       params.set(
         'with_keywords',
-        [ANIME_KEYWORD_ID, ...mergedGenres].join(',')
+        [ANIME_KEYWORD_ID, ...mergedGenres].join(','),
       );
       if (mergedExcludedGenres.length > 0) {
         params.set('without_keywords', mergedExcludedGenres.join(','));
@@ -308,10 +308,10 @@ function DiscoverPageClient() {
     }
     if (filters.language) params.set('language', filters.language);
     const ratingMin = Number(
-      parseNumberLike(filters.ratingMin) || String(MIN_RATING)
+      parseNumberLike(filters.ratingMin) || String(MIN_RATING),
     );
     const ratingMax = Number(
-      parseNumberLike(filters.ratingMax) || String(MAX_RATING)
+      parseNumberLike(filters.ratingMax) || String(MAX_RATING),
     );
     if (ratingMin > MIN_RATING) {
       params.set('vote_average_gte', String(ratingMin));
@@ -324,7 +324,7 @@ function DiscoverPageClient() {
     }
     const runtimeMin = Number(parseNumberLike(filters.runtimeMin) || '0');
     const runtimeMax = Number(
-      parseNumberLike(filters.runtimeMax) || String(MAX_RUNTIME_MINUTES)
+      parseNumberLike(filters.runtimeMax) || String(MAX_RUNTIME_MINUTES),
     );
     if (runtimeMin > 0) {
       params.set('runtime_gte', String(runtimeMin));
@@ -357,7 +357,7 @@ function DiscoverPageClient() {
         }
 
         setItems((prev) =>
-          append ? mergeUniqueById(prev, data.list) : uniqueById(data.list)
+          append ? mergeUniqueById(prev, data.list) : uniqueById(data.list),
         );
         setCurrentPage(data.page || page);
         setTotalPages(data.total_pages || 1);
@@ -373,7 +373,7 @@ function DiscoverPageClient() {
         setIsLoadingMore(false);
       }
     },
-    [i18n.language, queryString]
+    [i18n.language, queryString],
   );
 
   const loadShowPage = useCallback(
@@ -406,7 +406,7 @@ function DiscoverPageClient() {
         }
 
         setShowItems((prev) =>
-          append ? mergeUniqueById(prev, data.list) : uniqueById(data.list)
+          append ? mergeUniqueById(prev, data.list) : uniqueById(data.list),
         );
         const current = data.page || page + 1;
         const total = data.total_pages || 1;
@@ -421,7 +421,7 @@ function DiscoverPageClient() {
         setShowLoadingMore(false);
       }
     },
-    [i18n.language, showCountryFilter, sortMode]
+    [i18n.language, showCountryFilter, sortMode],
   );
 
   useEffect(() => {
@@ -460,7 +460,7 @@ function DiscoverPageClient() {
           setCurrentPage((prev) => prev + 1);
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
 
     observer.observe(loadingRef.current);
@@ -511,7 +511,7 @@ function DiscoverPageClient() {
           setShowCurrentPage((prev) => prev + 1);
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
 
     observer.observe(showLoadingRef.current);
@@ -528,7 +528,7 @@ function DiscoverPageClient() {
         : [...prev.selectedGenres, genreId];
       // Keep included and excluded genres mutually exclusive for stable results.
       const nextExcludedGenres = prev.excludedGenres.filter(
-        (id) => id !== genreId
+        (id) => id !== genreId,
       );
       return {
         ...prev,
@@ -572,7 +572,7 @@ function DiscoverPageClient() {
 
   const skeletonData = useMemo(
     () => Array.from({ length: PAGE_SIZE_HINT }, (_, index) => index),
-    []
+    [],
   );
 
   const releaseMinValue = Number(filters.releaseYearMin || MIN_RELEASE_YEAR);
@@ -615,12 +615,8 @@ function DiscoverPageClient() {
             <TmdbHeroBanner
               mediaFilter={media}
               requireLogo={type === 'anime'}
-              withGenres={
-                type === 'show' ? SHOW_GENRE_FILTER : ''
-              }
-              withKeywords={
-                type === 'anime' ? String(ANIME_KEYWORD_ID) : ''
-              }
+              withGenres={type === 'show' ? SHOW_GENRE_FILTER : ''}
+              withKeywords={type === 'anime' ? String(ANIME_KEYWORD_ID) : ''}
               withOriginCountry={
                 type === 'show' ? SHOW_HERO_COUNTRY_FILTER : ''
               }
@@ -635,10 +631,10 @@ function DiscoverPageClient() {
                 {type === 'tv'
                   ? t('common.series')
                   : type === 'anime'
-                  ? t('common.anime')
-                  : type === 'show'
-                  ? t('common.shows')
-                  : t('common.movies')}
+                    ? t('common.anime')
+                    : type === 'show'
+                      ? t('common.shows')
+                      : t('common.movies')}
               </h1>
             </div>
 
@@ -786,7 +782,7 @@ function DiscoverPageClient() {
                               setFilters((prev) => ({
                                 ...prev,
                                 releaseYearMin: String(
-                                  Math.min(next, Number(prev.releaseYearMax))
+                                  Math.min(next, Number(prev.releaseYearMax)),
                                 ),
                               }));
                             }}
@@ -803,7 +799,7 @@ function DiscoverPageClient() {
                               setFilters((prev) => ({
                                 ...prev,
                                 releaseYearMax: String(
-                                  Math.max(next, Number(prev.releaseYearMin))
+                                  Math.max(next, Number(prev.releaseYearMin)),
                                 ),
                               }));
                             }}
@@ -826,7 +822,7 @@ function DiscoverPageClient() {
                       <div className='flex flex-wrap gap-2'>
                         {genreOptions.map((genre) => {
                           const active = filters.selectedGenres.includes(
-                            genre.id
+                            genre.id,
                           );
                           return (
                             <button
@@ -858,7 +854,7 @@ function DiscoverPageClient() {
                       <div className='flex flex-wrap gap-2'>
                         {genreOptions.map((genre) => {
                           const active = filters.excludedGenres.includes(
-                            genre.id
+                            genre.id,
                           );
                           return (
                             <button
@@ -969,7 +965,7 @@ function DiscoverPageClient() {
                               setFilters((prev) => ({
                                 ...prev,
                                 ratingMin: String(
-                                  Math.min(next, Number(prev.ratingMax))
+                                  Math.min(next, Number(prev.ratingMax)),
                                 ),
                               }));
                             }}
@@ -986,7 +982,7 @@ function DiscoverPageClient() {
                               setFilters((prev) => ({
                                 ...prev,
                                 ratingMax: String(
-                                  Math.max(next, Number(prev.ratingMin))
+                                  Math.max(next, Number(prev.ratingMin)),
                                 ),
                               }));
                             }}
@@ -1060,7 +1056,7 @@ function DiscoverPageClient() {
                               setFilters((prev) => ({
                                 ...prev,
                                 runtimeMin: String(
-                                  Math.min(next, Number(prev.runtimeMax))
+                                  Math.min(next, Number(prev.runtimeMax)),
                                 ),
                               }));
                             }}
@@ -1077,7 +1073,7 @@ function DiscoverPageClient() {
                               setFilters((prev) => ({
                                 ...prev,
                                 runtimeMax: String(
-                                  Math.max(next, Number(prev.runtimeMin))
+                                  Math.max(next, Number(prev.runtimeMin)),
                                 ),
                               }));
                             }}

@@ -40,14 +40,14 @@ interface DiscoverApiResponse {
 
 const LOAD_BATCH_SIZE = 2;
 const HOME_CURATED_ROWS = HOME_CURATED_CATEGORY_CONFIGS.filter(
-  (row) => row.slug !== 'popular-movies'
+  (row) => row.slug !== 'popular-movies',
 );
 
 interface CuratedRowSectionProps {
   row: CuratedCategoryConfig;
   onNavigateWithWarpLoading: (
     event: ReactMouseEvent<HTMLAnchorElement>,
-    href: string
+    href: string,
   ) => void;
 }
 
@@ -72,7 +72,7 @@ function CuratedRowSection({
         params.set('tmdbLanguage', getCurrentTmdbLanguage());
         const response = await fetch(
           `/api/tmdb/discover?${params.toString()}`,
-          { signal: controller.signal }
+          { signal: controller.signal },
         );
         const payload = (await response.json()) as DiscoverApiResponse;
         if (!response.ok || payload.code !== 200) {
@@ -108,7 +108,7 @@ function CuratedRowSection({
       {
         rootMargin: '0px 0px -14% 0px',
         threshold: 0.12,
-      }
+      },
     );
 
     observer.observe(node);
@@ -226,7 +226,7 @@ export default function HomeCuratedRows() {
       {
         rootMargin: '0px 0px 220px 0px',
         threshold: 0,
-      }
+      },
     );
 
     observer.observe(node);
@@ -237,7 +237,7 @@ export default function HomeCuratedRows() {
     if (!loadingMoreRows) return;
     const timer = setTimeout(() => {
       setVisibleCount((prev) =>
-        Math.min(prev + LOAD_BATCH_SIZE, HOME_CURATED_ROWS.length)
+        Math.min(prev + LOAD_BATCH_SIZE, HOME_CURATED_ROWS.length),
       );
       setLoadingMoreRows(false);
     }, 420);

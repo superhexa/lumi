@@ -1,11 +1,7 @@
 'use client';
 
 import { Search, X } from 'lucide-react';
-import type {
-  FormEventHandler,
-  KeyboardEventHandler,
-  RefObject,
-} from 'react';
+import type { FormEventHandler, KeyboardEventHandler, RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { cn } from '@/lib/utils';
@@ -58,13 +54,13 @@ export default function SearchGlassInput({
         'ui-glass-pill m-0 flex items-center px-3 text-sm text-gray-200 focus-within:border-[var(--ui-glass-border-strong)] focus-within:bg-[var(--ui-glass-panel-bg)] focus-within:shadow-[var(--ui-shadow-panel)]',
         active && 'ui-glass-control-active shadow-[var(--ui-shadow-panel)]',
         isMobile ? 'h-12 px-3.5' : 'h-11',
-        className
+        className,
       )}
     >
       <Search
         className={cn(
           'shrink-0 text-gray-400',
-          isMobile ? 'h-[18px] w-[18px] text-gray-300' : 'h-4 w-4'
+          isMobile ? 'h-[18px] w-[18px] text-gray-300' : 'h-4 w-4',
         )}
       />
       <input
@@ -78,7 +74,7 @@ export default function SearchGlassInput({
         placeholder={inputPlaceholder}
         className={cn(
           'h-full w-full appearance-none border-0 bg-transparent text-gray-100 placeholder:text-gray-400 outline-none ring-0 focus:border-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0',
-          isMobile ? 'px-2.5 text-[15px]' : 'px-2 text-sm'
+          isMobile ? 'px-2.5 text-[15px]' : 'px-2 text-sm',
         )}
       />
       {value.trim() ? (
@@ -88,7 +84,7 @@ export default function SearchGlassInput({
           aria-label={inputClearLabel}
           className={cn(
             'inline-flex shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-[var(--ui-glass-row-hover)] hover:text-gray-200',
-            isMobile ? 'h-7 w-7' : 'h-6 w-6'
+            isMobile ? 'h-7 w-7' : 'h-6 w-6',
           )}
         >
           <X className='h-4 w-4' />

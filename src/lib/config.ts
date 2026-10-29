@@ -23,7 +23,7 @@ function getDefaultSiteConfig(): AdminConfig['SiteConfig'] {
 }
 
 function getDefaultUserConfig(
-  users: AdminConfig['UserConfig']['Users'] = []
+  users: AdminConfig['UserConfig']['Users'] = [],
 ): AdminConfig['UserConfig'] {
   return {
     Users: users,
@@ -66,10 +66,10 @@ function syncOwnerUser(adminConfig: AdminConfig): void {
 
 function mergeUsersFromStorage(
   adminConfig: AdminConfig,
-  userNames: string[]
+  userNames: string[],
 ): void {
   const existedUsers = new Set(
-    (adminConfig.UserConfig.Users || []).map((user) => user.username)
+    (adminConfig.UserConfig.Users || []).map((user) => user.username),
   );
 
   userNames.forEach((username) => {
@@ -91,7 +91,7 @@ function dropLegacyConfigFields(adminConfig: AdminConfig): void {
 }
 
 function createAdminConfig(
-  users: AdminConfig['UserConfig']['Users'] = []
+  users: AdminConfig['UserConfig']['Users'] = [],
 ): AdminConfig {
   return {
     SiteConfig: getDefaultSiteConfig(),
@@ -116,7 +116,7 @@ async function loadFileConfig(): Promise<void> {
 }
 
 async function getStorageUserNames(
-  storage: ReturnType<typeof getStorage> | null
+  storage: ReturnType<typeof getStorage> | null,
 ): Promise<string[]> {
   if (!storage || typeof (storage as any).getAllUsers !== 'function') {
     return [];
@@ -145,7 +145,7 @@ async function initConfig() {
     } catch (error) {
       console.warn(
         'Storage initialization failed, fallback to file-based admin config:',
-        error
+        error,
       );
     }
 

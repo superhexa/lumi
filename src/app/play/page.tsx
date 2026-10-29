@@ -226,7 +226,7 @@ function parseMessagePayload(data: unknown): unknown {
 function findNestedNumber(
   input: unknown,
   keys: string[],
-  depth = 0
+  depth = 0,
 ): number | null {
   if (depth > 4 || input === null || input === undefined) return null;
   const direct = normalizeNumber(input);
@@ -275,7 +275,7 @@ function findNestedString(input: unknown, depth = 0): string {
 }
 
 function extractTmdbEmbedProgressMessage(
-  rawData: unknown
+  rawData: unknown,
 ): TmdbEmbedProgressMessage | null {
   const payload = parseMessagePayload(rawData);
   const data =
@@ -340,22 +340,22 @@ function PlayPageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const hasTmdbPlayerParams = Boolean(
-    searchParams.get('tmdbId') || searchParams.get('tmdb_id')
+    searchParams.get('tmdbId') || searchParams.get('tmdb_id'),
   );
   const initialTmdbId = normalizeTmdbId(
-    searchParams.get('tmdbId') || searchParams.get('tmdb_id')
+    searchParams.get('tmdbId') || searchParams.get('tmdb_id'),
   );
   const initialTmdbMediaType = normalizeTmdbPlayerMediaType(
     searchParams.get('type') ||
       searchParams.get('mediaType') ||
-      searchParams.get('stype')
+      searchParams.get('stype'),
   );
   const initialTmdbProvider = normalizeTmdbPlayerProvider(
-    searchParams.get('provider')
+    searchParams.get('provider'),
   );
   const initialTmdbSeason = normalizePositiveInteger(
     searchParams.get('season'),
-    1
+    1,
   );
   const initialTmdbEpisode =
     initialTmdbMediaType === 'tv'
@@ -371,16 +371,16 @@ function PlayPageClient() {
     'searching' | 'preferring' | 'fetching' | 'ready'
   >('searching');
   const [loadingMessage, setLoadingMessage] = useState(
-    t('play.searchingPlaybackSources')
+    t('play.searchingPlaybackSources'),
   );
   const [error, setError] = useState<string | null>(null);
   const [detail, setDetail] = useState<SearchResult | null>(null);
   const [tmdbDetail, setTmdbDetail] = useState<TmdbPlayDetail | null>(null);
   const [tmdbMode, setTmdbMode] = useState(
-    Boolean(hasTmdbPlayerParams && initialTmdbId)
+    Boolean(hasTmdbPlayerParams && initialTmdbId),
   );
   const [tmdbPlayerId, setTmdbPlayerId] = useState<number | null>(
-    initialTmdbId
+    initialTmdbId,
   );
   const [tmdbMediaType, setTmdbMediaType] =
     useState<TmdbPlayerMediaType>(initialTmdbMediaType);
@@ -404,13 +404,13 @@ function PlayPageClient() {
   const episodePanelRegionRef = useRef<HTMLDivElement | null>(null);
   const episodeTriggerRef = useRef<HTMLButtonElement | null>(null);
   const episodeCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null
+    null,
   );
   const [sourceMenuOpen, setSourceMenuOpen] = useState(false);
   const sourceMenuRegionRef = useRef<HTMLDivElement | null>(null);
   const sourceTriggerRef = useRef<HTMLButtonElement | null>(null);
   const sourceCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null
+    null,
   );
   const tmdbPlaybackRequestIdRef = useRef(0);
 
@@ -451,7 +451,7 @@ function PlayPageClient() {
       if (sourceCloseTimerRef.current)
         clearTimeout(sourceCloseTimerRef.current);
     },
-    []
+    [],
   );
 
   useEffect(() => {
@@ -507,7 +507,7 @@ function PlayPageClient() {
   const [videoCover, setVideoCover] = useState('');
   // 当前源和ID
   const [currentSource, setCurrentSource] = useState(
-    searchParams.get('source') || ''
+    searchParams.get('source') || '',
   );
   const [currentId, setCurrentId] = useState(searchParams.get('id') || '');
 
@@ -517,7 +517,7 @@ function PlayPageClient() {
 
   // 是否需要优选
   const [needPrefer, setNeedPrefer] = useState(
-    searchParams.get('prefer') === 'true'
+    searchParams.get('prefer') === 'true',
   );
   const needPreferRef = useRef(needPrefer);
   useEffect(() => {
@@ -525,7 +525,7 @@ function PlayPageClient() {
   }, [needPrefer]);
   // 集数相关
   const [currentEpisodeIndex, setCurrentEpisodeIndex] = useState(
-    Math.max(0, initialTmdbEpisode - 1)
+    Math.max(0, initialTmdbEpisode - 1),
   );
 
   const currentSourceRef = useRef(currentSource);
@@ -551,7 +551,7 @@ function PlayPageClient() {
   useEffect(() => {
     const syncFullscreenState = () => {
       setIsPlayerFullscreen(
-        document.fullscreenElement === playerFrameRef.current
+        document.fullscreenElement === playerFrameRef.current,
       );
     };
 
@@ -620,7 +620,7 @@ function PlayPageClient() {
   const lastSaveTimeRef = useRef<number>(0);
 
   const tmdbDetailCacheRef = useRef<Map<string, TmdbPlayDetail | null>>(
-    new Map()
+    new Map(),
   );
   const tmdbDetailRequestIdRef = useRef(0);
 
@@ -630,7 +630,7 @@ function PlayPageClient() {
       .replace(/\s+/g, '')
       .replace(
         /[·?:：\-_.()[\]【】「」『』"'"'`~!@#$%^&*+={}\\/|<>?,;，。！？、]/g,
-        ''
+        '',
       );
 
   const normalizeYear = (value?: string): string => {
@@ -651,11 +651,11 @@ function PlayPageClient() {
     (value || '')
       .replace(
         /(?:制作)?特辑|特别篇|特别节目|幕后(?:花絮|纪录)?|花絮|纪录片|番外|衍生|先导片|访谈|彩蛋|制作幕后|制作花絮/gi,
-        ' '
+        ' ',
       )
       .replace(
         /\b(?:special|featurette|behind\s*the\s*scenes|making\s*of|extra|bonus|interview|documentary)\b/gi,
-        ' '
+        ' ',
       )
       .replace(/\s+/g, ' ')
       .trim();
@@ -717,14 +717,14 @@ function PlayPageClient() {
       base
         .replace(/\s*[：:]\s*/g, '')
         .replace(/\s*[-‐??–—]\s*/g, '')
-        .replace(/[·?]/g, '')
+        .replace(/[·?]/g, ''),
     );
 
     return Array.from(variants);
   };
 
   const inferTmdbMediaType = (
-    sourceDetail: SearchResult | null
+    sourceDetail: SearchResult | null,
   ): 'movie' | 'tv' => {
     const normalizedType = (searchType || '').trim().toLowerCase();
     if (normalizedType === 'tv') return 'tv';
@@ -735,7 +735,7 @@ function PlayPageClient() {
 
   const buildTmdbTitleCandidates = (
     sourceDetail: SearchResult | null,
-    mediaType: 'movie' | 'tv'
+    mediaType: 'movie' | 'tv',
   ): string[] => {
     const dedupe = new Set<string>();
     const candidates: string[] = [];
@@ -761,7 +761,7 @@ function PlayPageClient() {
       baseTitles.forEach((title) => {
         const strippedSeason = stripSeasonTokensForQuery(title);
         const strippedCore = stripSpecialTokensForQuery(
-          strippedSeason || title
+          strippedSeason || title,
         );
         if (strippedCore) {
           push(strippedCore);
@@ -788,7 +788,7 @@ function PlayPageClient() {
   };
 
   const fetchTmdbDetailByParams = async (
-    params: URLSearchParams
+    params: URLSearchParams,
   ): Promise<TmdbPlayDetail | null> => {
     try {
       params.set('tmdbLanguage', getCurrentTmdbLanguage());
@@ -838,7 +838,7 @@ function PlayPageClient() {
 
   const createSyntheticTmdbDetail = (
     resolved: PlayerResolveResponse,
-    detailData: TmdbPlayDetail | null
+    detailData: TmdbPlayDetail | null,
   ): SearchResult => {
     const title =
       detailData?.title ||
@@ -861,14 +861,14 @@ function PlayPageClient() {
         ? 1
         : Math.max(
             1,
-            resolved.seasonDetail?.episodeCount || resolved.episodeCount
+            resolved.seasonDetail?.episodeCount || resolved.episodeCount,
           );
     return {
       id: resolved.storageId,
       title,
       poster,
       episodes: Array.from({ length: episodeCount }, (_, index) =>
-        index + 1 === resolved.episode ? resolved.embedUrl : ''
+        index + 1 === resolved.episode ? resolved.embedUrl : '',
       ),
       total_episodes: episodeCount,
       source: 'tmdb',
@@ -883,7 +883,7 @@ function PlayPageClient() {
 
   const syncTmdbPlayerUrl = (
     resolved: PlayerResolveResponse,
-    detailData: TmdbPlayDetail | null
+    detailData: TmdbPlayDetail | null,
   ) => {
     if (typeof window === 'undefined') return;
 
@@ -893,7 +893,7 @@ function PlayPageClient() {
     newUrl.searchParams.set('provider', resolved.provider.id);
     newUrl.searchParams.set(
       'title',
-      detailData?.title || videoTitleRef.current || ''
+      detailData?.title || videoTitleRef.current || '',
     );
     if (detailData?.year || videoYearRef.current) {
       newUrl.searchParams.set('year', detailData?.year || videoYearRef.current);
@@ -901,7 +901,7 @@ function PlayPageClient() {
     if (detailData?.poster || videoCoverRef.current) {
       newUrl.searchParams.set(
         'poster',
-        detailData?.poster || videoCoverRef.current
+        detailData?.poster || videoCoverRef.current,
       );
     }
     if (detailData?.score) {
@@ -924,10 +924,10 @@ function PlayPageClient() {
 
   const getTmdbResolvedRuntimeSeconds = (
     resolved: PlayerResolveResponse,
-    detailData: TmdbPlayDetail | null
+    detailData: TmdbPlayDetail | null,
   ): number => {
     const episodeRuntime = resolved.seasonDetail?.episodes?.find(
-      (episode) => episode.episodeNumber === resolved.episode
+      (episode) => episode.episodeNumber === resolved.episode,
     )?.runtime;
     const runtimeMinutes =
       resolved.mediaType === 'tv'
@@ -938,7 +938,7 @@ function PlayPageClient() {
 
   const getTmdbResolvedHistoryImage = (
     resolved: PlayerResolveResponse,
-    detailData: TmdbPlayDetail | null
+    detailData: TmdbPlayDetail | null,
   ): string => {
     return (
       detailData?.backdrop || detailData?.poster || videoCoverRef.current || ''
@@ -948,7 +948,7 @@ function PlayPageClient() {
   const buildTmdbPlaybackRecord = (
     resolved: PlayerResolveResponse,
     detailData: TmdbPlayDetail | null,
-    progress: { playTime?: number; totalTime?: number } = {}
+    progress: { playTime?: number; totalTime?: number } = {},
   ): PlayRecord | null => {
     const title = (
       detailData?.title ||
@@ -962,7 +962,7 @@ function PlayPageClient() {
     const playTime = Math.max(0, Math.floor(progress.playTime || 0));
     const totalTime = Math.max(
       0,
-      Math.floor(progress.totalTime || runtimeSeconds || 0)
+      Math.floor(progress.totalTime || runtimeSeconds || 0),
     );
 
     return {
@@ -977,7 +977,7 @@ function PlayPageClient() {
               1,
               resolved.seasonDetail?.episodeCount ||
                 resolved.episodeCount ||
-                resolved.episode
+                resolved.episode,
             )
           : 1,
       play_time: playTime,
@@ -1084,7 +1084,7 @@ function PlayPageClient() {
   const saveTmdbPlaybackSnapshot = async (
     resolved: PlayerResolveResponse,
     detailData: TmdbPlayDetail | null,
-    options: { preserveExistingEpisode?: boolean } = {}
+    options: { preserveExistingEpisode?: boolean } = {},
   ) => {
     const storageId = resolved.storageId;
     if (!storageId) return;
@@ -1151,7 +1151,7 @@ function PlayPageClient() {
   const applyTmdbPlayback = (
     resolved: PlayerResolveResponse,
     detailData: TmdbPlayDetail | null,
-    options: { preserveExistingEpisode?: boolean } = {}
+    options: { preserveExistingEpisode?: boolean } = {},
   ) => {
     const syntheticDetail = createSyntheticTmdbDetail(resolved, detailData);
     const nextEpisodeIndex = Math.max(0, resolved.episode - 1);
@@ -1162,12 +1162,12 @@ function PlayPageClient() {
     setCurrentSeason(resolved.season);
     setPlayerProvider(resolved.provider.id);
     setTmdbEpisodes(
-      resolved.mediaType === 'tv' ? resolved.seasonDetail?.episodes || [] : []
+      resolved.mediaType === 'tv' ? resolved.seasonDetail?.episodes || [] : [],
     );
     tmdbEpisodesRequestIdRef.current += 1;
     setTmdbEpisodesLoading(false);
     setTmdbEpisodesFailed(
-      resolved.mediaType === 'tv' && !resolved.seasonDetail
+      resolved.mediaType === 'tv' && !resolved.seasonDetail,
     );
     setCurrentSource('tmdb');
     setCurrentId(resolved.storageId);
@@ -1179,8 +1179,8 @@ function PlayPageClient() {
     setPlayerEmbedUrl(
       addResumeParamsToEmbedUrl(
         resolved.embedUrl || '',
-        resumeTimeRef.current || 0
-      )
+        resumeTimeRef.current || 0,
+      ),
     );
     setNeedPrefer(false);
     syncTmdbPlayerUrl(resolved, detailData);
@@ -1230,17 +1230,17 @@ function PlayPageClient() {
     const nextMediaType = tmdbMediaTypeRef.current;
     const nextSeason = normalizePositiveInteger(
       input.season ?? currentSeasonRef.current,
-      1
+      1,
     );
     const nextEpisode =
       nextMediaType === 'tv'
         ? normalizePositiveInteger(
             input.episode ?? currentEpisodeIndexRef.current + 1,
-            1
+            1,
           )
         : 1;
     const nextProvider = normalizeTmdbPlayerProvider(
-      input.provider ?? playerProviderRef.current
+      input.provider ?? playerProviderRef.current,
     );
     if (nextProvider !== playerProviderRef.current) {
       await saveTmdbEmbedPlayProgress(true);
@@ -1273,21 +1273,21 @@ function PlayPageClient() {
       setError(
         err instanceof Error
           ? err.message
-          : t('play.failedToSwitchPlaybackSource')
+          : t('play.failedToSwitchPlaybackSource'),
       );
     }
   };
 
   const resolveTmdbDetailForCurrent = useCallback(
     async (
-      sourceDetail: SearchResult | null
+      sourceDetail: SearchResult | null,
     ): Promise<TmdbPlayDetail | null> => {
       const mediaType = inferTmdbMediaType(sourceDetail);
       const resolvedYear = normalizeYear(
-        sourceDetail?.year || videoYearRef.current
+        sourceDetail?.year || videoYearRef.current,
       );
       const normalizedTitle = normalizeQueryText(
-        sourceDetail?.title || videoTitleRef.current || searchTitle || ''
+        sourceDetail?.title || videoTitleRef.current || searchTitle || '',
       );
 
       if (
@@ -1330,18 +1330,18 @@ function PlayPageClient() {
 
       const titleCandidates = buildTmdbTitleCandidates(
         sourceDetail,
-        mediaType
+        mediaType,
       ).slice(0, 14);
       const yearCandidates = resolvedYear ? [resolvedYear, ''] : [''];
       const expectedTvTitle = normalizeCompareText(
         stripSpecialTokensForQuery(
           stripSeasonTokensForQuery(
-            sourceDetail?.title || videoTitleRef.current || searchTitle || ''
-          )
-        )
+            sourceDetail?.title || videoTitleRef.current || searchTitle || '',
+          ),
+        ),
       );
       const wantsSpecialTitle = isLikelySpecialTitle(
-        sourceDetail?.title || videoTitleRef.current || searchTitle || ''
+        sourceDetail?.title || videoTitleRef.current || searchTitle || '',
       );
       let fallbackSpecialResult: TmdbPlayDetail | null = null;
 
@@ -1359,8 +1359,8 @@ function PlayPageClient() {
               const resultTitle = result.title || '';
               const resultBase = normalizeCompareText(
                 stripSpecialTokensForQuery(
-                  stripSeasonTokensForQuery(resultTitle)
-                ) || resultTitle
+                  stripSeasonTokensForQuery(resultTitle),
+                ) || resultTitle,
               );
               const baseMatched =
                 Boolean(expectedTvTitle) &&
@@ -1389,7 +1389,7 @@ function PlayPageClient() {
       tmdbDetailCacheRef.current.set(cacheKey, null);
       return null;
     },
-    [searchTitle, searchType, videoCover]
+    [searchTitle, searchType, videoCover],
   );
 
   // Initialize playback from TMDB id. The old title aggregation flow is no longer used.
@@ -1448,7 +1448,9 @@ function PlayPageClient() {
         setLoading(false);
       } catch (err) {
         setError(
-          err instanceof Error ? err.message : t('play.failedToResolvePlayback')
+          err instanceof Error
+            ? err.message
+            : t('play.failedToResolvePlayback'),
         );
         setLoading(false);
         setIsVideoLoading(false);
@@ -1603,7 +1605,7 @@ function PlayPageClient() {
       () => {
         saveTmdbEmbedPlayProgress(false);
       },
-      process.env.NEXT_PUBLIC_STORAGE_TYPE === 'upstash' ? 20000 : 10000
+      process.env.NEXT_PUBLIC_STORAGE_TYPE === 'upstash' ? 20000 : 10000,
     );
 
     return () => {
@@ -1670,7 +1672,7 @@ function PlayPageClient() {
         const key = generateStorageKey(currentSource, currentId);
         const isFav = !!favorites[key];
         setFavorited(isFav);
-      }
+      },
     );
 
     return unsubscribe;
@@ -1846,7 +1848,7 @@ function PlayPageClient() {
 
     const buttonRect = button.getBoundingClientRect();
     const firstEpisodeRow = episodeListRef.current?.querySelector<HTMLElement>(
-      '[data-episode-row="true"]'
+      '[data-episode-row="true"]',
     );
     const rowRect = firstEpisodeRow?.getBoundingClientRect();
     const listRect = episodeListRef.current?.getBoundingClientRect();
@@ -1986,18 +1988,18 @@ function PlayPageClient() {
       (item) =>
         !(
           item.id === tmdbDetail?.id && item.mediaType === tmdbDetail?.mediaType
-        )
+        ),
     ) || [];
   const playBackground = tmdbDetail?.backdrop || tmdbDetail?.poster || '';
   const seasonOptions =
     tmdbMode && tmdbMediaType === 'tv'
       ? Array.from(
           { length: Math.max(1, tmdbDetail?.seasons || currentSeason || 1) },
-          (_, index) => index + 1
+          (_, index) => index + 1,
         )
       : [];
   const visibleTmdbEpisodes = [...tmdbEpisodes].sort(
-    (a, b) => a.episodeNumber - b.episodeNumber
+    (a, b) => a.episodeNumber - b.episodeNumber,
   );
   const currentTmdbEpisodeNumber = currentEpisodeIndex + 1;
   const formatEpisodeMeta = (episode: TmdbEpisodeItem): string => {
@@ -2016,8 +2018,8 @@ function PlayPageClient() {
                 month: 'short',
                 day: 'numeric',
                 year: 'numeric',
-              }
-            )
+              },
+            ),
       );
     }
     return chunks.join(' · ');
@@ -2247,7 +2249,7 @@ function PlayPageClient() {
                     {t(
                       tmdbEpisodesFailed
                         ? 'play.episodesLoadFailed'
-                        : 'play.noEpisodes'
+                        : 'play.noEpisodes',
                     )}
                   </p>
                   {tmdbEpisodesFailed ? (
@@ -2334,12 +2336,12 @@ function PlayPageClient() {
                 aria-label={t(
                   isPlayerFullscreen
                     ? 'play.exitFullscreen'
-                    : 'play.enterFullscreen'
+                    : 'play.enterFullscreen',
                 )}
                 title={t(
                   isPlayerFullscreen
                     ? 'play.exitFullscreen'
-                    : 'play.enterFullscreen'
+                    : 'play.enterFullscreen',
                 )}
                 onClick={() => void togglePlayerFullscreen()}
                 className='ui-glass-control cinema-player-fullscreen-mobile inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl'
@@ -2388,12 +2390,12 @@ function PlayPageClient() {
                     aria-label={t(
                       isPlayerFullscreen
                         ? 'play.exitFullscreen'
-                        : 'play.enterFullscreen'
+                        : 'play.enterFullscreen',
                     )}
                     title={t(
                       isPlayerFullscreen
                         ? 'play.exitFullscreen'
-                        : 'play.enterFullscreen'
+                        : 'play.enterFullscreen',
                     )}
                     onClick={() => void togglePlayerFullscreen()}
                     className='ui-glass-control cinema-player-fullscreen-trigger absolute right-3 top-3 z-[510] inline-flex h-10 w-10 items-center justify-center rounded-xl'
@@ -2507,7 +2509,7 @@ function PlayPageClient() {
                     <span className='ui-token-text-primary font-semibold'>
                       {
                         TMDB_PLAYER_PROVIDERS.find(
-                          (provider) => provider.id === playerProvider
+                          (provider) => provider.id === playerProvider,
                         )?.label
                       }
                     </span>
@@ -2856,7 +2858,7 @@ function PlayPageClient() {
                                   year: item.year,
                                   poster: item.poster,
                                   score: item.score,
-                                })
+                                }),
                               );
                             }}
                             className='group flex w-[132px] flex-shrink-0 flex-col text-left'
@@ -2986,7 +2988,7 @@ function PlayPageClient() {
                                   year: item.year,
                                   poster: item.poster,
                                   score: item.score,
-                                })
+                                }),
                               );
                             }}
                             className='group flex w-[132px] flex-shrink-0 flex-col text-left'
@@ -3045,7 +3047,7 @@ function PlayPageClient() {
                               onClick={scrollRecommendedLeft}
                               className='ui-glass-control flex h-12 w-12 items-center justify-center transition-transform hover:scale-105'
                               aria-label={t(
-                                'detail.showPreviousRecommendations'
+                                'detail.showPreviousRecommendations',
                               )}
                             >
                               <ChevronLeft className='h-6 w-6 text-gray-600 dark:text-gray-300' />
@@ -3184,7 +3186,7 @@ function PlayPageClient() {
                 })}
               </div>
             </div>,
-            document.body
+            document.body,
           )
         : null}
     </PageLayout>

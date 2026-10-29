@@ -25,9 +25,7 @@ export default function ReleaseYearBadge({
 
   const fullDate = normalizeReleaseDate(releaseDate);
   const tooltipClassName =
-    tooltipPlacement === 'bottom'
-      ? 'top-full mt-2'
-      : 'bottom-full mb-2';
+    tooltipPlacement === 'bottom' ? 'top-full mt-2' : 'bottom-full mb-2';
   const arrowClassName =
     tooltipPlacement === 'bottom'
       ? 'bottom-full border-b-4 border-b-gray-800'

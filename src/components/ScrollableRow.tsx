@@ -25,8 +25,12 @@ export default function ScrollableRow({
     const canScrollRight = scrollWidth - (scrollLeft + clientWidth) > threshold;
     const canScrollLeft = scrollLeft > threshold;
 
-    setShowRightScroll((prev) => (prev === canScrollRight ? prev : canScrollRight));
-    setShowLeftScroll((prev) => (prev === canScrollLeft ? prev : canScrollLeft));
+    setShowRightScroll((prev) =>
+      prev === canScrollRight ? prev : canScrollRight,
+    );
+    setShowLeftScroll((prev) =>
+      prev === canScrollLeft ? prev : canScrollLeft,
+    );
   }, []);
 
   const scheduleScrollCheck = useCallback(() => {

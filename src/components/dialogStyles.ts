@@ -1,8 +1,7 @@
 export const glassDialogContentClass =
   'ui-glass-dialog w-[min(92vw,24rem)] max-w-sm overflow-hidden p-6 text-zinc-100';
 
-export const glassDisclaimerDialogContentClass =
-  `${glassDialogContentClass} w-[min(93vw,25rem)] max-w-[25rem] p-5 sm:p-6`;
+export const glassDisclaimerDialogContentClass = `${glassDialogContentClass} w-[min(93vw,25rem)] max-w-[25rem] p-5 sm:p-6`;
 
 export const glassDialogDescriptionClass = 'text-zinc-300';
 

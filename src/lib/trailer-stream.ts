@@ -19,11 +19,11 @@ const qualityRank = (quality: string): number => {
 };
 
 export const pickBestMp4TrailerStream = (
-  streams: TrailerStream[]
+  streams: TrailerStream[],
 ): string | null => {
   const mp4 = streams.filter(
     (stream) =>
-      stream.mimeType.trim().toUpperCase() === 'MP4' && stream.url.length > 0
+      stream.mimeType.trim().toUpperCase() === 'MP4' && stream.url.length > 0,
   );
   if (mp4.length === 0) return null;
 
@@ -51,10 +51,10 @@ const isHlsStream = (stream: TrailerStream): boolean => {
 };
 
 export const pickBestHlsTrailerStream = (
-  streams: TrailerStream[]
+  streams: TrailerStream[],
 ): string | null => {
   const hls = streams.filter(
-    (stream) => isHlsStream(stream) && stream.url.length > 0
+    (stream) => isHlsStream(stream) && stream.url.length > 0,
   );
   if (hls.length === 0) return null;
 

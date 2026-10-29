@@ -117,17 +117,17 @@ services:
 
 ## Environment Variables
 
-| Variable                         | Description                                     | Accepted Values                          | Default                |
-| -------------------------------- | ----------------------------------------------- | ---------------------------------------- | ---------------------- |
-| `SITE_NAME`                      | Site name                                       | Any string                               | `Lumi`                 |
-| `ANNOUNCEMENT`                   | Site announcement                               | Any string                               | Built-in safety notice |
-| `NEXT_PUBLIC_STORAGE_TYPE`       | Server-side storage backend                     | `localstorage`, `redis`, `d1`, `upstash` | `localstorage`         |
-| `REDIS_URL`                      | Redis connection URL                            | Redis URL                                | Empty                  |
-| `UPSTASH_URL`                    | Upstash Redis REST URL                          | URL                                      | Empty                  |
-| `UPSTASH_TOKEN`                  | Upstash Redis token                             | Token                                    | Empty                  |
-| `TMDB_API_KEY`                   | Server-side TMDB API key                        | TMDB key                                 | Empty                  |
-| `NEXT_PUBLIC_TMDB_API_KEY`       | Client-side fallback TMDB API key               | TMDB key                                 | Empty                  |
-| `TMDB_API_BASE_URL`              | TMDB API proxy base URL                         | URL                                      | Official TMDB API      |
+| Variable                   | Description                       | Accepted Values                          | Default                |
+| -------------------------- | --------------------------------- | ---------------------------------------- | ---------------------- |
+| `SITE_NAME`                | Site name                         | Any string                               | `Lumi`                 |
+| `ANNOUNCEMENT`             | Site announcement                 | Any string                               | Built-in safety notice |
+| `NEXT_PUBLIC_STORAGE_TYPE` | Server-side storage backend       | `localstorage`, `redis`, `d1`, `upstash` | `localstorage`         |
+| `REDIS_URL`                | Redis connection URL              | Redis URL                                | Empty                  |
+| `UPSTASH_URL`              | Upstash Redis REST URL            | URL                                      | Empty                  |
+| `UPSTASH_TOKEN`            | Upstash Redis token               | Token                                    | Empty                  |
+| `TMDB_API_KEY`             | Server-side TMDB API key          | TMDB key                                 | Empty                  |
+| `NEXT_PUBLIC_TMDB_API_KEY` | Client-side fallback TMDB API key | TMDB key                                 | Empty                  |
+| `TMDB_API_BASE_URL`        | TMDB API proxy base URL           | URL                                      | Official TMDB API      |
 
 ## Personal Data
 

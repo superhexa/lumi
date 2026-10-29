@@ -68,7 +68,7 @@ interface RankedSectionProps {
   onOpenDetail: (item: RankedDiscoverItem, mediaType: TmdbMediaType) => void;
   onNavigateWithWarpLoading: (
     event: ReactMouseEvent<HTMLAnchorElement>,
-    href: string
+    href: string,
   ) => void;
 }
 
@@ -105,7 +105,7 @@ const MOVIE_TOP_RATED_CONFIG =
 
 const TV_TOP_RATED_CONFIG =
   TOP_RATED_CATEGORY_CONFIGS.find(
-    (item) => item.slug === 'top-rated-tvshows'
+    (item) => item.slug === 'top-rated-tvshows',
   ) ||
   ({
     slug: 'top-rated-tvshows',
@@ -121,7 +121,7 @@ const TV_TOP_RATED_CONFIG =
 
 const POPULAR_MOVIE_CONFIG =
   HOME_CURATED_CATEGORY_CONFIGS.find(
-    (item) => item.slug === 'popular-movies'
+    (item) => item.slug === 'popular-movies',
   ) ||
   ({
     slug: 'popular-movies',
@@ -142,7 +142,7 @@ function hasSeasonHint(value: string): boolean {
   if (!text.trim()) return false;
   return (
     /\u7b2c\s*[\u4e00\u4e8c\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d\u5341\u767e\u5343\u4e07\u4e24\d]+\s*\u5b63/.test(
-      text
+      text,
     ) || /(?:season|series|s)\s*0*\d{1,2}/i.test(text)
   );
 }
@@ -151,7 +151,7 @@ function stripSeasonHint(value: string): string {
   return (value || '')
     .replace(
       /\u7b2c\s*[\u4e00\u4e8c\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d\u5341\u767e\u5343\u4e07\u4e24\d]+\s*\u5b63/gi,
-      ' '
+      ' ',
     )
     .replace(/(?:season|series|s)\s*0*\d{1,2}/gi, ' ')
     .replace(/\s+/g, ' ')
@@ -200,14 +200,14 @@ function getRankedLogoContainerClass(aspectRatio?: number): string {
 }
 
 function getLogoLanguagePreferenceForMediaType(
-  _mediaType: TmdbMediaType
+  _mediaType: TmdbMediaType,
 ): LogoLanguagePreference {
   return 'en';
 }
 
 async function fetchDiscoverItems(
   query: URLSearchParams,
-  signal: AbortSignal
+  signal: AbortSignal,
 ): Promise<RankedDiscoverItem[]> {
   query.set('tmdbLanguage', getCurrentTmdbLanguage());
   const response = await fetch(`/api/tmdb/discover?${query.toString()}`, {
@@ -226,7 +226,7 @@ async function fetchTmdbDetailById(
   options?: {
     signal?: AbortSignal;
     logoLanguagePreference?: LogoLanguagePreference;
-  }
+  },
 ): Promise<TmdbDetailResponse> {
   return fetchTmdbDetailWithClientCache<TmdbDetailResponse>({
     id,
@@ -276,7 +276,7 @@ function RankedCard({
         <div className='absolute inset-x-4 bottom-4 z-10 flex items-end gap-3'>
           <span
             className={`w-10 text-5xl font-black tracking-tight tabular-nums leading-none bg-gradient-to-b bg-clip-text text-transparent ${getRankGradientClass(
-              rank
+              rank,
             )}`}
           >
             {rank}
@@ -285,7 +285,7 @@ function RankedCard({
             {item.logo ? (
               <div
                 className={`flex items-center justify-start rounded-md bg-transparent ${getRankedLogoContainerClass(
-                  item.logoAspectRatio
+                  item.logoAspectRatio,
                 )}`}
               >
                 <div className='relative h-full w-full'>
@@ -597,10 +597,10 @@ export default function TopRatedRankedRows({
     (
       id: string,
       mediaType: TmdbMediaType,
-      logoLanguagePreference: LogoLanguagePreference
+      logoLanguagePreference: LogoLanguagePreference,
     ) =>
       `${mediaType}:${logoLanguagePreference}:${getCurrentTmdbLanguage()}:${id}`,
-    []
+    [],
   );
 
   const applyLogoToList = useCallback(
@@ -608,12 +608,12 @@ export default function TopRatedRankedRows({
       id: string,
       mediaType: TmdbMediaType,
       logo?: string,
-      logoAspectRatio?: number
+      logoAspectRatio?: number,
     ) => {
       if (!logo) return;
       const updater = (prev: RankedDiscoverItem[]) =>
         prev.map((item) =>
-          item.id === id ? { ...item, logo, logoAspectRatio } : item
+          item.id === id ? { ...item, logo, logoAspectRatio } : item,
         );
 
       if (mediaType === 'movie') {
@@ -623,7 +623,7 @@ export default function TopRatedRankedRows({
       }
       setTvItems(updater);
     },
-    []
+    [],
   );
 
   const fetchRankedItems = useCallback(
@@ -631,7 +631,7 @@ export default function TopRatedRankedRows({
       try {
         const primary = await fetchDiscoverItems(
           buildCuratedCategoryQuery(config, 1, false),
-          signal
+          signal,
         );
         if (primary.length > 0) return primary;
       } catch {
@@ -642,7 +642,7 @@ export default function TopRatedRankedRows({
         try {
           return await fetchDiscoverItems(
             buildCuratedCategoryQuery(config, 1, true),
-            signal
+            signal,
           );
         } catch {
           return [];
@@ -651,14 +651,14 @@ export default function TopRatedRankedRows({
 
       return [];
     },
-    []
+    [],
   );
 
   const hydrateItemDetails = useCallback(
     async (
       items: RankedDiscoverItem[],
       mediaType: TmdbMediaType,
-      signal: AbortSignal
+      signal: AbortSignal,
     ) => {
       if (!items.length) return;
       const logoLanguagePreference =
@@ -688,7 +688,7 @@ export default function TopRatedRankedRows({
         applyLogoToList(id, mediaType, detail.logo, detail.logoAspectRatio);
       });
     },
-    [applyLogoToList, cacheKey]
+    [applyLogoToList, cacheKey],
   );
 
   const loadDetail = useCallback(
@@ -698,7 +698,7 @@ export default function TopRatedRankedRows({
       setDetailError(null);
 
       const logoLanguagePreference = getLogoLanguagePreferenceForMediaType(
-        target.mediaType
+        target.mediaType,
       );
       const key = cacheKey(target.id, target.mediaType, logoLanguagePreference);
       const cached = detailCacheRef.current.get(key);
@@ -709,7 +709,7 @@ export default function TopRatedRankedRows({
           target.id,
           target.mediaType,
           cached.logo,
-          cached.logoAspectRatio
+          cached.logoAspectRatio,
         );
         return;
       }
@@ -730,7 +730,7 @@ export default function TopRatedRankedRows({
           target.id,
           target.mediaType,
           detail.logo,
-          detail.logoAspectRatio
+          detail.logoAspectRatio,
         );
       } catch (error) {
         if (detailRequestIdRef.current !== requestId) return;
@@ -745,7 +745,7 @@ export default function TopRatedRankedRows({
         }
       }
     },
-    [applyLogoToList, cacheKey]
+    [applyLogoToList, cacheKey],
   );
 
   const handleOpenDetail = useCallback(
@@ -759,10 +759,10 @@ export default function TopRatedRankedRows({
           poster: item.poster,
           score: item.rate,
           logoLang: getLogoLanguagePreferenceForMediaType(mediaType),
-        })
+        }),
       );
     },
-    [router]
+    [router],
   );
 
   const handleRetryDetail = useCallback(() => {
@@ -790,7 +790,7 @@ export default function TopRatedRankedRows({
     async (
       title: string,
       year: string,
-      currentItem: ActiveRankedItem | null
+      currentItem: ActiveRankedItem | null,
     ): Promise<number> => {
       if (
         detailData?.mediaType === 'tv' &&
@@ -805,8 +805,8 @@ export default function TopRatedRankedRows({
         detailData?.mediaType === 'tv'
           ? String(detailData.id)
           : currentItem?.mediaType === 'tv'
-          ? currentItem.id
-          : '';
+            ? currentItem.id
+            : '';
 
       if (targetId) {
         try {
@@ -848,7 +848,7 @@ export default function TopRatedRankedRows({
         return 0;
       }
     },
-    [detailData]
+    [detailData],
   );
 
   const handleSeasonPick = useCallback(
@@ -865,10 +865,10 @@ export default function TopRatedRankedRows({
           poster: seasonPicker.backdrop || '',
           season,
           episode: 1,
-        })
+        }),
       );
     },
-    [handleCloseSeasonPicker, router, seasonPicker]
+    [handleCloseSeasonPicker, router, seasonPicker],
   );
 
   const handlePlayFromDetail = useCallback(async () => {
@@ -882,7 +882,7 @@ export default function TopRatedRankedRows({
       const seasonCount = await resolveSeasonCountForPlay(
         title,
         year,
-        activeItem
+        activeItem,
       );
       if (seasonCount > 1) {
         setDetailOpen(false);
@@ -910,7 +910,7 @@ export default function TopRatedRankedRows({
         score: detailData?.score || '',
         season: 1,
         episode: 1,
-      })
+      }),
     );
   }, [activeItem, detailData, resolveSeasonCountForPlay, router]);
 

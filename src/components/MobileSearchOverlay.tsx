@@ -102,9 +102,9 @@ export default function MobileSearchOverlay({
       try {
         const response = await fetch(
           `/api/tmdb/search?q=${encodeURIComponent(
-            trimmedQuery
+            trimmedQuery,
           )}&tmdbLanguage=${encodeURIComponent(getCurrentTmdbLanguage())}`,
-          { signal: controller.signal }
+          { signal: controller.signal },
         );
         if (!response.ok) {
           setResults([]);
@@ -140,7 +140,7 @@ export default function MobileSearchOverlay({
       onClose();
       router.push(`/search?q=${encodeURIComponent(normalizedKeyword)}`);
     },
-    [onClose, router]
+    [onClose, router],
   );
 
   const handleOpenDetail = useCallback(
@@ -158,10 +158,10 @@ export default function MobileSearchOverlay({
           year: normalizeYear(result.year),
           poster: result.poster,
           score: result.score,
-        })
+        }),
       );
     },
-    [onClose, query, router]
+    [onClose, query, router],
   );
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {

@@ -7,7 +7,6 @@ import {
 } from '@/lib/tmdb-language';
 import { normalizeReleaseDate } from '@/lib/tmdbRelease';
 
-
 const TMDB_API_BASE_URL = 'https://api.themoviedb.org/3';
 const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p';
 
@@ -119,7 +118,7 @@ function toScore(value?: number): string {
 
 function mapHeroItem(
   item: TmdbTrendingItem,
-  fallbackMediaType?: TmdbMediaType
+  fallbackMediaType?: TmdbMediaType,
 ): TmdbHeroItem | null {
   const mediaType: TmdbMediaType | null =
     fallbackMediaType ||
@@ -152,7 +151,7 @@ function mapHeroItem(
 
 function selectBestLogoPath(
   logos: TmdbLogoItem[],
-  tmdbLanguage: string
+  tmdbLanguage: string,
 ): string {
   if (!logos.length) return '';
 
@@ -174,7 +173,8 @@ function selectBestLogoPath(
   const sorted = logos
     .filter((logo) => logo.file_path)
     .sort((a, b) => {
-      const lp = getLanguagePriority(b.iso_639_1) - getLanguagePriority(a.iso_639_1);
+      const lp =
+        getLanguagePriority(b.iso_639_1) - getLanguagePriority(a.iso_639_1);
       if (lp !== 0) return lp;
       const vr = (b.vote_average || 0) - (a.vote_average || 0);
       if (vr !== 0) return vr;
@@ -189,7 +189,7 @@ async function fetchLogoForItem(
   id: number,
   apiKey: string,
   tmdbLanguage: string,
-  signal: AbortSignal
+  signal: AbortSignal,
 ): Promise<string> {
   try {
     const params = new URLSearchParams({
@@ -199,7 +199,7 @@ async function fetchLogoForItem(
 
     const response = await fetch(
       `${TMDB_API_BASE_URL}/${mediaType}/${id}/images?${params.toString()}`,
-      { signal }
+      { signal },
     );
 
     if (!response.ok) return '';
@@ -217,7 +217,7 @@ async function fetchHeroMetaForItem(
   id: number,
   apiKey: string,
   tmdbLanguage: string,
-  signal: AbortSignal
+  signal: AbortSignal,
 ): Promise<TmdbHeroMeta> {
   try {
     const params = new URLSearchParams({
@@ -227,7 +227,7 @@ async function fetchHeroMetaForItem(
 
     const response = await fetch(
       `${TMDB_API_BASE_URL}/${mediaType}/${id}?${params.toString()}`,
-      { signal }
+      { signal },
     );
     if (!response.ok) {
       return emptyHeroMeta();
@@ -243,7 +243,9 @@ async function fetchHeroMetaForItem(
       overview: (data.overview || '').trim(),
       year: toYear(data.release_date || data.first_air_date),
       score: toScore(data.vote_average),
-      releaseDate: normalizeReleaseDate(data.release_date || data.first_air_date),
+      releaseDate: normalizeReleaseDate(
+        data.release_date || data.first_air_date,
+      ),
       backdrop: data.backdrop_path
         ? `${TMDB_IMAGE_BASE_URL}/original${data.backdrop_path}`
         : '',
@@ -275,10 +277,7 @@ function normalizeWithGenres(value: string | null): string {
 }
 
 function normalizeWithOriginCountry(value: string | null): string {
-  return (value || '')
-    .trim()
-    .replace(/\s+/g, '')
-    .toUpperCase();
+  return (value || '').trim().replace(/\s+/g, '').toUpperCase();
 }
 
 function buildNoStoreHeaders(): HeadersInit {
@@ -297,15 +296,14 @@ export async function GET(request: Request) {
   const withGenres = normalizeWithGenres(searchParams.get('with_genres'));
   const withKeywords = normalizeWithGenres(searchParams.get('with_keywords'));
   const withOriginCountry = normalizeWithOriginCountry(
-    searchParams.get('with_origin_country')
+    searchParams.get('with_origin_country'),
   );
   const requireLogo = searchParams.get('requireLogo') === 'true';
   const tmdbLanguage = normalizeTmdbLanguage(searchParams.get('tmdbLanguage'));
   const generationLanguage = DEFAULT_TMDB_LANGUAGE;
 
   const apiKey =
-    process.env.TMDB_API_KEY ||
-    process.env.NEXT_PUBLIC_TMDB_API_KEY;
+    process.env.TMDB_API_KEY || process.env.NEXT_PUBLIC_TMDB_API_KEY;
 
   if (!apiKey) {
     return NextResponse.json(
@@ -313,7 +311,7 @@ export async function GET(request: Request) {
       {
         status: 200,
         headers: buildNoStoreHeaders(),
-      }
+      },
     );
   }
 
@@ -322,7 +320,7 @@ export async function GET(request: Request) {
 
   try {
     const shouldUseDiscover = Boolean(
-      withGenres || withKeywords || withOriginCountry
+      withGenres || withKeywords || withOriginCountry,
     );
     const discoverMediaType: TmdbMediaType =
       mediaFilter === 'movie' ? 'movie' : 'tv';
@@ -362,17 +360,17 @@ export async function GET(request: Request) {
         .filter((item) =>
           shouldUseDiscover
             ? true
-            : item.media_type === 'movie' || item.media_type === 'tv'
+            : item.media_type === 'movie' || item.media_type === 'tv',
         )
         .filter((item) =>
           shouldUseDiscover
             ? true
-            : mediaFilter === 'all' || item.media_type === mediaFilter
+            : mediaFilter === 'all' || item.media_type === mediaFilter,
         )
         .map((item) =>
           shouldUseDiscover
             ? mapHeroItem(item, discoverMediaType)
-            : mapHeroItem(item)
+            : mapHeroItem(item),
         )
         .filter((item): item is TmdbHeroItem => Boolean(item));
 
@@ -386,7 +384,7 @@ export async function GET(request: Request) {
     if (!firstPage) {
       return NextResponse.json(
         { results: [] },
-        { status: 200, headers: buildNoStoreHeaders() }
+        { status: 200, headers: buildNoStoreHeaders() },
       );
     }
 
@@ -398,7 +396,7 @@ export async function GET(request: Request) {
       const seenItems = new Set<string>();
       const maxPages = Math.min(
         firstPage.totalPages,
-        HERO_LOGO_SEARCH_PAGE_LIMIT
+        HERO_LOGO_SEARCH_PAGE_LIMIT,
       );
 
       for (let page = 1; page <= maxPages; page += 1) {
@@ -420,9 +418,9 @@ export async function GET(request: Request) {
               item.id,
               apiKey,
               tmdbLanguage,
-              controller.signal
+              controller.signal,
             ),
-          }))
+          })),
         );
 
         for (const { item, logo } of candidatesWithLogos) {
@@ -440,7 +438,7 @@ export async function GET(request: Request) {
     const results = await Promise.all(
       baseResults.map(async (item) => {
         const preloadedLogo = preloadedLogos.get(
-          `${item.mediaType}:${item.id}`
+          `${item.mediaType}:${item.id}`,
         );
         const [logo, meta] = await Promise.all([
           preloadedLogo
@@ -450,14 +448,14 @@ export async function GET(request: Request) {
                 item.id,
                 apiKey,
                 tmdbLanguage,
-                controller.signal
+                controller.signal,
               ),
           fetchHeroMetaForItem(
             item.mediaType,
             item.id,
             apiKey,
             tmdbLanguage,
-            controller.signal
+            controller.signal,
           ),
         ]);
         return {
@@ -474,19 +472,19 @@ export async function GET(request: Request) {
           episodes: meta.episodes,
           logo: logo || undefined,
         };
-      })
+      }),
     );
 
     return NextResponse.json(
       { results },
       {
         headers: buildNoStoreHeaders(),
-      }
+      },
     );
   } catch {
     return NextResponse.json(
       { results: [] },
-      { status: 200, headers: buildNoStoreHeaders() }
+      { status: 200, headers: buildNoStoreHeaders() },
     );
   } finally {
     clearTimeout(timeoutId);

@@ -239,7 +239,7 @@ function normalizeMediaType(value: string | null): TmdbMediaType {
 
 function normalizeLogoLanguagePreference(
   value: string | null,
-  tmdbLanguage?: string | null
+  tmdbLanguage?: string | null,
 ): LogoLanguagePreference {
   if (value === 'en' || value === 'zh') return value;
   return normalizeTmdbLanguage(tmdbLanguage) === 'zh-CN' ? 'zh' : 'en';
@@ -369,7 +369,7 @@ function containmentScore(a: string, b: string): number {
 
 function computeTitleSimilarity(
   sourceTitle: string,
-  targetTitle: string
+  targetTitle: string,
 ): number {
   const source = toCompactTitleForMatch(sourceTitle);
   const target = toCompactTitleForMatch(targetTitle);
@@ -478,7 +478,7 @@ function getMinimumSimilarityThreshold(title: string): number {
 
 function getBestSimilarityScore(
   queryVariants: string[],
-  candidateVariants: string[]
+  candidateVariants: string[],
 ): number {
   let best = 0;
   for (const queryVariant of queryVariants) {
@@ -492,11 +492,11 @@ function getBestSimilarityScore(
 
 function scoreSpecialFeaturePenalty(
   queryHasSeasonIntent: boolean,
-  candidateVariants: string[]
+  candidateVariants: string[],
 ): number {
   if (!queryHasSeasonIntent) return 0;
   const hasSpecialKeyword = candidateVariants.some((titleVariant) =>
-    SPECIAL_FEATURE_KEYWORD_PATTERN.test(titleVariant)
+    SPECIAL_FEATURE_KEYWORD_PATTERN.test(titleVariant),
   );
   return hasSpecialKeyword ? -0.26 : 0;
 }
@@ -595,7 +595,7 @@ function pickTrailerUrlFromRaw(raw: TmdbDetailRawResponse): string {
 
 function selectBestLogo(
   logos: TmdbLogoItem[],
-  logoLanguagePreference: LogoLanguagePreference
+  logoLanguagePreference: LogoLanguagePreference,
 ): { filePath: string; aspectRatio?: number } | null {
   if (!logos.length) return null;
 
@@ -631,11 +631,11 @@ function selectBestLogo(
     typeof best.aspect_ratio === 'number' && Number.isFinite(best.aspect_ratio)
       ? best.aspect_ratio
       : typeof best.width === 'number' &&
-        typeof best.height === 'number' &&
-        best.width > 0 &&
-        best.height > 0
-      ? best.width / best.height
-      : null;
+          typeof best.height === 'number' &&
+          best.width > 0 &&
+          best.height > 0
+        ? best.width / best.height
+        : null;
 
   return {
     filePath: best.file_path,
@@ -661,7 +661,7 @@ async function resolveTmdbTargetFromTitle(
   mediaType: TmdbMediaType,
   apiKey: string,
   tmdbLanguage: string,
-  signal: AbortSignal
+  signal: AbortSignal,
 ): Promise<{ id: number; mediaType: TmdbMediaType } | null> {
   const queryHasSeasonIntent = hasSeasonIntent(title);
   const primaryMediaType: TmdbMediaType = queryHasSeasonIntent
@@ -705,7 +705,7 @@ async function resolveTmdbTargetFromTitle(
       if (attempt.year && attempt.endpoint !== 'multi') {
         params.set(
           attempt.endpoint === 'movie' ? 'year' : 'first_air_date_year',
-          attempt.year
+          attempt.year,
         );
       }
 
@@ -719,7 +719,7 @@ async function resolveTmdbTargetFromTitle(
             headers: {
               Accept: 'application/json',
             },
-          }
+          },
         );
         if (!response.ok) continue;
 
@@ -749,12 +749,12 @@ async function resolveTmdbTargetFromTitle(
 
           const titleScore = getBestSimilarityScore(
             queryVariants,
-            candidateVariants
+            candidateVariants,
           );
           if (titleScore <= 0) continue;
 
           const candidateYear = toYear(
-            candidate.release_date || candidate.first_air_date
+            candidate.release_date || candidate.first_air_date,
           );
           const finalScore =
             titleScore +
@@ -790,7 +790,7 @@ async function fetchTmdbDetailRaw(
   id: number,
   apiKey: string,
   tmdbLanguage: string,
-  signal: AbortSignal
+  signal: AbortSignal,
 ): Promise<TmdbDetailRawResponse | null> {
   const appendToResponse =
     mediaType === 'movie'
@@ -815,7 +815,7 @@ async function fetchTmdbDetailRaw(
         headers: {
           Accept: 'application/json',
         },
-      }
+      },
     );
     if (!response.ok) return null;
     return (await response.json()) as TmdbDetailRawResponse;
@@ -828,7 +828,7 @@ async function fetchTmdbCollectionRaw(
   id: number,
   apiKey: string,
   tmdbLanguage: string,
-  signal: AbortSignal
+  signal: AbortSignal,
 ): Promise<TmdbCollectionRawResponse | null> {
   const params = new URLSearchParams({
     api_key: apiKey,
@@ -843,7 +843,7 @@ async function fetchTmdbCollectionRaw(
         headers: {
           Accept: 'application/json',
         },
-      }
+      },
     );
     if (!response.ok) return null;
     return (await response.json()) as TmdbCollectionRawResponse;
@@ -863,7 +863,7 @@ function mapRawDetailToResponse(
     fallbackPoster: string;
     fallbackScore: string;
     collectionRaw?: TmdbCollectionRawResponse | null;
-  }
+  },
 ): TmdbDetailResponse {
   const normalizedMovieCast = (raw.credits?.cast || []).map((member) => ({
     id: member.id ?? 0,
@@ -879,7 +879,7 @@ function mapRawDetailToResponse(
       ).reduce<TmdbDetailRawAggregateRole>(
         (best, role) =>
           (role.episode_count || 0) > (best.episode_count || 0) ? role : best,
-        {}
+        {},
       );
 
       return {
@@ -888,7 +888,7 @@ function mapRawDetailToResponse(
         character: (primaryRole.character || '').trim(),
         profile: toImageUrl(member.profile_path, 'w185'),
       };
-    }
+    },
   );
 
   const castSource =
@@ -915,8 +915,8 @@ function mapRawDetailToResponse(
   const normalizedTvAggregateDirectors = (raw.aggregate_credits?.crew || [])
     .filter((member) =>
       (member.jobs || []).some(
-        (job) => job.job?.trim().toLowerCase() === 'director'
-      )
+        (job) => job.job?.trim().toLowerCase() === 'director',
+      ),
     )
     .map((member) => ({
       id: member.id ?? 0,
@@ -943,12 +943,12 @@ function mapRawDetailToResponse(
 
   const runtime =
     input.mediaType === 'movie'
-      ? raw.runtime ?? null
-      : raw.episode_run_time?.[0] ?? null;
+      ? (raw.runtime ?? null)
+      : (raw.episode_run_time?.[0] ?? null);
 
   const selectedLogo = selectBestLogo(
     raw.images?.logos || [],
-    input.logoLanguagePreference
+    input.logoLanguagePreference,
   );
   const recommendations = (raw.recommendations?.results || [])
     .slice(0, 24)
@@ -982,7 +982,7 @@ function mapRawDetailToResponse(
     })
     .filter(
       (
-        item
+        item,
       ): item is {
         id: number;
         mediaType: TmdbMediaType;
@@ -992,7 +992,7 @@ function mapRawDetailToResponse(
         year: string;
         score: string;
         voteCount: number;
-      } => Boolean(item)
+      } => Boolean(item),
     );
 
   const collectionSource = input.collectionRaw || raw.belongs_to_collection;
@@ -1020,7 +1020,7 @@ function mapRawDetailToResponse(
       })
       .filter(
         (
-          item
+          item,
         ): item is {
           id: number;
           mediaType: 'movie';
@@ -1030,7 +1030,7 @@ function mapRawDetailToResponse(
           year: string;
           score: string;
           voteCount: number;
-        } => Boolean(item)
+        } => Boolean(item),
       )
       .sort((a, b) => {
         const ay = Number(a.year || 0);
@@ -1100,7 +1100,7 @@ export async function GET(request: Request) {
   const fallbackPoster = (searchParams.get('poster') || '').trim();
   const fallbackScore = (searchParams.get('score') || '').trim();
   const mediaType = normalizeMediaType(
-    searchParams.get('mediaType') || searchParams.get('type')
+    searchParams.get('mediaType') || searchParams.get('type'),
   );
   const logoLanguageParam =
     searchParams.get('logoLang') ||
@@ -1109,7 +1109,7 @@ export async function GET(request: Request) {
   const tmdbLanguage = normalizeTmdbLanguage(searchParams.get('tmdbLanguage'));
   let logoLanguagePreference = normalizeLogoLanguagePreference(
     logoLanguageParam,
-    tmdbLanguage
+    tmdbLanguage,
   );
 
   const rawId = Number(searchParams.get('id'));
@@ -1118,7 +1118,7 @@ export async function GET(request: Request) {
   if (!hasValidId && !title) {
     return NextResponse.json(
       { error: 'missing id or title parameter' },
-      { status: 400, headers: buildNoStoreHeaders() }
+      { status: 400, headers: buildNoStoreHeaders() },
     );
   }
 
@@ -1128,14 +1128,14 @@ export async function GET(request: Request) {
   if (!apiKey) {
     return NextResponse.json(
       { error: 'tmdb api key missing' },
-      { status: 500, headers: buildNoStoreHeaders() }
+      { status: 500, headers: buildNoStoreHeaders() },
     );
   }
 
   const controller = new AbortController();
   const timeoutId = setTimeout(
     () => controller.abort(),
-    DETAIL_REQUEST_TIMEOUT_MS
+    DETAIL_REQUEST_TIMEOUT_MS,
   );
 
   try {
@@ -1149,19 +1149,19 @@ export async function GET(request: Request) {
         mediaType,
         apiKey,
         tmdbLanguage,
-        controller.signal
+        controller.signal,
       );
       if (!resolved) {
         return NextResponse.json(
           { error: 'tmdb detail not found' },
-          { status: 404, headers: buildNoStoreHeaders() }
+          { status: 404, headers: buildNoStoreHeaders() },
         );
       }
       resolvedId = resolved.id;
       resolvedMediaType = resolved.mediaType;
       logoLanguagePreference = normalizeLogoLanguagePreference(
         logoLanguageParam,
-        tmdbLanguage
+        tmdbLanguage,
       );
     }
 
@@ -1170,13 +1170,13 @@ export async function GET(request: Request) {
       resolvedId,
       apiKey,
       tmdbLanguage,
-      controller.signal
+      controller.signal,
     );
 
     if (!rawDetail) {
       return NextResponse.json(
         { error: 'tmdb detail request failed' },
-        { status: 502, headers: buildNoStoreHeaders() }
+        { status: 502, headers: buildNoStoreHeaders() },
       );
     }
 
@@ -1191,7 +1191,7 @@ export async function GET(request: Request) {
       if (similarity < minSimilarity) {
         return NextResponse.json(
           { error: 'tmdb detail not found' },
-          { status: 404, headers: buildNoStoreHeaders() }
+          { status: 404, headers: buildNoStoreHeaders() },
         );
       }
     }
@@ -1205,7 +1205,7 @@ export async function GET(request: Request) {
             collectionId,
             apiKey,
             tmdbLanguage,
-            controller.signal
+            controller.signal,
           )
         : null;
 
@@ -1224,7 +1224,7 @@ export async function GET(request: Request) {
   } catch {
     return NextResponse.json(
       { error: 'tmdb detail request failed' },
-      { status: 500, headers: buildNoStoreHeaders() }
+      { status: 500, headers: buildNoStoreHeaders() },
     );
   } finally {
     clearTimeout(timeoutId);
