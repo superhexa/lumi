@@ -22,7 +22,7 @@ export function parseStorageKey(key: string): { source: string; id: string } {
 }
 
 export function parseTmdbStorageId(
-  id: string
+  id: string,
 ): { tmdbId: string; season: number | null } | null {
   const match = (id || '').trim().match(/^(\d+)(?::s(\d+))?$/i);
   if (!match) return null;
@@ -38,16 +38,16 @@ export function isTmdbHistoryKey(key: string): boolean {
 }
 
 export function filterTmdbHistoryRecords<T>(
-  records: Record<string, T>
+  records: Record<string, T>,
 ): Record<string, T> {
   return Object.fromEntries(
-    Object.entries(records).filter(([key]) => isTmdbHistoryKey(key))
+    Object.entries(records).filter(([key]) => isTmdbHistoryKey(key)),
   );
 }
 
 export function buildTmdbHistoryPlayUrl(
   key: string,
-  record: WatchRecordLike
+  record: WatchRecordLike,
 ): string {
   const { id } = parseStorageKey(key);
   const parsed = parseTmdbStorageId(id);
@@ -78,7 +78,7 @@ export function buildTmdbHistoryPlayUrl(
 export function formatTmdbHistorySubtitle(
   key: string,
   record: WatchRecordLike,
-  t?: (key: string, options?: Record<string, unknown>) => string
+  t?: (key: string, options?: Record<string, unknown>) => string,
 ): string {
   const { source, id } = parseStorageKey(key);
   const parsed = source === 'tmdb' ? parseTmdbStorageId(id) : null;

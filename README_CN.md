@@ -66,16 +66,16 @@ Docker、Vercel、Cloudflare Workers、存储后端和环境变量相关说明�
 
 ## 技术栈
 
-| 领域             | 主要依赖                                                                  |
-| ---------------- | ------------------------------------------------------------------------- |
-| 框架             | [Next.js 15](https://nextjs.org/) App Router                              |
-| UI 和样式        | [Tailwind CSS 3](https://tailwindcss.com/)、next-themes、Framer Motion    |
-| 语言             | TypeScript 5                                                              |
-| 数据和存储       | localStorage、Redis、Cloudflare D1、Upstash Redis                         |
-| 个人数据         | 使用浏览器 localStorage 保存收藏、搜索历史和观看进度                      |
-| 内容增强         | TMDB API、分类内容源、图片代理                                            |
-| 代码质量         | ESLint、Prettier、Jest                                                    |
-| 部署             | Docker、Vercel、Cloudflare Workers、OpenNext                              |
+| 领域       | 主要依赖                                                               |
+| ---------- | ---------------------------------------------------------------------- |
+| 框架       | [Next.js 15](https://nextjs.org/) App Router                           |
+| UI 和样式  | [Tailwind CSS 3](https://tailwindcss.com/)、next-themes、Framer Motion |
+| 语言       | TypeScript 5                                                           |
+| 数据和存储 | localStorage、Redis、Cloudflare D1、Upstash Redis                      |
+| 个人数据   | 使用浏览器 localStorage 保存收藏、搜索历史和观看进度                   |
+| 内容增强   | TMDB API、分类内容源、图片代理                                         |
+| 代码质量   | ESLint、Prettier、Jest                                                 |
+| 部署       | Docker、Vercel、Cloudflare Workers、OpenNext                           |
 
 ## 许可证
 

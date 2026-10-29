@@ -165,8 +165,12 @@
     color: rgb(228 228 231);
     backdrop-filter: blur(var(--ui-blur-glass));
     -webkit-backdrop-filter: blur(var(--ui-blur-glass));
-    transition: background-color 160ms ease, border-color 160ms ease,
-      color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+    transition:
+      background-color 160ms ease,
+      border-color 160ms ease,
+      color 160ms ease,
+      box-shadow 160ms ease,
+      transform 160ms ease;
   }
 
   .ui-glass-control:hover,
@@ -190,8 +194,11 @@
     color: rgb(228 228 231);
     backdrop-filter: blur(var(--ui-blur-glass));
     -webkit-backdrop-filter: blur(var(--ui-blur-glass));
-    transition: background-color 160ms ease, border-color 160ms ease,
-      color 160ms ease, box-shadow 160ms ease;
+    transition:
+      background-color 160ms ease,
+      border-color 160ms ease,
+      color 160ms ease,
+      box-shadow 160ms ease;
   }
 
   .ui-glass-pill:hover,
@@ -262,7 +269,9 @@
 
   .ui-glass-row {
     border-radius: var(--ui-radius-row);
-    transition: background-color 160ms ease, color 160ms ease;
+    transition:
+      background-color 160ms ease,
+      color 160ms ease;
   }
 
   .ui-glass-row:focus-visible {
@@ -289,7 +298,9 @@
     border-radius: var(--ui-radius-input);
     background: var(--ui-glass-input-bg);
     color: rgb(244 244 245);
-    transition: background-color 160ms ease, border-color 160ms ease,
+    transition:
+      background-color 160ms ease,
+      border-color 160ms ease,
       box-shadow 160ms ease;
   }
 
@@ -314,7 +325,9 @@
     border-radius: 8px;
     background: var(--ui-glass-shortcut-bg);
     color: rgb(212 212 216);
-    transition: background-color 160ms ease, border-color 160ms ease,
+    transition:
+      background-color 160ms ease,
+      border-color 160ms ease,
       color 160ms ease;
   }
 

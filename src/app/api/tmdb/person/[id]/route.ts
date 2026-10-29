@@ -106,13 +106,14 @@ function toTimestamp(value?: string): number {
 
 function mapCredit(raw: TmdbCreditRaw): PersonCredit | null {
   if (!Number.isInteger(raw.id) || !raw.id) return null;
-  const mediaType = raw.media_type === 'movie' || raw.media_type === 'tv'
-    ? raw.media_type
-    : null;
+  const mediaType =
+    raw.media_type === 'movie' || raw.media_type === 'tv'
+      ? raw.media_type
+      : null;
   if (!mediaType) return null;
 
   const title = normalizeText(
-    raw.title || raw.name || raw.original_title || raw.original_name
+    raw.title || raw.name || raw.original_title || raw.original_name,
   );
   if (!title) return null;
 
@@ -165,19 +166,18 @@ function mergeAndSortCredits(raw: TmdbPersonRaw): PersonCredit[] {
     }
   }
 
-  return Array.from(mergedMap.values())
-    .sort((a, b) => {
-      const popularityDiff = b.popularity - a.popularity;
-      if (popularityDiff !== 0) return popularityDiff;
-      const dateDiff = toTimestamp(b.releaseDate) - toTimestamp(a.releaseDate);
-      if (dateDiff !== 0) return dateDiff;
-      return b.id - a.id;
-    });
+  return Array.from(mergedMap.values()).sort((a, b) => {
+    const popularityDiff = b.popularity - a.popularity;
+    if (popularityDiff !== 0) return popularityDiff;
+    const dateDiff = toTimestamp(b.releaseDate) - toTimestamp(a.releaseDate);
+    if (dateDiff !== 0) return dateDiff;
+    return b.id - a.id;
+  });
 }
 
 export async function GET(
   request: Request,
-  context: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> },
 ) {
   const { searchParams } = new URL(request.url);
   const tmdbLanguage = normalizeTmdbLanguage(searchParams.get('tmdbLanguage'));
@@ -188,23 +188,25 @@ export async function GET(
   if (!id) {
     return NextResponse.json(
       { error: 'invalid person id' },
-      { status: 400, headers: buildNoStoreHeaders() }
+      { status: 400, headers: buildNoStoreHeaders() },
     );
   }
 
   const apiKey =
-    process.env.TMDB_API_KEY ||
-    process.env.NEXT_PUBLIC_TMDB_API_KEY;
+    process.env.TMDB_API_KEY || process.env.NEXT_PUBLIC_TMDB_API_KEY;
 
   if (!apiKey) {
     return NextResponse.json(
       { error: 'tmdb api key missing' },
-      { status: 500, headers: buildNoStoreHeaders() }
+      { status: 500, headers: buildNoStoreHeaders() },
     );
   }
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), TMDB_REQUEST_TIMEOUT_MS);
+  const timeoutId = setTimeout(
+    () => controller.abort(),
+    TMDB_REQUEST_TIMEOUT_MS,
+  );
 
   try {
     const params = new URLSearchParams({
@@ -214,13 +216,13 @@ export async function GET(
     });
     const response = await fetch(
       `${TMDB_API_BASE_URL}/person/${id}?${params.toString()}`,
-      { signal: controller.signal }
+      { signal: controller.signal },
     );
 
     if (!response.ok) {
       return NextResponse.json(
         { error: 'tmdb person request failed' },
-        { status: response.status, headers: buildNoStoreHeaders() }
+        { status: response.status, headers: buildNoStoreHeaders() },
       );
     }
 
@@ -229,14 +231,16 @@ export async function GET(
     if (!name) {
       return NextResponse.json(
         { error: 'person not found' },
-        { status: 404, headers: buildNoStoreHeaders() }
+        { status: 404, headers: buildNoStoreHeaders() },
       );
     }
 
     const payload: PersonDetailPayload = {
       id,
       name,
-      profile: raw.profile_path ? `${TMDB_IMAGE_BASE_URL}${raw.profile_path}` : '',
+      profile: raw.profile_path
+        ? `${TMDB_IMAGE_BASE_URL}${raw.profile_path}`
+        : '',
       birthday: normalizeText(raw.birthday),
       deathday: normalizeText(raw.deathday),
       placeOfBirth: normalizeText(raw.place_of_birth),
@@ -254,7 +258,7 @@ export async function GET(
   } catch {
     return NextResponse.json(
       { error: 'tmdb person request failed' },
-      { status: 500, headers: buildNoStoreHeaders() }
+      { status: 500, headers: buildNoStoreHeaders() },
     );
   } finally {
     clearTimeout(timeoutId);

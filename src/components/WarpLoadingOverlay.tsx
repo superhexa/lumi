@@ -257,7 +257,7 @@ export default function WarpLoadingOverlay({
     <StyledWrapper
       className={cn(
         'fixed inset-0 z-[2000] overflow-hidden bg-black',
-        className
+        className,
       )}
     >
       <div aria-hidden='true' className='matrix-container'>

@@ -102,7 +102,7 @@ type ImdbVideoStrip = {
 async function imdbGraphql<T>(
   operationName: string,
   query: string,
-  variables: Record<string, unknown>
+  variables: Record<string, unknown>,
 ): Promise<T> {
   const response = await fetch(IMDB_GRAPHQL_URL, {
     method: 'POST',
@@ -162,7 +162,7 @@ async function listImdbTrailers(imdbId: string): Promise<ImdbVideoNode[]> {
     const page = await imdbGraphql<{ title?: { videoStrip?: ImdbVideoStrip } }>(
       'TitleVideoGalleryPagination',
       TITLE_VIDEO_GALLERY_PAGINATION_QUERY,
-      { ...variables, after: cursor }
+      { ...variables, after: cursor },
     );
     strip = page.title?.videoStrip;
     if (strip?.edges) {
@@ -220,13 +220,13 @@ const scoreTrailer = (video: ImdbVideoNode): number => {
 };
 
 export const selectBestImdbTrailerId = (
-  videos: readonly ImdbVideoNode[]
+  videos: readonly ImdbVideoNode[],
 ): string | null => {
   const trailers = videos.filter(
     (video) =>
       video.id &&
       video.contentType?.id === TRAILER_CONTENT_TYPE &&
-      (video.runtime?.value ?? 0) > 0
+      (video.runtime?.value ?? 0) > 0,
   );
 
   if (trailers.length === 0) return null;
@@ -263,7 +263,7 @@ const definitionToQuality = (definition: string): string => {
 };
 
 async function fetchImdbPlaybackStreams(
-  videoId: string
+  videoId: string,
 ): Promise<TrailerStream[]> {
   const data = await imdbGraphql<{
     video?: {
@@ -286,7 +286,7 @@ async function fetchImdbPlaybackStreams(
 }
 
 export async function fetchImdbTrailerStreams(
-  imdbId: string
+  imdbId: string,
 ): Promise<TrailerStream[]> {
   const videos = await listImdbTrailers(imdbId);
   const videoId = selectBestImdbTrailerId(videos);

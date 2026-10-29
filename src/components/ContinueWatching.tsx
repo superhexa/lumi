@@ -73,7 +73,7 @@ const historyBackdropCache = new Map<string, HistoryImageEntry>();
 const historyBackdropPending = new Map<string, Promise<HistoryImageEntry>>();
 
 function inferTmdbMediaType(
-  record: PlayRecord & { key: string }
+  record: PlayRecord & { key: string },
 ): TmdbDetailMediaType {
   const { id } = parseStorageKey(record.key);
   const parsed = parseTmdbStorageId(id);
@@ -82,14 +82,14 @@ function inferTmdbMediaType(
 }
 
 function getOppositeMediaType(
-  mediaType: TmdbDetailMediaType
+  mediaType: TmdbDetailMediaType,
 ): TmdbDetailMediaType {
   return mediaType === 'movie' ? 'tv' : 'movie';
 }
 
 function buildHistoryBackdropCacheKey(
   record: PlayRecord & { key: string },
-  tmdbLanguage: string
+  tmdbLanguage: string,
 ) {
   return [
     tmdbLanguage,
@@ -125,7 +125,7 @@ async function fetchHistoryBackdropByRequest(input: {
 
 async function fetchHistoryBackdrop(
   record: PlayRecord & { key: string },
-  tmdbLanguage: string
+  tmdbLanguage: string,
 ): Promise<HistoryImageEntry> {
   const fallbackImage = (record.cover || '').trim();
   const fallbackTitle = (record.title || record.search_title || '').trim();
@@ -191,7 +191,7 @@ async function fetchHistoryBackdrop(
 
 function resolveHistoryBackdrop(
   record: PlayRecord & { key: string },
-  tmdbLanguage: string
+  tmdbLanguage: string,
 ) {
   const cacheKey = buildHistoryBackdropCacheKey(record, tmdbLanguage);
   const cached = historyBackdropCache.get(cacheKey);
@@ -245,14 +245,14 @@ export default function ContinueWatching({ className }: ContinueWatchingProps) {
 
   const updatePlayRecords = (allRecords: Record<string, PlayRecord>) => {
     const recordsArray = Object.entries(
-      filterTmdbHistoryRecords(allRecords)
+      filterTmdbHistoryRecords(allRecords),
     ).map(([key, record]) => ({
       ...record,
       key,
     }));
 
     const sortedRecords = recordsArray.sort(
-      (a, b) => b.save_time - a.save_time
+      (a, b) => b.save_time - a.save_time,
     );
     setPlayRecords(sortedRecords);
   };
@@ -277,7 +277,7 @@ export default function ContinueWatching({ className }: ContinueWatchingProps) {
       'playRecordsUpdated',
       (newRecords: Record<string, PlayRecord>) => {
         updatePlayRecords(newRecords);
-      }
+      },
     );
 
     return unsubscribe;
@@ -317,7 +317,7 @@ export default function ContinueWatching({ className }: ContinueWatchingProps) {
     let nextIndex = 0;
     const workerCount = Math.min(
       HISTORY_BACKDROP_RESOLVE_CONCURRENCY,
-      unresolvedRecords.length
+      unresolvedRecords.length,
     );
 
     const runWorker = async () => {
@@ -395,7 +395,7 @@ export default function ContinueWatching({ className }: ContinueWatchingProps) {
         longPressTimerRef.current = null;
       }, LONG_PRESS_DURATION_MS);
     },
-    [clearLongPressTimer, isBatchMode]
+    [clearLongPressTimer, isBatchMode],
   );
 
   const handleLongPressEnd = useCallback(() => {
@@ -409,7 +409,7 @@ export default function ContinueWatching({ className }: ContinueWatchingProps) {
       event.stopPropagation();
       suppressCardClickRef.current = false;
     },
-    []
+    [],
   );
 
   const handleConfirmDelete = async () => {
@@ -420,10 +420,10 @@ export default function ContinueWatching({ className }: ContinueWatchingProps) {
         targets.map((item) => {
           const { source, id } = parseStorageKey(item.key);
           return deletePlayRecord(source, id);
-        })
+        }),
       );
       setPlayRecords((prev) =>
-        prev.filter((item) => !selectedKeys.has(item.key))
+        prev.filter((item) => !selectedKeys.has(item.key)),
       );
       setSelectedKeys(new Set());
       setIsBatchMode(false);
@@ -498,7 +498,7 @@ export default function ContinueWatching({ className }: ContinueWatchingProps) {
                   const isSelected = selectedKeys.has(record.key);
                   const cacheKey = buildHistoryBackdropCacheKey(
                     record,
-                    tmdbLanguage
+                    tmdbLanguage,
                   );
                   const resolvedImage = historyImageByKey[record.key];
                   const title =
@@ -514,7 +514,7 @@ export default function ContinueWatching({ className }: ContinueWatchingProps) {
                       subtitle={formatTmdbHistorySubtitle(
                         record.key,
                         record,
-                        t
+                        t,
                       )}
                       poster={
                         resolvedImage?.cacheKey === cacheKey
@@ -526,7 +526,7 @@ export default function ContinueWatching({ className }: ContinueWatchingProps) {
                       batchMode={isBatchMode}
                       onClick={() =>
                         navigateWithWarpLoading(
-                          buildTmdbHistoryPlayUrl(record.key, record)
+                          buildTmdbHistoryPlayUrl(record.key, record),
                         )
                       }
                       onToggleSelection={() => toggleSelection(record.key)}

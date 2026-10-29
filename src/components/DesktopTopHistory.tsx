@@ -77,7 +77,7 @@ function getTmdbNumericId(record: PlayHistoryItem): string {
 
 function formatRelativeTime(
   timestamp: number,
-  t: (key: string, options?: Record<string, unknown>) => string
+  t: (key: string, options?: Record<string, unknown>) => string,
 ): string {
   if (!Number.isFinite(timestamp) || timestamp <= 0) {
     return '';
@@ -105,7 +105,7 @@ function formatRelativeTime(
 
 function formatProgress(
   record: PlayHistoryItem,
-  t: (key: string, options?: Record<string, unknown>) => string
+  t: (key: string, options?: Record<string, unknown>) => string,
 ): string {
   const totalEpisodes = Math.max(0, Number(record.total_episodes || 0));
   const currentEpisode = Math.max(0, Number(record.index || 0));
@@ -143,7 +143,7 @@ export default function DesktopTopHistory() {
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<PlayHistoryItem | null>(
-    null
+    null,
   );
   const [items, setItems] = useState<PlayHistoryItem[]>([]);
   const [localizedDisplayByKey, setLocalizedDisplayByKey] = useState<
@@ -187,7 +187,7 @@ export default function DesktopTopHistory() {
       'playRecordsUpdated',
       (records: Record<string, PlayRecord>) => {
         updateRecords(records);
-      }
+      },
     );
 
     return () => {
@@ -260,7 +260,7 @@ export default function DesktopTopHistory() {
           } finally {
             localizedHistoryPending.delete(`${tmdbLanguage}:${item.key}`);
           }
-        })
+        }),
       );
 
       if (cancelled) return;
@@ -307,7 +307,7 @@ export default function DesktopTopHistory() {
         },
       });
     },
-    [navigateWithWarpLoading]
+    [navigateWithWarpLoading],
   );
 
   const clearCloseTimer = useCallback(() => {

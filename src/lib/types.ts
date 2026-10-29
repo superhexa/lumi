@@ -37,7 +37,7 @@ export interface IStorage {
   setPlayRecord(
     userName: string,
     key: string,
-    record: PlayRecord
+    record: PlayRecord,
   ): Promise<void>;
   getAllPlayRecords(userName: string): Promise<{ [key: string]: PlayRecord }>;
   deletePlayRecord(userName: string, key: string): Promise<void>;
@@ -50,7 +50,7 @@ export interface IStorage {
   registerUser(
     userName: string,
     password: string,
-    email?: string | null
+    email?: string | null,
   ): Promise<void>;
   verifyUser(userName: string, password: string): Promise<boolean>;
   checkEmailExist?(email: string): Promise<boolean>;
@@ -59,10 +59,10 @@ export interface IStorage {
     email: string,
     password: string,
     tokenHash: string,
-    expiresAt: number
+    expiresAt: number,
   ): Promise<void>;
   getEmailRegistrationByTokenHash?(
-    tokenHash: string
+    tokenHash: string,
   ): Promise<PendingEmailRegistration | null>;
   deleteEmailRegistration?(email: string): Promise<void>;
   checkUserExist(userName: string): Promise<boolean>;
@@ -81,13 +81,13 @@ export interface IStorage {
   getSkipConfig(
     userName: string,
     source: string,
-    id: string
+    id: string,
   ): Promise<SkipConfig | null>;
   setSkipConfig(
     userName: string,
     source: string,
     id: string,
-    config: SkipConfig
+    config: SkipConfig,
   ): Promise<void>;
   deleteSkipConfig(userName: string, source: string, id: string): Promise<void>;
   getAllSkipConfigs(userName: string): Promise<{ [key: string]: SkipConfig }>;

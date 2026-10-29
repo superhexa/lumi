@@ -39,9 +39,9 @@ function splitAnnouncementParagraphs(text: string) {
       .filter(Boolean);
   }
 
-  const sentences =
-    normalized.match(/[^\u3002\uff01\uff1f.!?]+[\u3002\uff01\uff1f.!?]?/g) ||
-    [normalized];
+  const sentences = normalized.match(
+    /[^\u3002\uff01\uff1f.!?]+[\u3002\uff01\uff1f.!?]?/g,
+  ) || [normalized];
   if (sentences.length <= 2) return [normalized];
 
   const paragraphs: string[] = [];
@@ -60,7 +60,7 @@ function HomeClient() {
       ? t('legal.defaultAnnouncement')
       : announcement;
   const announcementParagraphs = splitAnnouncementParagraphs(
-    announcementText || ''
+    announcementText || '',
   );
 
   useEffect(() => {

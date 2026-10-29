@@ -103,7 +103,7 @@ const Sidebar = ({
       }
       onToggle?.(collapsed);
     },
-    [onToggle]
+    [onToggle],
   );
 
   const openSidebar = useCallback(() => {
@@ -359,7 +359,6 @@ const Sidebar = ({
                     })}
                   </div>
                 </div>
-
               </motion.div>
             ) : null}
           </AnimatePresence>

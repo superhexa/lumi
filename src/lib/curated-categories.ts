@@ -379,11 +379,11 @@ export const ALL_CURATED_CATEGORY_CONFIGS: CuratedCategoryConfig[] = [
 ];
 
 const curatedMap = new Map(
-  ALL_CURATED_CATEGORY_CONFIGS.map((item) => [item.slug, item])
+  ALL_CURATED_CATEGORY_CONFIGS.map((item) => [item.slug, item]),
 );
 
 export function getCuratedCategoryBySlug(
-  slug: string
+  slug: string,
 ): CuratedCategoryConfig | null {
   return curatedMap.get(slug) || null;
 }
@@ -391,7 +391,7 @@ export function getCuratedCategoryBySlug(
 export function buildCuratedCategoryQuery(
   config: CuratedCategoryConfig,
   page = 1,
-  useFallback = false
+  useFallback = false,
 ): URLSearchParams {
   const params = new URLSearchParams({
     media: config.mediaType,
@@ -399,7 +399,8 @@ export function buildCuratedCategoryQuery(
     page: String(Math.max(1, page)),
   });
 
-  const query = useFallback && config.fallbackQuery ? config.fallbackQuery : config.query;
+  const query =
+    useFallback && config.fallbackQuery ? config.fallbackQuery : config.query;
   Object.entries(query).forEach(([key, value]) => {
     if (!value) return;
     params.set(key, value);

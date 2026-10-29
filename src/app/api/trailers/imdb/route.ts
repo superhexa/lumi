@@ -6,7 +6,6 @@ import {
   pickBestMp4TrailerStream,
 } from '@/lib/trailer-stream';
 
-
 const IMDB_ID_PATTERN = /^tt\d+$/;
 
 const buildCacheHeaders = (): HeadersInit => ({
@@ -22,7 +21,7 @@ export async function GET(request: Request) {
   if (!IMDB_ID_PATTERN.test(imdbId)) {
     return NextResponse.json(
       { url: null, hlsUrl: null, error: 'invalid_imdb_id' },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -34,18 +33,18 @@ export async function GET(request: Request) {
     if (!url && !hlsUrl) {
       return NextResponse.json(
         { url: null, hlsUrl: null, error: 'no_stream' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     return NextResponse.json(
       { url: url ?? null, hlsUrl: hlsUrl ?? null },
-      { headers: buildCacheHeaders() }
+      { headers: buildCacheHeaders() },
     );
   } catch {
     return NextResponse.json(
       { url: null, hlsUrl: null, error: 'fetch_failed' },
-      { status: 502 }
+      { status: 502 },
     );
   }
 }
