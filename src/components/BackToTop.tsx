@@ -100,7 +100,7 @@ const BackToTop = () => {
 
     const startY = Math.max(
       getWindowScrollY(),
-      ...candidates.map((el) => el.scrollTop)
+      ...candidates.map((el) => el.scrollTop),
     );
     const startTime = performance.now();
 

@@ -54,7 +54,7 @@ function normalizeYear(value?: string | null): string {
 }
 
 function normalizeMediaType(
-  value?: TmdbDetailClientRequest['mediaType']
+  value?: TmdbDetailClientRequest['mediaType'],
 ): TmdbDetailMediaType {
   if (value === 'tv' || value === 'show') return 'tv';
   return 'movie';
@@ -62,7 +62,7 @@ function normalizeMediaType(
 
 function normalizeLogoLanguagePreference(
   value: TmdbLogoLanguagePreference | null | undefined,
-  tmdbLanguage?: string | null
+  tmdbLanguage?: string | null,
 ): TmdbLogoLanguagePreference {
   if (value === 'en' || value === 'zh') return value;
   return normalizeTmdbLanguage(tmdbLanguage) === 'zh-CN' ? 'zh' : 'en';
@@ -95,7 +95,7 @@ function toAbortError(): Error {
 
 function withAbortSignal<T>(
   promise: Promise<T>,
-  signal?: AbortSignal
+  signal?: AbortSignal,
 ): Promise<T> {
   if (!signal) return promise;
   if (signal.aborted) return Promise.reject(toAbortError());
@@ -116,7 +116,7 @@ function withAbortSignal<T>(
       (error) => {
         signal.removeEventListener('abort', onAbort);
         reject(error);
-      }
+      },
     );
   });
 }
@@ -178,10 +178,12 @@ function writeTmdbDetailClientCache(cacheKey: string, payload: unknown): void {
 }
 
 function normalizeTmdbDetailRequest(
-  request: TmdbDetailClientRequest
+  request: TmdbDetailClientRequest,
 ): NormalizedTmdbDetailRequest {
   const mediaType = normalizeMediaType(request.mediaType);
-  const tmdbLanguage = (request.tmdbLanguage || getCurrentTmdbLanguage()).trim();
+  const tmdbLanguage = (
+    request.tmdbLanguage || getCurrentTmdbLanguage()
+  ).trim();
   const normalized: NormalizedTmdbDetailRequest = {
     id: normalizeId(request.id),
     title: (request.title || '').trim(),
@@ -191,7 +193,7 @@ function normalizeTmdbDetailRequest(
     score: (request.score || '').trim(),
     logoLanguagePreference: normalizeLogoLanguagePreference(
       request.logoLanguagePreference,
-      tmdbLanguage
+      tmdbLanguage,
     ),
     tmdbLanguage,
     signal: request.signal,
@@ -205,7 +207,7 @@ function normalizeTmdbDetailRequest(
 }
 
 export function buildTmdbDetailClientCacheKey(
-  request: TmdbDetailClientRequest
+  request: TmdbDetailClientRequest,
 ): string {
   const normalized = normalizeTmdbDetailRequest(request);
   if (normalized.id !== null) {
@@ -218,7 +220,7 @@ export function buildTmdbDetailClientCacheKey(
 }
 
 function buildTmdbDetailRequestParams(
-  normalized: NormalizedTmdbDetailRequest
+  normalized: NormalizedTmdbDetailRequest,
 ): URLSearchParams {
   const params = new URLSearchParams();
   if (normalized.id !== null) {
@@ -245,7 +247,7 @@ function buildTmdbDetailRequestParams(
 }
 
 async function fetchTmdbDetailDirect(
-  normalized: NormalizedTmdbDetailRequest
+  normalized: NormalizedTmdbDetailRequest,
 ): Promise<unknown> {
   const params = buildTmdbDetailRequestParams(normalized);
   const response = await fetch(`/api/tmdb/detail?${params.toString()}`);
@@ -268,7 +270,7 @@ async function fetchTmdbDetailDirect(
 }
 
 async function fetchTmdbDetailCachedInternal(
-  normalized: NormalizedTmdbDetailRequest
+  normalized: NormalizedTmdbDetailRequest,
 ): Promise<unknown> {
   const cacheKey = buildTmdbDetailClientCacheKey(normalized);
   const cached = readTmdbDetailClientCache(cacheKey);
@@ -307,7 +309,7 @@ function enqueueTmdbDetailPrefetch(task: () => Promise<void>): void {
     void task().finally(() => {
       tmdbDetailPrefetchActiveCount = Math.max(
         0,
-        tmdbDetailPrefetchActiveCount - 1
+        tmdbDetailPrefetchActiveCount - 1,
       );
       pumpTmdbDetailPrefetchQueue();
     });
@@ -346,7 +348,7 @@ export function prefetchTmdbDetail(request: TmdbDetailClientRequest): void {
 }
 
 export async function fetchTmdbDetailWithClientCache<T = unknown>(
-  request: TmdbDetailClientRequest
+  request: TmdbDetailClientRequest,
 ): Promise<T> {
   const normalized = normalizeTmdbDetailRequest(request);
   const sharedRequest = fetchTmdbDetailCachedInternal(normalized) as Promise<T>;

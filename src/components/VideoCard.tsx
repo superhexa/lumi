@@ -127,7 +127,7 @@ function normalizeMediaType(value?: string, episodes?: number): TmdbMediaType {
 function getTmdbDetailId(
   id: string | undefined,
   source: string | undefined,
-  from: VideoCardProps['from']
+  from: VideoCardProps['from'],
 ): string {
   const normalizedId = String(id || '').trim();
   if (!normalizedId) return '';
@@ -147,7 +147,10 @@ function getTmdbDetailId(
   return '';
 }
 
-function buildTmdbDetailCacheKey(input: TmdbDetailLookupInput, language?: string): string {
+function buildTmdbDetailCacheKey(
+  input: TmdbDetailLookupInput,
+  language?: string,
+): string {
   return buildGlobalTmdbDetailCacheKey({
     title: input.title,
     mediaType: input.mediaType,
@@ -184,7 +187,7 @@ function hasSeasonHint(value: string): boolean {
   if (!text.trim()) return false;
   return (
     /\u7b2c\s*[\u4e00\u4e8c\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d\u5341\u767e\u5343\u4e07\u4e24\d]+\s*\u5b63/.test(
-      text
+      text,
     ) || /(?:season|series|s)\s*0*\d{1,2}/i.test(text)
   );
 }
@@ -193,7 +196,7 @@ function stripSeasonHint(value: string): string {
   return (value || '')
     .replace(
       /\u7b2c\s*[\u4e00\u4e8c\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d\u5341\u767e\u5343\u4e07\u4e24\d]+\s*\u5b63/gi,
-      ' '
+      ' ',
     )
     .replace(/(?:season|series|s)\s*0*\d{1,2}/gi, ' ')
     .replace(/\s+/g, ' ')
@@ -202,7 +205,7 @@ function stripSeasonHint(value: string): string {
 
 async function fetchTmdbDetailWithClientCache(
   input: TmdbDetailLookupInput,
-  language?: string
+  language?: string,
 ): Promise<TmdbCardDetail> {
   return fetchGlobalTmdbDetailWithCache<TmdbCardDetail>({
     title: input.title,
@@ -214,7 +217,10 @@ async function fetchTmdbDetailWithClientCache(
   });
 }
 
-function scheduleTmdbDetailPrefetch(input: TmdbDetailLookupInput, language?: string): void {
+function scheduleTmdbDetailPrefetch(
+  input: TmdbDetailLookupInput,
+  language?: string,
+): void {
   prefetchTmdbDetail({
     title: input.title,
     mediaType: input.mediaType,
@@ -289,19 +295,19 @@ export default function VideoCard({
         typeof item.total_episodes === 'number' && item.total_episodes > 0
           ? Math.floor(item.total_episodes)
           : item.source === 'tmdb' &&
-            (item.type_name || '').trim().toLowerCase() === 'tv'
-          ? 0
-          : item.episodes?.length || 0;
+              (item.type_name || '').trim().toLowerCase() === 'tv'
+            ? 0
+            : item.episodes?.length || 0;
       if (totalEpisodes > 0) {
         episodeCountMap.set(
           totalEpisodes,
-          (episodeCountMap.get(totalEpisodes) || 0) + 1
+          (episodeCountMap.get(totalEpisodes) || 0) + 1,
         );
       }
     });
 
     const getMostFrequent = <T extends string | number>(
-      map: Map<T, number>
+      map: Map<T, number>,
     ) => {
       let maxCount = 0;
       let result: T | undefined;
@@ -337,17 +343,17 @@ export default function VideoCard({
     aggregateData.first.total_episodes > 0
       ? Math.floor(aggregateData.first.total_episodes)
       : aggregateData?.first.source === 'tmdb' &&
-        aggregateFirstTypeName === 'tv'
-      ? 0
-      : aggregateData?.first.episodes?.length || 0;
+          aggregateFirstTypeName === 'tv'
+        ? 0
+        : aggregateData?.first.episodes?.length || 0;
   const actualSearchType = isAggregate
     ? aggregateFirstTypeName === 'tv'
       ? 'tv'
       : aggregateFirstTypeName === 'movie'
-      ? 'movie'
-      : aggregateFirstEpisodeCount === 1
-      ? 'movie'
-      : 'tv'
+        ? 'movie'
+        : aggregateFirstEpisodeCount === 1
+          ? 'movie'
+          : 'tv'
     : type;
   const tmdbTrigger = useMemo<TmdbDetailLookupInput>(
     () => ({
@@ -364,11 +370,11 @@ export default function VideoCard({
       actualEpisodes,
       actualPoster,
       rate,
-    ]
+    ],
   );
   const tmdbDetailCacheKey = useMemo(
     () => buildTmdbDetailCacheKey(tmdbTrigger, i18n.language),
-    [i18n.language, tmdbTrigger]
+    [i18n.language, tmdbTrigger],
   );
 
   // Keep favorite state synced with shared storage.
@@ -394,7 +400,7 @@ export default function VideoCard({
         // Update this card from its storage key.
         const isNowFavorited = !!newFavorites[storageKey];
         setFavorited(isNowFavorited);
-      }
+      },
     );
 
     return unsubscribe;
@@ -440,7 +446,7 @@ export default function VideoCard({
       actualPoster,
       actualEpisodes,
       favorited,
-    ]
+    ],
   );
 
   const handleConfirmDeleteFavorite = useCallback(async () => {
@@ -465,7 +471,7 @@ export default function VideoCard({
       if (from !== 'playrecord' || !actualSource || !actualId) return;
       setDeleteDialogOpen(true);
     },
-    [from, actualSource, actualId]
+    [from, actualSource, actualId],
   );
 
   const handleConfirmDeleteRecord = useCallback(async () => {
@@ -487,10 +493,10 @@ export default function VideoCard({
       router.push(
         `/play?title=${encodeURIComponent(titleValue.trim())}${
           yearValue ? `&year=${yearValue}` : ''
-        }${searchTypeValue ? `&stype=${searchTypeValue}` : ''}`
+        }${searchTypeValue ? `&stype=${searchTypeValue}` : ''}`,
       );
     },
-    [router]
+    [router],
   );
 
   const fetchTmdbSeasonCountByTitle = useCallback(
@@ -516,7 +522,7 @@ export default function VideoCard({
         return 0;
       }
     },
-    [i18n.language]
+    [i18n.language],
   );
 
   const goToPlay = useCallback(async () => {
@@ -573,7 +579,7 @@ export default function VideoCard({
           score: detailData?.score || rate || '',
           season: tmdbStorage.season || 1,
           episode: currentEpisode || 1,
-        })
+        }),
       );
       return;
     }
@@ -590,7 +596,7 @@ export default function VideoCard({
             score: detailData.score || rate || '',
             season: 1,
             episode: 1,
-          })
+          }),
         );
         return;
       }
@@ -602,12 +608,12 @@ export default function VideoCard({
     if (actualSource && actualId) {
       router.push(
         `/play?source=${actualSource}&id=${actualId}&title=${encodeURIComponent(
-          actualTitle
+          actualTitle,
         )}${actualYear ? `&year=${actualYear}` : ''}${
           isAggregate ? '&prefer=true' : ''
         }${
           actualQuery ? `&stitle=${encodeURIComponent(actualQuery.trim())}` : ''
-        }${actualSearchType ? `&stype=${actualSearchType}` : ''}`
+        }${actualSearchType ? `&stype=${actualSearchType}` : ''}`,
       );
     }
   }, [
@@ -654,10 +660,10 @@ export default function VideoCard({
           score: seasonPickerData.score,
           season,
           episode: 1,
-        })
+        }),
       );
     },
-    [router, seasonPickerData]
+    [router, seasonPickerData],
   );
 
   const handleSeasonPickerClose = useCallback(() => {
@@ -741,7 +747,7 @@ export default function VideoCard({
       {
         rootMargin: '240px 0px 240px 0px',
         threshold: 0.05,
-      }
+      },
     );
 
     observer.observe(node);
@@ -794,7 +800,7 @@ export default function VideoCard({
       }
       void handleCardClick();
     },
-    [handleCardClick]
+    [handleCardClick],
   );
 
   const handleRetryDetail = useCallback(async () => {
@@ -814,7 +820,10 @@ export default function VideoCard({
     const requestId = ++detailRequestIdRef.current;
 
     try {
-      const detail = await fetchTmdbDetailWithClientCache(tmdbTrigger, i18n.language);
+      const detail = await fetchTmdbDetailWithClientCache(
+        tmdbTrigger,
+        i18n.language,
+      );
       if (detailRequestIdRef.current !== requestId) return;
       detailCacheRef.current[tmdbDetailCacheKey] = detail;
       setDetailData(detail);

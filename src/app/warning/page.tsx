@@ -43,7 +43,8 @@ export default function WarningPage() {
               Security Risk Notice
             </p>
             <p className='text-sm sm:text-base text-red-700'>
-              This site does not have access control configured, which may create security and compliance risks.
+              This site does not have access control configured, which may
+              create security and compliance risks.
             </p>
           </div>
 
@@ -54,11 +55,15 @@ export default function WarningPage() {
             <ul className='space-y-2 sm:space-y-3 text-sm sm:text-base text-gray-600'>
               <li className='flex items-start'>
                 <span className='text-red-500 mr-2 mt-0.5'>•</span>
-                <span>Unauthorized access may lead to unwanted content sharing.</span>
+                <span>
+                  Unauthorized access may lead to unwanted content sharing.
+                </span>
               </li>
               <li className='flex items-start'>
                 <span className='text-red-500 mr-2 mt-0.5'>•</span>
-                <span>Server resources may be abused and affect normal service.</span>
+                <span>
+                  Server resources may be abused and affect normal service.
+                </span>
               </li>
               <li className='flex items-start'>
                 <span className='text-red-500 mr-2 mt-0.5'>•</span>
@@ -66,7 +71,10 @@ export default function WarningPage() {
               </li>
               <li className='flex items-start'>
                 <span className='text-red-500 mr-2 mt-0.5'>•</span>
-                <span>Service providers may suspend the service for compliance reasons.</span>
+                <span>
+                  Service providers may suspend the service for compliance
+                  reasons.
+                </span>
               </li>
             </ul>
           </div>
@@ -88,7 +96,10 @@ export default function WarningPage() {
         {/* Footer note */}
         <div className='mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-gray-200'>
           <div className='text-center text-xs sm:text-sm text-gray-500'>
-            <p>Please complete the security configuration before exposing this site.</p>
+            <p>
+              Please complete the security configuration before exposing this
+              site.
+            </p>
           </div>
         </div>
       </div>

@@ -79,9 +79,9 @@ export default function DesktopTopSearch() {
       try {
         const response = await fetch(
           `/api/tmdb/search?q=${encodeURIComponent(
-            trimmedQuery
+            trimmedQuery,
           )}&tmdbLanguage=${encodeURIComponent(getCurrentTmdbLanguage())}`,
-          { signal: controller.signal }
+          { signal: controller.signal },
         );
         if (!response.ok) {
           setResults([]);
@@ -150,10 +150,10 @@ export default function DesktopTopSearch() {
           year: normalizeYear(result.year),
           poster: result.poster,
           score: result.score,
-        })
+        }),
       );
     },
-    [query, router]
+    [query, router],
   );
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {

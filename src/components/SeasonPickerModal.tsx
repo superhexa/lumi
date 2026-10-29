@@ -34,7 +34,10 @@ export default function SeasonPickerModal({
   const normalizedTitle = (title || '').trim();
   const normalizedBackdrop = useMemo(() => safeImageUrl(backdrop), [backdrop]);
   const normalizedLogo = useMemo(() => safeImageUrl(logo), [logo]);
-  const count = Math.max(1, Number.isFinite(seasonCount) ? Math.floor(seasonCount) : 1);
+  const count = Math.max(
+    1,
+    Number.isFinite(seasonCount) ? Math.floor(seasonCount) : 1,
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -117,24 +120,26 @@ export default function SeasonPickerModal({
           </div>
 
           <div className='mt-2 grid max-h-64 grid-cols-3 gap-2 overflow-y-auto py-1 sm:grid-cols-4'>
-            {Array.from({ length: count }, (_, idx) => idx + 1).map((season) => (
-              <button
-                key={`season-pick-${season}`}
-                type='button'
-                onClick={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  onPickSeason(season);
-                }}
-              className='rounded-xl border border-zinc-200/30 bg-white/10 px-2 py-2 text-sm font-medium text-zinc-100 transition-colors hover:bg-white/20'
-              >
-                {t('seasonPicker.season', { season })}
-              </button>
-            ))}
+            {Array.from({ length: count }, (_, idx) => idx + 1).map(
+              (season) => (
+                <button
+                  key={`season-pick-${season}`}
+                  type='button'
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    onPickSeason(season);
+                  }}
+                  className='rounded-xl border border-zinc-200/30 bg-white/10 px-2 py-2 text-sm font-medium text-zinc-100 transition-colors hover:bg-white/20'
+                >
+                  {t('seasonPicker.season', { season })}
+                </button>
+              ),
+            )}
           </div>
         </div>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 }

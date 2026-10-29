@@ -148,7 +148,7 @@ export default function TmdbDetailModal({
       'favoritesUpdated',
       (favorites: Record<string, unknown>) => {
         setFavorited(Boolean(favorites[favoriteStorageKey]));
-      }
+      },
     );
 
     return () => {
@@ -594,6 +594,6 @@ export default function TmdbDetailModal({
         </motion.div>
       ) : null}
     </AnimatePresence>,
-    document.body
+    document.body,
   );
 }

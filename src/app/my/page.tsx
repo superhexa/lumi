@@ -236,7 +236,7 @@ function buildFavoritePlayUrl(item: FavoriteItem): string {
   }
   params.set(
     'title',
-    normalizedTitle || normalizedSearchTitle || 'Unknown title'
+    normalizedTitle || normalizedSearchTitle || 'Unknown title',
   );
   if (normalizedSearchTitle) {
     params.set('stitle', normalizedSearchTitle);
@@ -286,7 +286,7 @@ function stripSeasonHintFromTitle(title: string): string {
 }
 
 function buildTmdbTitleCandidates(
-  record: Pick<PlayRecord, 'title'> & { search_title?: string }
+  record: Pick<PlayRecord, 'title'> & { search_title?: string },
 ): string[] {
   const candidates: string[] = [];
   const dedupe = new Set<string>();
@@ -312,7 +312,7 @@ function getWatchFormat(
   record: Pick<
     PlayRecord,
     'index' | 'total_episodes' | 'title' | 'search_title'
-  >
+  >,
 ): 'movie' | 'tv' {
   const totalEpisodes = Number(record.total_episodes || 0);
   if (Number.isFinite(totalEpisodes) && totalEpisodes > 1) return 'tv';
@@ -325,7 +325,7 @@ function getWatchFormat(
   }`.toLowerCase();
   if (
     /(第\s*\d+\s*集|全\s*\d+\s*集|更新至\s*\d+\s*集|s\s*\d{1,2}\s*e\s*\d{1,3}|ep?\s*\d{1,3})/i.test(
-      titleText
+      titleText,
     )
   ) {
     return 'tv';
@@ -341,7 +341,7 @@ function getProgressPercent(record: PlayRecord): number {
 
 function formatHistoryEpisodeMeta(
   record: PlayRecordItem,
-  t: (key: string, options?: Record<string, unknown>) => string
+  t: (key: string, options?: Record<string, unknown>) => string,
 ): string {
   if (getWatchFormat(record) !== 'tv') return '';
 
@@ -384,13 +384,13 @@ function MyPageClient() {
   const [isPlayBatchMode, setIsPlayBatchMode] = useState(false);
   const [isFavoriteBatchMode, setIsFavoriteBatchMode] = useState(false);
   const [selectedPlayKeys, setSelectedPlayKeys] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
   const [selectedFavoriteKeys, setSelectedFavoriteKeys] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
   const [deleteTarget, setDeleteTarget] = useState<'play' | 'favorite' | null>(
-    null
+    null,
   );
   const [deleting, setDeleting] = useState(false);
   const [playSearchKeyword, setPlaySearchKeyword] = useState('');
@@ -438,7 +438,7 @@ function MyPageClient() {
         .sort((a, b) => b.save_time - a.save_time);
       setPlayRecords(sorted);
     },
-    []
+    [],
   );
 
   const updateFavorites = useCallback(
@@ -464,7 +464,7 @@ function MyPageClient() {
         });
       setFavoriteItems(sorted);
     },
-    []
+    [],
   );
 
   useEffect(() => {
@@ -490,13 +490,13 @@ function MyPageClient() {
       'playRecordsUpdated',
       (newRecords: Record<string, PlayRecord>) => {
         updatePlayRecords(newRecords);
-      }
+      },
     );
     const unsubFav = subscribeToDataUpdates(
       'favoritesUpdated',
       (newFavorites: Record<string, Favorite>) => {
         void updateFavorites(newFavorites);
-      }
+      },
     );
 
     return () => {
@@ -514,7 +514,7 @@ function MyPageClient() {
           year: record.year,
           poster: record.cover,
           episodes: record.total_episodes,
-        })
+        }),
       ),
       ...favoriteItems.map((item) =>
         buildTmdbPosterLookupTarget({
@@ -523,19 +523,17 @@ function MyPageClient() {
           year: item.year,
           poster: item.poster,
           episodes: item.episodes,
-        })
+        }),
       ),
     ]
       .filter((target): target is TmdbPosterLookupTarget => Boolean(target))
-      .filter(
-        (target) => {
-          const displayKey = `${tmdbLanguage}:${target.key}`;
-          return (
-            !tmdbDisplayByKey[displayKey] &&
-            !tmdbPosterLookupKeysRef.current.has(displayKey)
-          );
-        }
-      )
+      .filter((target) => {
+        const displayKey = `${tmdbLanguage}:${target.key}`;
+        return (
+          !tmdbDisplayByKey[displayKey] &&
+          !tmdbPosterLookupKeysRef.current.has(displayKey)
+        );
+      })
       .slice(0, TMDB_POSTER_LOOKUP_LIMIT);
 
     if (targets.length === 0) return;
@@ -571,10 +569,10 @@ function MyPageClient() {
             return null;
           } finally {
             tmdbPosterLookupKeysRef.current.delete(
-              `${tmdbLanguage}:${target.key}`
+              `${tmdbLanguage}:${target.key}`,
             );
           }
-        })
+        }),
       );
 
       if (cancelled) return;
@@ -666,7 +664,7 @@ function MyPageClient() {
       if (record.cover) baseParams.set('poster', record.cover);
 
       const fetchGenresWithParams = async (
-        params: URLSearchParams
+        params: URLSearchParams,
       ): Promise<string[] | null> => {
         try {
           const response = await fetch(`/api/tmdb/detail?${params.toString()}`);
@@ -714,7 +712,7 @@ function MyPageClient() {
       genreCacheRef.current.set(cacheKey, []);
       return [];
     },
-    [tmdbLanguage]
+    [tmdbLanguage],
   );
 
   useEffect(() => {
@@ -785,7 +783,7 @@ function MyPageClient() {
     if (playRecords.length === 0) return;
 
     const missingTargets = playRecords.filter(
-      (record) => !playRecordGenres[record.key]
+      (record) => !playRecordGenres[record.key],
     );
     if (missingTargets.length === 0) return;
 
@@ -794,7 +792,7 @@ function MyPageClient() {
       setLoadingPlayGenreFilters(true);
       try {
         const settled = await Promise.allSettled(
-          missingTargets.map((record) => fetchGenresForRecord(record))
+          missingTargets.map((record) => fetchGenresForRecord(record)),
         );
         if (cancelled) return;
         setPlayRecordGenres((prev) => {
@@ -809,8 +807,8 @@ function MyPageClient() {
               new Set(
                 result.value
                   .map((rawGenre) => normalizeGenreName(rawGenre))
-                  .filter(Boolean)
-              )
+                  .filter(Boolean),
+              ),
             ) as SupportedGenre[];
             next[record.key] = normalizedGenres;
           });
@@ -838,8 +836,8 @@ function MyPageClient() {
   const playGenreOptions = useMemo(() => {
     return SUPPORTED_GENRES.filter((genre) =>
       playRecords.some((record) =>
-        (playRecordGenres[record.key] || []).includes(genre)
-      )
+        (playRecordGenres[record.key] || []).includes(genre),
+      ),
     );
   }, [playRecordGenres, playRecords]);
 
@@ -855,7 +853,7 @@ function MyPageClient() {
       if (item.poster) baseParams.set('poster', item.poster);
 
       const fetchGenresWithParams = async (
-        params: URLSearchParams
+        params: URLSearchParams,
       ): Promise<string[] | null> => {
         try {
           const response = await fetch(`/api/tmdb/detail?${params.toString()}`);
@@ -906,7 +904,7 @@ function MyPageClient() {
       genreCacheRef.current.set(cacheKey, []);
       return [];
     },
-    [tmdbLanguage]
+    [tmdbLanguage],
   );
 
   useEffect(() => {
@@ -915,7 +913,7 @@ function MyPageClient() {
     if (favoriteItems.length === 0) return;
 
     const missingTargets = favoriteItems.filter(
-      (item) => !favoriteItemGenres[item.key]
+      (item) => !favoriteItemGenres[item.key],
     );
     if (missingTargets.length === 0) return;
 
@@ -924,7 +922,7 @@ function MyPageClient() {
       setLoadingFavoriteGenreFilters(true);
       try {
         const settled = await Promise.allSettled(
-          missingTargets.map((item) => fetchGenresForFavorite(item))
+          missingTargets.map((item) => fetchGenresForFavorite(item)),
         );
         if (cancelled) return;
         setFavoriteItemGenres((prev) => {
@@ -939,8 +937,8 @@ function MyPageClient() {
               new Set(
                 result.value
                   .map((rawGenre) => normalizeGenreName(rawGenre))
-                  .filter(Boolean)
-              )
+                  .filter(Boolean),
+              ),
             ) as SupportedGenre[];
             next[item.key] = normalizedGenres;
           });
@@ -968,8 +966,8 @@ function MyPageClient() {
   const favoriteGenreOptions = useMemo(() => {
     return SUPPORTED_GENRES.filter((genre) =>
       favoriteItems.some((item) =>
-        (favoriteItemGenres[item.key] || []).includes(genre)
-      )
+        (favoriteItemGenres[item.key] || []).includes(genre),
+      ),
     );
   }, [favoriteItemGenres, favoriteItems]);
 
@@ -983,7 +981,7 @@ function MyPageClient() {
         record.year,
         record.search_title,
       ].some((value) =>
-        (value || '').toLowerCase().includes(normalizedPlaySearchKeyword)
+        (value || '').toLowerCase().includes(normalizedPlaySearchKeyword),
       );
     });
 
@@ -1096,7 +1094,7 @@ function MyPageClient() {
         longPressTimerRef.current = null;
       }, LONG_PRESS_DURATION_MS);
     },
-    [clearLongPressTimer, isPlayBatchMode]
+    [clearLongPressTimer, isPlayBatchMode],
   );
 
   const handleFavoriteLongPressStart = useCallback(
@@ -1114,7 +1112,7 @@ function MyPageClient() {
         longPressTimerRef.current = null;
       }, LONG_PRESS_DURATION_MS);
     },
-    [clearLongPressTimer, isFavoriteBatchMode]
+    [clearLongPressTimer, isFavoriteBatchMode],
   );
 
   const handleLongPressEnd = useCallback(() => {
@@ -1128,7 +1126,7 @@ function MyPageClient() {
       event.stopPropagation();
       suppressPlayCardClickRef.current = false;
     },
-    []
+    [],
   );
 
   const handleFavoriteCardClickCapture = useCallback(
@@ -1138,7 +1136,7 @@ function MyPageClient() {
       event.stopPropagation();
       suppressFavoriteCardClickRef.current = false;
     },
-    []
+    [],
   );
 
   const handleConfirmDelete = async () => {
@@ -1147,28 +1145,28 @@ function MyPageClient() {
     try {
       if (deleteTarget === 'play') {
         const targets = playRecords.filter((item) =>
-          selectedPlayKeys.has(item.key)
+          selectedPlayKeys.has(item.key),
         );
         await Promise.all(
           targets.map((item) => {
             const { source, id } = parseStorageKey(item.key);
             return deletePlayRecord(source, id);
-          })
+          }),
         );
         setPlayRecords((prev) =>
-          prev.filter((item) => !selectedPlayKeys.has(item.key))
+          prev.filter((item) => !selectedPlayKeys.has(item.key)),
         );
         setSelectedPlayKeys(new Set());
         setIsPlayBatchMode(false);
       } else {
         const targets = favoriteItems.filter((item) =>
-          selectedFavoriteKeys.has(item.key)
+          selectedFavoriteKeys.has(item.key),
         );
         await Promise.all(
-          targets.map((item) => deleteFavorite(item.source, item.id))
+          targets.map((item) => deleteFavorite(item.source, item.id)),
         );
         setFavoriteItems((prev) =>
-          prev.filter((item) => !selectedFavoriteKeys.has(item.key))
+          prev.filter((item) => !selectedFavoriteKeys.has(item.key)),
         );
         setSelectedFavoriteKeys(new Set());
         setIsFavoriteBatchMode(false);
@@ -1205,7 +1203,7 @@ function MyPageClient() {
   const handleFavoriteRandomRecord = useCallback(() => {
     if (filteredFavoriteItems.length === 0) return;
     const randomIndex = Math.floor(
-      Math.random() * filteredFavoriteItems.length
+      Math.random() * filteredFavoriteItems.length,
     );
     router.push(buildFavoritePlayUrl(filteredFavoriteItems[randomIndex]));
   }, [filteredFavoriteItems, router]);
@@ -1257,7 +1255,7 @@ function MyPageClient() {
       const labelKey = getGenreLabelKey(genre);
       return labelKey ? t(labelKey) : formatGenreLabel(genre);
     },
-    [t]
+    [t],
   );
 
   return (
@@ -1363,7 +1361,7 @@ function MyPageClient() {
                                 aria-pressed={active}
                                 onClick={() =>
                                   setPlayFilterMode(
-                                    option.value as PlayToolbarFilterMode
+                                    option.value as PlayToolbarFilterMode,
                                   )
                                 }
                                 className={`rounded-full border px-3 py-1.5 text-sm transition ${
@@ -1443,7 +1441,7 @@ function MyPageClient() {
                           onPointerDown={(event) =>
                             handlePlayLongPressStart(
                               record.key,
-                              event.pointerType
+                              event.pointerType,
                             )
                           }
                           onPointerUp={handleLongPressEnd}
@@ -1468,7 +1466,7 @@ function MyPageClient() {
                             displayVariant='poster-info'
                             onDelete={() =>
                               setPlayRecords((prev) =>
-                                prev.filter((item) => item.key !== record.key)
+                                prev.filter((item) => item.key !== record.key),
                               )
                             }
                           />
@@ -1593,7 +1591,7 @@ function MyPageClient() {
                                 aria-pressed={active}
                                 onClick={() =>
                                   setFavoriteFilterMode(
-                                    option.value as PlayToolbarFilterMode
+                                    option.value as PlayToolbarFilterMode,
                                   )
                                 }
                                 className={`rounded-full border px-3 py-1.5 text-sm transition ${
@@ -1675,7 +1673,7 @@ function MyPageClient() {
                           onPointerDown={(event) =>
                             handleFavoriteLongPressStart(
                               item.key,
-                              event.pointerType
+                              event.pointerType,
                             )
                           }
                           onPointerUp={handleLongPressEnd}

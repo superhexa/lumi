@@ -6,25 +6,25 @@
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "assets": {
     "directory": ".open-next/assets",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
   },
   "services": [
     {
       "binding": "WORKER_SELF_REFERENCE",
-      "service": "luma"
-    }
+      "service": "luma",
+    },
   ],
   "vars": {
     "NEXT_PUBLIC_STORAGE_TYPE": "d1",
     "SITE_NAME": "Luma",
     "NEXT_PUBLIC_ENABLE_REGISTER": "true",
-    "USERNAME": "Devlin"
+    "USERNAME": "Devlin",
   },
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "luma-db",
-      "database_id": "a67aa619-3224-49f9-b62c-060ce531bd1e"
-    }
-  ]
+      "database_id": "a67aa619-3224-49f9-b62c-060ce531bd1e",
+    },
+  ],
 }

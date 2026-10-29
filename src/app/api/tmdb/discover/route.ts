@@ -118,10 +118,7 @@ function parseMedia(value: string | null): 'movie' | 'tv' {
   return value === 'tv' ? 'tv' : 'movie';
 }
 
-function parseSortBy(
-  value: string | null,
-  mediaType: 'movie' | 'tv'
-): string {
+function parseSortBy(value: string | null, mediaType: 'movie' | 'tv'): string {
   const normalized = normalizeText(value || '');
   if (!normalized) return 'popularity.desc';
 
@@ -139,7 +136,7 @@ async function resolveKeywordIds(
   apiKey: string,
   keyword: string,
   tmdbLanguage: string,
-  signal: AbortSignal
+  signal: AbortSignal,
 ): Promise<string> {
   const normalizedKeyword = normalizeText(keyword);
   if (!normalizedKeyword) return '';
@@ -153,7 +150,7 @@ async function resolveKeywordIds(
     });
     const response = await fetch(
       `${TMDB_API_BASE_URL}/search/keyword?${params.toString()}`,
-      { signal }
+      { signal },
     );
     if (!response.ok) return '';
 
@@ -162,7 +159,7 @@ async function resolveKeywordIds(
       .map((item) => item.id)
       .filter(
         (id): id is number =>
-          typeof id === 'number' && Number.isInteger(id) && id > 0
+          typeof id === 'number' && Number.isInteger(id) && id > 0,
       )
       .slice(0, 5);
 
@@ -177,7 +174,7 @@ function buildDiscoverParams(
   mediaType: 'movie' | 'tv',
   searchParams: URLSearchParams,
   keywordIds: string,
-  tmdbLanguage: string
+  tmdbLanguage: string,
 ): URLSearchParams {
   const sortBy = parseSortBy(searchParams.get('sort_by'), mediaType);
   const params = new URLSearchParams({
@@ -185,12 +182,13 @@ function buildDiscoverParams(
     page: String(parsePage(searchParams.get('page'))),
     language: tmdbLanguage,
     sort_by: sortBy,
-    include_adult: searchParams.get('include_adult') === 'true' ? 'true' : 'false',
+    include_adult:
+      searchParams.get('include_adult') === 'true' ? 'true' : 'false',
   });
 
   const withGenres = normalizeText(searchParams.get('with_genres') || '');
   const withOriginCountry = normalizeText(
-    searchParams.get('with_origin_country') || ''
+    searchParams.get('with_origin_country') || '',
   );
   const language = normalizeText(searchParams.get('language') || '');
   const releaseFrom = normalizeText(searchParams.get('release_from') || '');
@@ -205,7 +203,9 @@ function buildDiscoverParams(
   const withPeople = parseIdList(searchParams.get('with_people'));
   const withNetworks = parseIdList(searchParams.get('with_networks'));
   const withoutGenres = parseIdList(searchParams.get('without_genres'));
-  const withoutKeywords = parseKeywordList(searchParams.get('without_keywords'));
+  const withoutKeywords = parseKeywordList(
+    searchParams.get('without_keywords'),
+  );
   const withType = parsePositiveNumber(searchParams.get('with_type'));
   const withStatus = parsePositiveNumber(searchParams.get('with_status'));
 
@@ -251,7 +251,8 @@ function mapMovieList(list: TmdbDiscoverMovieItem[]): TmdbDiscoverListItem[] {
   return uniqueById(
     list
       .filter(
-        (item) => Number.isInteger(item.id) && !!item.poster_path && !!item.title
+        (item) =>
+          Number.isInteger(item.id) && !!item.poster_path && !!item.title,
       )
       .map((item) => ({
         id: String(item.id),
@@ -262,7 +263,7 @@ function mapMovieList(list: TmdbDiscoverMovieItem[]): TmdbDiscoverListItem[] {
           : undefined,
         rate: toRate(item.vote_average),
         year: toYear(item.release_date),
-      }))
+      })),
   );
 }
 
@@ -270,7 +271,8 @@ function mapTvList(list: TmdbDiscoverTvItem[]): TmdbDiscoverListItem[] {
   return uniqueById(
     list
       .filter(
-        (item) => Number.isInteger(item.id) && !!item.poster_path && !!item.name
+        (item) =>
+          Number.isInteger(item.id) && !!item.poster_path && !!item.name,
       )
       .map((item) => ({
         id: String(item.id),
@@ -281,7 +283,7 @@ function mapTvList(list: TmdbDiscoverTvItem[]): TmdbDiscoverListItem[] {
           : undefined,
         rate: toRate(item.vote_average),
         year: toYear(item.first_air_date),
-      }))
+      })),
   );
 }
 
@@ -312,25 +314,27 @@ export async function GET(request: Request) {
   const tmdbLanguage = normalizeTmdbLanguage(searchParams.get('tmdbLanguage'));
 
   const apiKey =
-    process.env.TMDB_API_KEY ||
-    process.env.NEXT_PUBLIC_TMDB_API_KEY;
+    process.env.TMDB_API_KEY || process.env.NEXT_PUBLIC_TMDB_API_KEY;
 
   if (!apiKey) {
     return NextResponse.json(
       { error: 'tmdb api key missing', ...emptyResponse() },
-      { status: 500, headers: buildNoStoreHeaders() }
+      { status: 500, headers: buildNoStoreHeaders() },
     );
   }
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), TMDB_DISCOVER_TIMEOUT_MS);
+  const timeoutId = setTimeout(
+    () => controller.abort(),
+    TMDB_DISCOVER_TIMEOUT_MS,
+  );
 
   try {
     const resolvedKeywordIds = await resolveKeywordIds(
       apiKey,
       searchParams.get('keyword') || '',
       tmdbLanguage,
-      controller.signal
+      controller.signal,
     );
     const explicitKeywordIds = parseIdList(searchParams.get('with_keywords'));
     const keywordIds = [explicitKeywordIds, resolvedKeywordIds]
@@ -342,24 +346,28 @@ export async function GET(request: Request) {
       mediaType,
       searchParams,
       keywordIds,
-      tmdbLanguage
+      tmdbLanguage,
     );
     params.set('page', String(page));
 
     const response = await fetch(
       `${TMDB_API_BASE_URL}/discover/${mediaType}?${params.toString()}`,
-      { signal: controller.signal }
+      { signal: controller.signal },
     );
 
     if (!response.ok) {
       return NextResponse.json(
-        { error: `tmdb discover failed: ${response.status}`, ...emptyResponse() },
-        { status: response.status, headers: buildNoStoreHeaders() }
+        {
+          error: `tmdb discover failed: ${response.status}`,
+          ...emptyResponse(),
+        },
+        { status: response.status, headers: buildNoStoreHeaders() },
       );
     }
 
     if (mediaType === 'movie') {
-      const payload = (await response.json()) as TmdbDiscoverResponse<TmdbDiscoverMovieItem>;
+      const payload =
+        (await response.json()) as TmdbDiscoverResponse<TmdbDiscoverMovieItem>;
       const apiResponse: DiscoverApiResponse = {
         code: 200,
         message: 'success',
@@ -373,7 +381,8 @@ export async function GET(request: Request) {
       });
     }
 
-    const payload = (await response.json()) as TmdbDiscoverResponse<TmdbDiscoverTvItem>;
+    const payload =
+      (await response.json()) as TmdbDiscoverResponse<TmdbDiscoverTvItem>;
     const apiResponse: DiscoverApiResponse = {
       code: 200,
       message: 'success',
@@ -388,7 +397,7 @@ export async function GET(request: Request) {
   } catch {
     return NextResponse.json(
       { error: 'tmdb discover request failed', ...emptyResponse() },
-      { status: 500, headers: buildNoStoreHeaders() }
+      { status: 500, headers: buildNoStoreHeaders() },
     );
   } finally {
     clearTimeout(timeoutId);

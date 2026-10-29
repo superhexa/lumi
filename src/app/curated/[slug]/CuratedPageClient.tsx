@@ -62,9 +62,12 @@ export default function CuratedPageClient() {
         setError(null);
 
         const primaryParams = buildCuratedCategoryQuery(config, page, false);
-        primaryParams.set('tmdbLanguage', getCurrentTmdbLanguage(i18n.language));
+        primaryParams.set(
+          'tmdbLanguage',
+          getCurrentTmdbLanguage(i18n.language),
+        );
         let response = await fetch(
-          `/api/tmdb/discover?${primaryParams.toString()}`
+          `/api/tmdb/discover?${primaryParams.toString()}`,
         );
         let payload = (await response.json()) as DiscoverApiResponse;
 
@@ -76,9 +79,12 @@ export default function CuratedPageClient() {
           payload.list.length === 0
         ) {
           const fallbackParams = buildCuratedCategoryQuery(config, page, true);
-          fallbackParams.set('tmdbLanguage', getCurrentTmdbLanguage(i18n.language));
+          fallbackParams.set(
+            'tmdbLanguage',
+            getCurrentTmdbLanguage(i18n.language),
+          );
           response = await fetch(
-            `/api/tmdb/discover?${fallbackParams.toString()}`
+            `/api/tmdb/discover?${fallbackParams.toString()}`,
           );
           payload = (await response.json()) as DiscoverApiResponse;
         }
@@ -90,7 +96,7 @@ export default function CuratedPageClient() {
         setItems((prev) =>
           append
             ? mergeUniqueById(prev, payload.list)
-            : uniqueById(payload.list)
+            : uniqueById(payload.list),
         );
         setCurrentPage(payload.page || page);
         setHasMore((payload.page || page) < (payload.total_pages || 1));
@@ -105,7 +111,7 @@ export default function CuratedPageClient() {
         setLoadingMore(false);
       }
     },
-    [config, i18n.language]
+    [config, i18n.language],
   );
 
   useEffect(() => {
@@ -123,7 +129,7 @@ export default function CuratedPageClient() {
         if (!entries[0]?.isIntersecting) return;
         void fetchPage(currentPage + 1, true);
       },
-      { rootMargin: '0px 0px 180px 0px', threshold: 0.12 }
+      { rootMargin: '0px 0px 180px 0px', threshold: 0.12 },
     );
 
     observer.observe(node);
@@ -149,11 +155,7 @@ export default function CuratedPageClient() {
   }
 
   return (
-    <PageLayout
-      activePath='/curated'
-      forceShowBackButton
-      showDesktopTopSearch
-    >
+    <PageLayout activePath='/curated' forceShowBackButton showDesktopTopSearch>
       <div className='overflow-visible px-0 pb-4 sm:px-10 sm:pb-8'>
         <div className='px-4 pt-3 sm:px-0 md:pt-24'>
           {loading ? (
@@ -200,7 +202,10 @@ export default function CuratedPageClient() {
               </div>
 
               {hasMore ? (
-                <div ref={loadMoreRef} className='mt-10 flex justify-center py-6'>
+                <div
+                  ref={loadMoreRef}
+                  className='mt-10 flex justify-center py-6'
+                >
                   {loadingMore ? (
                     <div className='inline-flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400'>
                       <span className='h-5 w-5 animate-spin rounded-full border-2 border-zinc-300 border-t-rose-500 dark:border-zinc-600 dark:border-t-rose-400' />

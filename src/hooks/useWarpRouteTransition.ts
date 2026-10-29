@@ -45,14 +45,14 @@ export function useWarpRouteTransition() {
 
       return true;
     },
-    [getCurrentFullPath, router]
+    [getCurrentFullPath, router],
   );
 
   const navigateLinkWithWarpLoading = useCallback(
     (
       event: ReactMouseEvent<HTMLAnchorElement>,
       href: string,
-      options?: WarpNavigateOptions
+      options?: WarpNavigateOptions,
     ): boolean => {
       if (event.defaultPrevented) return false;
       if (
@@ -68,7 +68,7 @@ export function useWarpRouteTransition() {
       event.preventDefault();
       return navigateWithWarpLoading(href, options);
     },
-    [navigateWithWarpLoading]
+    [navigateWithWarpLoading],
   );
 
   useEffect(() => {

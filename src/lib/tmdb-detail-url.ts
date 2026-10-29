@@ -11,7 +11,7 @@ interface TmdbDetailPageUrlInput {
 }
 
 function normalizeMediaType(
-  value?: TmdbDetailPageUrlInput['mediaType']
+  value?: TmdbDetailPageUrlInput['mediaType'],
 ): TmdbDetailMediaType {
   return value === 'tv' || value === 'show' ? 'tv' : 'movie';
 }

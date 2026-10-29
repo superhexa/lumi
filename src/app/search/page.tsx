@@ -155,7 +155,7 @@ const DEPARTMENT_LABEL_KEYS: Record<string, string> = {
 
 function formatDepartment(
   value: string,
-  t: (key: string, options?: Record<string, unknown>) => string
+  t: (key: string, options?: Record<string, unknown>) => string,
 ): string {
   const normalized = value.trim();
   if (!normalized) return '';
@@ -229,7 +229,7 @@ function SearchPageClient() {
   const [isLoading, setIsLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [suggestionResults, setSuggestionResults] = useState<SearchResult[]>(
-    []
+    [],
   );
   const [suggestionLoading, setSuggestionLoading] = useState(false);
   const [suggestionOpen, setSuggestionOpen] = useState(false);
@@ -239,7 +239,7 @@ function SearchPageClient() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [detailData, setDetailData] = useState<TmdbTopSearchDetail | null>(
-    null
+    null,
   );
   const [seasonPickerOpen, setSeasonPickerOpen] = useState(false);
   const [seasonPickerData, setSeasonPickerData] = useState<{
@@ -262,7 +262,7 @@ function SearchPageClient() {
   const [resultFilter, setResultFilter] = useState<SearchResultFilter>('all');
   const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(false);
   const [advancedFilters, setAdvancedFilters] = useState<AdvancedSearchFilters>(
-    DEFAULT_ADVANCED_FILTERS
+    DEFAULT_ADVANCED_FILTERS,
   );
   const filteredMediaResults = useMemo(() => {
     const filtered = searchResults.filter((item) => {
@@ -316,7 +316,7 @@ function SearchPageClient() {
   }, [advancedFilters, resultFilter, searchResults]);
   const movieResultCount = useMemo(
     () => searchResults.filter((item) => !isTvResult(item)).length,
-    [searchResults]
+    [searchResults],
   );
   const filterOptions = [
     {
@@ -367,7 +367,7 @@ function SearchPageClient() {
       'searchHistoryUpdated',
       (newHistory: string[]) => {
         setSearchHistory(newHistory);
-      }
+      },
     );
 
     return () => {
@@ -431,9 +431,9 @@ function SearchPageClient() {
       try {
         const response = await fetch(
           `/api/tmdb/search?q=${encodeURIComponent(
-            trimmedSearchQuery
+            trimmedSearchQuery,
           )}&tmdbLanguage=${encodeURIComponent(getCurrentTmdbLanguage())}`,
-          { signal: controller.signal }
+          { signal: controller.signal },
         );
         if (!response.ok) {
           setSuggestionResults([]);
@@ -483,8 +483,8 @@ function SearchPageClient() {
 
       const tmdbPayload = await fetch(
         `/api/tmdb/search?q=${encodeURIComponent(
-          trimmedQuery
-        )}&tmdbLanguage=${encodeURIComponent(getCurrentTmdbLanguage())}`
+          trimmedQuery,
+        )}&tmdbLanguage=${encodeURIComponent(getCurrentTmdbLanguage())}`,
       )
         .then(async (response) => {
           if (!response.ok) return { results: [], people: [] };
@@ -517,7 +517,7 @@ function SearchPageClient() {
           if (a.year === 'unknown') return 1;
           if (b.year === 'unknown') return -1;
           return parseInt(a.year) > parseInt(b.year) ? -1 : 1;
-        })
+        }),
       );
       setPersonResults(people);
       setShowResults(true);
@@ -586,7 +586,7 @@ function SearchPageClient() {
         }
       }
     },
-    [t]
+    [t],
   );
 
   const handleOpenDetail = useCallback(
@@ -604,10 +604,10 @@ function SearchPageClient() {
           year: normalizeYear(result.year),
           poster: result.poster,
           score: result.score,
-        })
+        }),
       );
     },
-    [router, searchQuery]
+    [router, searchQuery],
   );
 
   const handleRetryDetail = useCallback(() => {
@@ -644,7 +644,7 @@ function SearchPageClient() {
         return 0;
       }
     },
-    []
+    [],
   );
 
   const handleCloseSeasonPicker = useCallback(() => {
@@ -675,7 +675,7 @@ function SearchPageClient() {
           poster: seasonPickerData.backdrop,
           season,
           episode: 1,
-        })
+        }),
       );
     },
     [
@@ -685,7 +685,7 @@ function SearchPageClient() {
       seasonPickerData.backdrop,
       seasonPickerData.tmdbId,
       seasonPickerData.year,
-    ]
+    ],
   );
 
   const handlePlayFromDetail = useCallback(async () => {
@@ -739,7 +739,7 @@ function SearchPageClient() {
           score: detailData?.score || activeResult?.score,
           season: 1,
           episode: 1,
-        })
+        }),
       );
     }
     handleCloseDetail();
@@ -904,20 +904,20 @@ function SearchPageClient() {
                             <MediaFilterChip
                               key={genre.id}
                               active={advancedFilters.includedGenres.includes(
-                                genre.id
+                                genre.id,
                               )}
                               onClick={() =>
                                 setAdvancedFilters((prev) => ({
                                   ...prev,
                                   includedGenres: prev.includedGenres.includes(
-                                    genre.id
+                                    genre.id,
                                   )
                                     ? prev.includedGenres.filter(
-                                        (id) => id !== genre.id
+                                        (id) => id !== genre.id,
                                       )
                                     : [...prev.includedGenres, genre.id],
                                   excludedGenres: prev.excludedGenres.filter(
-                                    (id) => id !== genre.id
+                                    (id) => id !== genre.id,
                                   ),
                                 }))
                               }
@@ -936,7 +936,7 @@ function SearchPageClient() {
                                 key={genre.id}
                                 danger
                                 active={advancedFilters.excludedGenres.includes(
-                                  genre.id
+                                  genre.id,
                                 )}
                                 onClick={() =>
                                   setAdvancedFilters((prev) => ({
@@ -944,11 +944,11 @@ function SearchPageClient() {
                                     excludedGenres:
                                       prev.excludedGenres.includes(genre.id)
                                         ? prev.excludedGenres.filter(
-                                            (id) => id !== genre.id
+                                            (id) => id !== genre.id,
                                           )
                                         : [...prev.excludedGenres, genre.id],
                                     includedGenres: prev.includedGenres.filter(
-                                      (id) => id !== genre.id
+                                      (id) => id !== genre.id,
                                     ),
                                   }))
                                 }
@@ -1044,7 +1044,7 @@ function SearchPageClient() {
                                     ...prev,
                                     minVoteCount: Math.max(
                                       0,
-                                      Number(event.target.value)
+                                      Number(event.target.value),
                                     ),
                                   }))
                                 }
@@ -1189,7 +1189,7 @@ function SearchPageClient() {
                             onClick={() => {
                               setSearchQuery(item);
                               router.push(
-                                `/search?q=${encodeURIComponent(item.trim())}`
+                                `/search?q=${encodeURIComponent(item.trim())}`,
                               );
                             }}
                             className='ui-glass-control px-4 py-2 text-sm'
@@ -1202,7 +1202,7 @@ function SearchPageClient() {
                               'searchPage.deleteSearchHistoryItem',
                               {
                                 item,
-                              }
+                              },
                             )}
                             onClick={(event) => {
                               event.stopPropagation();
