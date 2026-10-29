@@ -36,7 +36,7 @@
 - ⭐ **Favorites and continue watching**: Save favorites, watch history, playback progress, and resume points.
 - 🗄️ **Flexible server storage**: localStorage, Redis, Cloudflare D1, and Upstash Redis.
 - 🔒 **No-account browsing**: No login or registration; favorites, watch history, and playback progress stay in your browser.
-- 📱 **PWA ready**: Offline cache, home-screen installation, and a mobile-friendly experience.
+- 📱 **Installable PWA**: Home-screen installation, an offline navigation fallback, bounded asset caching, and guided service-worker updates. Live metadata and video streaming still require a network connection.
 - 🖥️ **Responsive layout**: Desktop sidebar, mobile bottom navigation, and large-screen content rails.
 
 ## Screenshots

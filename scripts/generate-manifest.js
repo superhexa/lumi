@@ -15,20 +15,41 @@ const siteName = process.env.SITE_NAME || 'Lumi';
 
 // manifest.json 模板
 const manifestTemplate = {
+  id: '/',
   name: siteName,
-  short_name: siteName,
+  short_name: 'Lumi',
   description: 'Movie and TV discovery',
   start_url: '/',
   scope: '/',
+  display_override: ['standalone', 'minimal-ui', 'browser'],
   display: 'standalone',
   background_color: '#080d18',
+  theme_color: '#080d18',
+  orientation: 'any',
+  categories: ['entertainment', 'movies', 'lifestyle'],
+  prefer_related_applications: false,
   'apple-mobile-web-app-capable': 'yes',
-  'apple-mobile-web-app-status-bar-style': 'black',
+  'apple-mobile-web-app-status-bar-style': 'black-translucent',
   icons: [
     {
       src: '/lumi.svg',
       sizes: 'any',
       type: 'image/svg+xml',
+      purpose: 'any maskable',
+    },
+  ],
+  shortcuts: [
+    {
+      name: 'Discover movies',
+      short_name: 'Movies',
+      url: '/discover?type=movie',
+      icons: [{ src: '/lumi.svg', sizes: 'any', type: 'image/svg+xml' }],
+    },
+    {
+      name: 'My library',
+      short_name: 'Library',
+      url: '/my',
+      icons: [{ src: '/lumi.svg', sizes: 'any', type: 'image/svg+xml' }],
     },
   ],
 };

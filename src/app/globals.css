@@ -104,6 +104,10 @@
 }
 
 @media (max-width: 767px) {
+  .pwa-manager {
+    bottom: calc(env(safe-area-inset-bottom) + 5.5rem);
+  }
+
   .cinema-player-fullscreen-mobile {
     display: inline-flex;
   }

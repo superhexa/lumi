@@ -69,12 +69,38 @@ const nextConfig = {
 const defaultRuntimeCaching = require('next-pwa/cache');
 const runtimeCaching = [
   {
-    urlPattern: ({ url }) =>
-      self.origin === url.origin &&
-      (url.pathname.startsWith('/api/tmdb/') ||
-        url.pathname.startsWith('/api/player/')),
+    urlPattern: ({ request, url }) =>
+      request.mode === 'navigate' && url.origin === self.location.origin,
+    handler: 'NetworkFirst',
+    options: {
+      cacheName: 'lumi-pages',
+      networkTimeoutSeconds: 3,
+      expiration: {
+        maxEntries: 50,
+        maxAgeSeconds: 7 * 24 * 60 * 60,
+      },
+      plugins: [
+        {
+          handlerDidError: async () =>
+            (await caches.match('/offline.html', { ignoreSearch: true })) ||
+            Response.error(),
+        },
+      ],
+    },
+  },
+  {
+    urlPattern: ({ url, request }) =>
+      request.destination === 'video' ||
+      /\.(?:m3u8|mpd|m4s|ts|mp4|webm|aac|mp3)$/i.test(url.pathname),
     handler: 'NetworkOnly',
-    method: 'GET',
+    options: {},
+  },
+  {
+    urlPattern: ({ url }) =>
+      url.origin === self.location.origin &&
+      url.pathname.startsWith('/api/'),
+    handler: 'NetworkOnly',
+    options: {},
   },
   ...defaultRuntimeCaching,
 ];
@@ -82,8 +108,18 @@ const runtimeCaching = [
 const withPWA = require('next-pwa')({
   dest: 'public',
   disable: process.env.NODE_ENV === 'development',
-  register: true,
-  skipWaiting: true,
+  register: false,
+  skipWaiting: false,
+  clientsClaim: true,
+  cleanupOutdatedCaches: true,
+  cacheOnFrontEndNav: true,
+  reloadOnOnline: false,
+  publicExcludes: [
+    '!noprecache/**/*',
+    '!screenshot*.png',
+    '!readme-login.png',
+  ],
+  maximumFileSizeToCacheInBytes: 2 * 1024 * 1024,
   runtimeCaching,
 });
 

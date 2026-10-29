@@ -11,6 +11,7 @@ import { DEFAULT_SITE_NAME } from '@/lib/project';
 
 import { GlobalErrorIndicator } from '../components/GlobalErrorIndicator';
 import { I18nProvider } from '../components/I18nProvider';
+import { PwaManager } from '../components/PwaManager';
 import { SiteProvider } from '../components/SiteProvider';
 import { ThemeProvider } from '../components/ThemeProvider';
 
@@ -34,6 +35,11 @@ export async function generateMetadata(): Promise<Metadata> {
     icons: {
       icon: [{ url: '/lumi.svg', type: 'image/svg+xml' }],
       apple: [{ url: '/lumi.svg', type: 'image/svg+xml' }],
+    },
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: 'black-translucent',
+      title: siteName,
     },
   };
 }
@@ -92,6 +98,7 @@ export default async function RootLayout({
             <SiteProvider siteName={siteName} announcement={announcement}>
               {children}
               <GlobalErrorIndicator />
+              <PwaManager />
             </SiteProvider>
           </I18nProvider>
         </ThemeProvider>

@@ -67,6 +67,22 @@ export const resources = {
         watchHistory: 'Watch History',
         details: 'Details',
       },
+      pwa: {
+        installTitle: 'Install Lumi',
+        installDescription: 'Add Lumi to your device for a cinema-ready app.',
+        install: 'Install',
+        howToInstall: 'How to install',
+        iosInstallDescription: 'Add Lumi to your Home Screen for app-like access.',
+        iosInstructions:
+          'In Safari, tap Share, then choose “Add to Home Screen” and confirm.',
+        offlineTitle: 'You are offline',
+        offlineDescription:
+          'Previously loaded pages may still work. Movie details, search, and streaming need an internet connection.',
+        updateAvailable: 'A new version of Lumi is ready.',
+        update: 'Update',
+        updateReady: 'Update installed. Reload to use the latest version.',
+        reload: 'Reload',
+      },
       legal: {
         defaultAnnouncement:
           'This site only provides media information search, indexing, and redirect services. Titles, descriptions, artwork, links, and other displayed content come from third-party sites or public information.\n\nThis site does not upload, store, create, edit, or distribute any video files or streaming media.\n\nThe legality, accuracy, completeness, timeliness, safety, and availability of third-party content are the responsibility of the corresponding third parties. This site makes no express or implied warranties and assumes no direct or indirect liability arising from that content.\n\nUsers are responsible for assessing and assuming all risks and legal obligations related to accessing or using third-party content, and must ensure their actions comply with local laws, regulations, and rights-holder permissions.\n\nIf a rights holder believes that related content is infringing or unlawful, please provide valid ownership proof and link information. After verification, this site will take necessary actions such as removal, link disabling, or blocking in accordance with the law.\n\nBy continuing to access or use this site, you acknowledge that you have read, understood, and agreed to this notice.',
@@ -399,6 +415,21 @@ export const resources = {
         viewAll: '查看全部',
         watchHistory: '观看历史',
         details: '详情',
+      },
+      pwa: {
+        installTitle: '安装 Lumi',
+        installDescription: '将 Lumi 添加到设备，享受影院般的应用体验。',
+        install: '安装',
+        howToInstall: '安装方法',
+        iosInstallDescription: '将 Lumi 添加到主屏幕，像应用一样使用。',
+        iosInstructions: '在 Safari 中轻点“分享”，选择“添加到主屏幕”并确认。',
+        offlineTitle: '当前处于离线状态',
+        offlineDescription:
+          '之前加载的页面可能仍可使用。影片信息、搜索和播放需要网络连接。',
+        updateAvailable: 'Lumi 有可用的新版本。',
+        update: '更新',
+        updateReady: '更新已安装，请重新加载以使用最新版本。',
+        reload: '重新加载',
       },
       legal: {
         defaultAnnouncement:

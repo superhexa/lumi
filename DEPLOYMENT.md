@@ -17,6 +17,19 @@ Playback providers that use browser cryptography require a secure context. Serve
 |  Cloudflare D1  | Not applicable | Not applicable |     Supported      |
 |  Upstash Redis  |   Supported    |   Supported    |     Supported      |
 
+## Progressive Web App
+
+The production build includes an installable web app, a service worker, offline
+navigation fallback, and update prompts. Install Lumi from the browser's install
+button (or **Add to Home Screen** on iOS Safari). The first visit must be online
+so the service worker can install and cache the app shell.
+
+Previously visited pages and static app assets may be available offline. TMDB
+metadata, search, recommendations, and streaming sources still require a network
+connection; video and API responses are deliberately never cached. On iOS, use
+Safari's **Share → Add to Home Screen**. In-app browsers may not offer PWA
+installation.
+
 ## Vercel
 
 1. Fork this repository to your GitHub account.
