@@ -16,6 +16,7 @@ import {
   Layers,
   Maximize2,
   Minimize2,
+  PictureInPicture2,
   RefreshCw,
   Sparkles,
   Star,
@@ -547,6 +548,7 @@ function PlayPageClient() {
   const historyResumeKeysRef = useRef<Set<string>>(new Set());
   const [isPlayerFullscreen, setIsPlayerFullscreen] = useState(false);
   const [playerFullscreenError, setPlayerFullscreenError] = useState(false);
+  const [popupPlayerError, setPopupPlayerError] = useState(false);
 
   useEffect(() => {
     const syncFullscreenState = () => {
@@ -574,6 +576,28 @@ function PlayPageClient() {
     } catch (fullscreenError) {
       console.error('Unable to enter player fullscreen:', fullscreenError);
       setPlayerFullscreenError(true);
+    }
+  };
+
+  const openPopupPlayer = () => {
+    if (!playerEmbedUrlRef.current) return;
+    setPopupPlayerError(false);
+    try {
+      const url = new URL(playerEmbedUrlRef.current, window.location.origin);
+      const progress = tmdbEmbedProgressRef.current;
+      if (progress?.playTime && Number.isFinite(progress.playTime)) {
+        url.searchParams.set('t', String(Math.max(0, Math.floor(progress.playTime))));
+      }
+      const popup = window.open(
+        url.toString(),
+        'lumi-popup-player',
+        'popup=yes,width=960,height=540,left=120,top=120,menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=no',
+      );
+      if (!popup) setPopupPlayerError(true);
+      else popup.opener = null;
+    } catch (popupError) {
+      console.error('Unable to open popup player:', popupError);
+      setPopupPlayerError(true);
     }
   };
 
@@ -2333,6 +2357,15 @@ function PlayPageClient() {
               </h1>
               <button
                 type='button'
+                aria-label='Popup player'
+                title='Popup player'
+                onClick={openPopupPlayer}
+                className='ui-glass-control inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl'
+              >
+                <PictureInPicture2 className='h-5 w-5' />
+              </button>
+              <button
+                type='button'
                 aria-label={t(
                   isPlayerFullscreen
                     ? 'play.exitFullscreen'
@@ -2387,6 +2420,15 @@ function PlayPageClient() {
 
                   <button
                     type='button'
+                    aria-label='Popup player'
+                    title='Popup player'
+                    onClick={openPopupPlayer}
+                    className='ui-glass-control absolute right-14 top-3 z-[510] inline-flex h-10 w-10 items-center justify-center rounded-xl'
+                  >
+                    <PictureInPicture2 className='h-5 w-5' />
+                  </button>
+                  <button
+                    type='button'
                     aria-label={t(
                       isPlayerFullscreen
                         ? 'play.exitFullscreen'
@@ -2412,6 +2454,14 @@ function PlayPageClient() {
                       className='absolute right-3 top-14 z-[510] max-w-64 rounded-lg bg-black/80 px-3 py-2 text-xs text-white'
                     >
                       {t('play.fullscreenUnavailable')}
+                    </p>
+                  ) : null}
+                  {popupPlayerError ? (
+                    <p
+                      role='status'
+                      className='absolute right-14 top-14 z-[510] max-w-64 rounded-lg bg-black/80 px-3 py-2 text-xs text-white'
+                    >
+                      Popup blocked. Allow popups and try again.
                     </p>
                   ) : null}
 

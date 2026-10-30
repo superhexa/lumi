@@ -22,6 +22,27 @@ export function PwaManager() {
   const [isOffline, setIsOffline] = useState(false);
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [reloadForUpdate, setReloadForUpdate] = useState(false);
+  const [isPlaybackRoute, setIsPlaybackRoute] = useState(false);
+
+  useEffect(() => {
+    const syncPlaybackRoute = () => {
+      const pathname = window.location.pathname;
+      setIsPlaybackRoute(
+        pathname === '/play' ||
+        pathname.startsWith('/play/') ||
+        pathname === '/player/direct' ||
+        pathname.startsWith('/player/direct/') ||
+        document.fullscreenElement !== null,
+      );
+    };
+    syncPlaybackRoute();
+    window.addEventListener('popstate', syncPlaybackRoute);
+    document.addEventListener('fullscreenchange', syncPlaybackRoute);
+    return () => {
+      window.removeEventListener('popstate', syncPlaybackRoute);
+      document.removeEventListener('fullscreenchange', syncPlaybackRoute);
+    };
+  }, []);
 
   useEffect(() => {
     const isStandalone =
@@ -149,6 +170,7 @@ export function PwaManager() {
 
   const showInstallCard =
     !installDismissed && (installAvailable || isIosInstall);
+  if (isPlaybackRoute) return null;
   if (!isOffline && !showInstallCard && !updateAvailable && !reloadForUpdate)
     return null;
 

@@ -17,6 +17,51 @@ const HEADERS = {
   Referer: 'https://bingr.one/',
 };
 
+function decodeBingrHtmlUrl(value: string): string {
+  return value
+    .replace(/\\u0026/gi, '&')
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/\\\//g, '/');
+}
+
+async function resolveBingrWatchPage(
+  tmdbId: string,
+  mediaType: string,
+  season: number,
+  episode: number,
+  signal: AbortSignal,
+): Promise<URL | null> {
+  const pageUrl = new URL(`https://bingr.one/watch/${mediaType}/${tmdbId}`);
+  if (mediaType === 'tv') {
+    pageUrl.searchParams.set('s', String(season));
+    pageUrl.searchParams.set('e', String(episode));
+  }
+  const response = await fetch(pageUrl, {
+    signal,
+    redirect: 'follow',
+    headers: { ...HEADERS, Accept: 'text/html,application/xhtml+xml' },
+  });
+  if (!response.ok) return null;
+  const html = await response.text();
+  const matches = Array.from(
+    new Set([
+      ...(html.match(/https?:\/\/[^\s"'<]+\.m3u8[^\s"'<]*/gi) || []),
+      ...(html.match(/https?:\\\/\\\/[^\s"'<]+\.m3u8[^\s"'<]*/gi) || []),
+    ]),
+  );
+  for (const match of matches) {
+    try {
+      const raw = decodeBingrHtmlUrl(match).replace(/\\$/, '');
+      const url = unwrapBingrMediaUrl(raw);
+      return url;
+    } catch {
+      // Try the next manifest exposed by the watch page.
+    }
+  }
+  return null;
+}
+
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
   const tmdbId = normalizeTmdbId(params.get('tmdbId'));
@@ -52,9 +97,29 @@ export async function GET(request: Request) {
       query.year = details.year.slice(0, 10);
     if (typeof details.imdb_id === 'string')
       query.imdb_id = details.imdb_id.slice(0, 30);
+    const season = normalizePositiveInteger(params.get('season'), 1);
+    const episode = normalizePositiveInteger(params.get('episode'), 1);
     if (mediaType === 'tv') {
-      query.season = normalizePositiveInteger(params.get('season'));
-      query.episode = normalizePositiveInteger(params.get('episode'));
+      query.season = season;
+      query.episode = episode;
+    }
+    failureCode = 'watch-page-request';
+    try {
+      const watchUrl = await resolveBingrWatchPage(
+        String(tmdbId),
+        mediaType,
+        season,
+        episode,
+        controller.signal,
+      );
+      if (watchUrl) {
+        return NextResponse.json(
+          { streamUrl: bingrMediaProxyUrl(watchUrl.href), title: details.title },
+          { headers: { 'Cache-Control': 'no-store' } },
+        );
+      }
+    } catch {
+      // The public API fallback below remains available for older deployments.
     }
     failureCode = 'stream-request';
     const response = await fetch(`${API}/stream`, {

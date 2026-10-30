@@ -4,6 +4,10 @@ const MEDIA_HOSTS = new Set([
   'futurefocusedentrepreneurs.site',
   'remoteconsultinggroup.site',
   'digitalassetlaunchpad.site',
+  'sacdn.hakunaymatata.com',
+  'img.rousav.tech',
+  'hakunamatata.rousav.tech',
+  'lingering-sky-2e99.badrishhmehar.workers.dev',
 ]);
 
 export function validateBingrMediaUrl(value: string): URL {

@@ -21,20 +21,31 @@ export async function GET(request: Request) {
         ? new URL('https://remoteconsultinggroup.site')
         : url.hostname === 'digitalassetlaunchpad.site'
           ? new URL('https://digitalassetlaunchpad.site')
-          : null;
+          : url.hostname === 'sacdn.hakunaymatata.com'
+            ? new URL('https://sacdn.hakunaymatata.com')
+            : url.hostname === 'img.rousav.tech'
+              ? new URL('https://img.rousav.tech')
+              : url.hostname === 'hakunamatata.rousav.tech'
+                ? new URL('https://hakunamatata.rousav.tech')
+                : url.hostname === 'lingering-sky-2e99.badrishhmehar.workers.dev'
+                  ? new URL('https://lingering-sky-2e99.badrishhmehar.workers.dev')
+                  : null;
   if (!target) return new Response('Unsupported media URL', { status: 400 });
   target.pathname = url.pathname;
   target.search = url.search;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 20000);
   try {
+    const isBingrRelay =
+      url.hostname === 'hakunamatata.rousav.tech' ||
+      url.hostname === 'lingering-sky-2e99.badrishhmehar.workers.dev';
     const headers: Record<string, string> = {
       'User-Agent':
         'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
       'Accept-Language': 'en-US,en;q=0.9',
       Accept: '*/*',
-      Referer: 'https://nextgencloudfabric.com/',
-      Origin: 'https://nextgencloudfabric.com',
+      Referer: isBingrRelay ? 'https://bingr.one/' : 'https://nextgencloudfabric.com/',
+      Origin: isBingrRelay ? 'https://bingr.one' : 'https://nextgencloudfabric.com',
     };
     const range = request.headers.get('range');
     if (range && /^bytes=\d*-\d*$/.test(range)) headers.Range = range;
@@ -48,13 +59,23 @@ export async function GET(request: Request) {
       'Cache-Control': 'private, max-age=30',
       'X-Content-Type-Options': 'nosniff',
     });
-    if (url.pathname.endsWith('.m3u8')) {
-      if (Number(response.headers.get('content-length')) > 512000)
+    const upstreamUrlParam = url.searchParams.get('url');
+    const playlistBase = upstreamUrlParam ? new URL(upstreamUrlParam) : url;
+    const upstreamContentType = response.headers.get('content-type') || '';
+    const isPlaylist =
+      url.pathname.endsWith('.m3u8') ||
+      playlistBase.pathname.endsWith('.m3u8') ||
+      /mpegurl|x-mpegurl/i.test(upstreamContentType);
+    if (isPlaylist) {
+      if (Number(response.headers.get('content-length')) > 5_000_000)
         throw new Error('Playlist too large');
       const body = await response.text();
-      if (body.length > 512000) throw new Error('Playlist too large');
+      if (body.length > 5_000_000) throw new Error('Playlist too large');
+      if (!body.trimStart().startsWith('#EXTM3U')) {
+        return new Response('Invalid playlist response', { status: 502 });
+      }
       outputHeaders.set('Content-Type', 'application/vnd.apple.mpegurl');
-      return new Response(rewriteBingrPlaylist(body, url), {
+      return new Response(rewriteBingrPlaylist(body, playlistBase), {
         headers: outputHeaders,
       });
     }

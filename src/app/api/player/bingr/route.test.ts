@@ -27,16 +27,9 @@ describe('Bingr resolver', () => {
         new Response(JSON.stringify({ title: 'Westworld', year: '2016' })),
       )
       .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            sources: [
-              {
-                url: 'https://futurefocusedentrepreneurs.site/master.m3u8',
-                type: 'application/x-mpegurl',
-              },
-            ],
-          }),
-        ),
+        new Response('<html><video src="https://futurefocusedentrepreneurs.site/watch/master.m3u8"></video></html>', {
+          headers: { 'Content-Type': 'text/html' },
+        }),
       );
     const response = await GET(
       new Request(
@@ -49,13 +42,10 @@ describe('Bingr resolver', () => {
     );
     expect(fetchMock.mock.calls.map((call) => String(call[0]))).toEqual([
       'https://api.bingr.one/api/details/tv/63247',
-      'https://api.bingr.one/api/stream',
+      'https://bingr.one/watch/tv/63247?s=2&e=1',
     ]);
-    expect(
-      fetchMock.mock.calls.every((call) => call[1].redirect === 'manual'),
-    ).toBe(true);
-    const requestBody = JSON.parse(fetchMock.mock.calls[1][1].body);
-    expect(requestBody.query).toMatchObject({ season: 2, episode: 1 });
+    expect(fetchMock.mock.calls[0][1].redirect).toBe('manual');
+    expect(String(fetchMock.mock.calls[1][0])).toContain('/watch/tv/63247');
     expect(fetchMock.mock.calls[0][1].headers['User-Agent']).toContain(
       'Mozilla/5.0',
     );
@@ -74,6 +64,7 @@ describe('Bingr resolver', () => {
   it('rejects provider results that point to private or unknown hosts', async () => {
     fetchMock
       .mockResolvedValueOnce(new Response(JSON.stringify({ title: 'Test' })))
+      .mockResolvedValueOnce(new Response('<html></html>'))
       .mockResolvedValueOnce(
         new Response(
           JSON.stringify({
@@ -88,6 +79,6 @@ describe('Bingr resolver', () => {
         )
       ).status,
     ).toBe(502);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 });
