@@ -1,4 +1,3 @@
-import { Analytics } from '@vercel/analytics/next';
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 
@@ -98,7 +97,7 @@ export default async function RootLayout({
         />
       </head>
       <body
-        className={`${inter.className} min-h-screen bg-[#080d18] text-slate-100`}
+        className={`${inter.className} min-h-screen bg-black text-slate-100`}
       >
         <ThemeProvider
           attribute='class'
@@ -115,7 +114,6 @@ export default async function RootLayout({
             </SiteProvider>
           </I18nProvider>
         </ThemeProvider>
-        <Analytics />
       </body>
     </html>
   );

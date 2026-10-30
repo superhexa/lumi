@@ -661,6 +661,7 @@
 html,
 body {
   height: 100%;
+  background: #000000;
   overflow-x: hidden;
   /* 阻止 iOS Safari 拉动回弹 */
   overscroll-behavior: none;
