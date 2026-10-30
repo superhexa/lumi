@@ -1,4 +1,4 @@
-﻿@tailwind base;
+@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -78,8 +78,9 @@
 .cinema-player-frame {
   width: 100%;
   aspect-ratio: 16 / 9;
-  max-height: min(78dvh, 68vw);
-  border-radius: var(--ui-radius-card);
+  max-width: min(100%, 1280px, 142.222dvh);
+  margin-inline: auto;
+  border-radius: 20px;
   background:
     radial-gradient(ellipse at 50% 0%, rgb(190 18 60 / 0.14), transparent 58%),
     #000;
@@ -95,17 +96,183 @@
 }
 
 .direct-player-shell {
-  --media-sm-menu-portrait-max-height: min(68dvh, 560px);
-  --media-sm-menu-landscape-max-height: min(80dvh, 400px);
+  --media-menu-bg: rgb(9 15 28 / 0.97);
+  --media-menu-border: 1px solid rgb(165 178 199 / 0.24);
+  --media-menu-border-radius: 20px;
+  --media-menu-box-shadow: 0 24px 70px rgb(0 0 0 / 0.55);
+  --media-menu-font-size: 15px;
+  --media-menu-item-height: 48px;
+  --media-menu-item-padding: 12px;
+  --media-menu-item-border-radius: 12px;
+  --media-menu-item-icon-size: 20px;
+  --media-menu-min-width: 300px;
+  --media-menu-padding: 12px;
+  --media-sm-menu-portrait-max-height: min(72dvh, 640px);
+  --media-sm-menu-landscape-max-height: min(82dvh, 480px);
 }
 
 .direct-player-menu-close {
   display: none;
 }
 
+.pwa-manager {
+  position: fixed;
+  z-index: 4000;
+  right: max(1.25rem, env(safe-area-inset-right));
+  bottom: max(1.25rem, env(safe-area-inset-bottom));
+  display: flex;
+  width: min(26rem, calc(100vw - 2rem));
+  flex-direction: column;
+  gap: 0.75rem;
+  color: white;
+}
+
+.pwa-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgb(226 232 240 / 0.18);
+  border-radius: 1.5rem;
+  background:
+    radial-gradient(ellipse at 0% 0%, rgb(190 18 60 / 0.2), transparent 58%),
+    linear-gradient(145deg, rgb(16 24 40 / 0.98), rgb(5 9 18 / 0.98));
+  padding: 1.25rem;
+  box-shadow:
+    0 24px 70px rgb(0 0 0 / 0.48),
+    inset 0 1px 0 rgb(255 255 255 / 0.07);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+}
+
+.pwa-install-card {
+  display: grid;
+  gap: 1rem;
+  padding-top: 1.375rem;
+}
+
+.pwa-install-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  padding-right: 2rem;
+}
+
+.pwa-icon-wrap {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgb(251 113 133 / 0.32);
+  border-radius: 1rem;
+  background: linear-gradient(
+    145deg,
+    rgb(190 18 60 / 0.3),
+    rgb(190 18 60 / 0.1)
+  );
+  color: #fda4af;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12);
+}
+
+.pwa-close {
+  position: absolute;
+  top: 0.875rem;
+  right: 0.875rem;
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border-radius: 0.875rem;
+}
+
+.pwa-primary-action {
+  display: inline-flex;
+  min-height: 3rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid rgb(255 255 255 / 0.18);
+  border-radius: 1rem;
+  background: linear-gradient(120deg, #fb7185, #fda4af);
+  padding: 0.75rem 1rem;
+  color: #18080c;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  box-shadow: 0 8px 24px rgb(190 18 60 / 0.28);
+  transition:
+    filter 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.pwa-primary-action:hover {
+  filter: brightness(1.06);
+  box-shadow: 0 10px 28px rgb(190 18 60 / 0.38);
+}
+
+.pwa-primary-action:active {
+  transform: scale(0.985);
+}
+
+.pwa-primary-action:focus-visible,
+.pwa-close:focus-visible {
+  outline: 2px solid #fda4af;
+  outline-offset: 3px;
+}
+
+.pwa-ios-instructions {
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: 1rem;
+  background: rgb(255 255 255 / 0.05);
+  padding: 0.875rem 1rem;
+  color: rgb(226 232 240);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
 @media (max-width: 767px) {
+  .cinema-player-frame {
+    max-width: none;
+  }
+
   .pwa-manager {
-    bottom: calc(env(safe-area-inset-bottom) + 5.5rem);
+    right: max(0.75rem, env(safe-area-inset-right));
+    bottom: calc(env(safe-area-inset-bottom) + 5.25rem);
+    left: max(0.75rem, env(safe-area-inset-left));
+    width: auto;
+    gap: 0.625rem;
+  }
+
+  .pwa-card {
+    border-radius: 1.375rem;
+    padding: 1rem;
+  }
+
+  .pwa-install-card {
+    gap: 0.875rem;
+    padding-top: 1.125rem;
+  }
+
+  .pwa-install-heading {
+    gap: 0.75rem;
+    padding-right: 2.5rem;
+  }
+
+  .pwa-icon-wrap {
+    width: 2.625rem;
+    height: 2.625rem;
+    border-radius: 0.875rem;
+  }
+
+  .pwa-close {
+    top: 0.625rem;
+    right: 0.625rem;
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+
+  .pwa-primary-action {
+    min-height: 3.125rem;
+    border-radius: 0.9375rem;
   }
 
   .cinema-player-fullscreen-mobile {
@@ -139,11 +306,22 @@
   }
 
   .direct-player-shell .vds-menu-items[data-root]:not([data-placement]) {
-    bottom: max(0.75rem, env(safe-area-inset-bottom));
-    left: max(0.75rem, env(safe-area-inset-left));
-    right: max(0.75rem, env(safe-area-inset-right));
-    max-width: 480px;
+    bottom: max(0.625rem, env(safe-area-inset-bottom));
+    left: max(0.625rem, env(safe-area-inset-left));
+    right: max(0.625rem, env(safe-area-inset-right));
+    max-width: 560px;
     width: auto;
+    border-radius: 22px;
+    padding: 16px;
+  }
+
+  .direct-player-shell .vds-menu-items[data-root] .vds-menu-item,
+  .direct-player-shell .vds-menu-items[data-root] .vds-radio {
+    min-height: 52px;
+  }
+
+  .direct-player-shell .vds-menu-items[data-root] .vds-menu-item {
+    gap: 12px;
   }
 }
 
@@ -154,6 +332,13 @@
 }
 
 @media (max-width: 767px) and (orientation: landscape) {
+  .pwa-manager {
+    right: max(0.75rem, env(safe-area-inset-right));
+    bottom: max(0.75rem, env(safe-area-inset-bottom));
+    left: auto;
+    width: min(26rem, calc(100vw - 1.5rem));
+  }
+
   .cinema-player-frame:fullscreen {
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);

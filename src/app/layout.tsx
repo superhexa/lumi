@@ -33,8 +33,21 @@ export async function generateMetadata(): Promise<Metadata> {
     description: 'Movie and TV discovery',
     manifest: '/manifest.json',
     icons: {
-      icon: [{ url: '/lumi.svg', type: 'image/svg+xml' }],
-      apple: [{ url: '/lumi.svg', type: 'image/svg+xml' }],
+      icon: [
+        {
+          url: '/icons/icon-192x192.png',
+          sizes: '192x192',
+          type: 'image/png',
+        },
+        { url: '/lumi.svg', type: 'image/svg+xml' },
+      ],
+      apple: [
+        {
+          url: '/icons/icon-180x180.png',
+          sizes: '180x180',
+          type: 'image/png',
+        },
+      ],
     },
     appleWebApp: {
       capable: true,

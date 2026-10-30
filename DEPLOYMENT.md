@@ -20,9 +20,13 @@ Playback providers that use browser cryptography require a secure context. Serve
 ## Progressive Web App
 
 The production build includes an installable web app, a service worker, offline
-navigation fallback, and update prompts. Install Lumi from the browser's install
-button (or **Add to Home Screen** on iOS Safari). The first visit must be online
-so the service worker can install and cache the app shell.
+navigation fallback, and update prompts. On supported browsers, choose **Install
+Lumi** to open the browser's native app-install prompt; this installs Lumi as a
+standalone web app, not a bookmark. iOS Safari uses **Share → Add to Home Screen**
+to install the web app. Browsers control whether installation is available, so
+Lumi cannot silently install itself. The site must be served over HTTPS (or
+localhost for development), and the first visit must be online so the service
+worker can install and cache the app shell.
 
 Previously visited pages and static app assets may be available offline. TMDB
 metadata, search, recommendations, and streaming sources still require a network

@@ -162,7 +162,7 @@ export async function GET(request: Request) {
       provider: provider.id,
       season,
       episode,
-      accentColor: searchParams.get('color') || '557efc',
+      accentColor: searchParams.get('color') || 'fb7185',
       subtitleLang: searchParams.get('subtitleLang') || 'en',
     });
 

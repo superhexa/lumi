@@ -61,6 +61,9 @@ describe('player resolver outbound requests', () => {
       expect(result.provider.id).toBe('cinesrc');
       expect(new URL(result.embedUrl).origin).toBe('https://cinesrc.st');
       expect(new URL(result.embedUrl).pathname).toBe('/embed/movie/550');
+      expect(new URL(result.embedUrl).searchParams.get('color')).toBe(
+        '#fb7185',
+      );
       expect(result.storageId).toBe('550');
       expect(fetchMock).not.toHaveBeenCalled();
     },
