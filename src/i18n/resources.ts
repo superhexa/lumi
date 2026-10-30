@@ -364,6 +364,11 @@ export const resources = {
         backupInvalid: 'That backup file is invalid or too large.',
         backupFailed: 'Library backup could not be processed.',
         watchHistory: 'Watch History',
+        weeklyGoal: 'Weekly watching goal',
+        completion: 'completed',
+        topSource: 'Most used source',
+        shareLibrary: 'Share library',
+        libraryCopied: 'Library summary copied.',
       },
       seasonPicker: {
         chooseSeason: 'Choose a season to play',

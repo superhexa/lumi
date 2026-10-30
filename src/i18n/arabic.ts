@@ -310,7 +310,8 @@ export const arabicTranslation = {
     secureConnectionRequired: 'يلزم اتصال آمن',
     requiresSecureContext:
       'يتطلب تشغيل الفيديو اتصال HTTPS آمناً. افتح الموقع باستخدام عنوان HTTPS؛ فعنوان IP عبر HTTP لا يوفر ميزات الأمان التي يحتاجها المشغل.',
-    playerLoadFailed: 'تعذر تحميل مشغل الفيديو. تحقق من اتصالك ثم أعد المحاولة.',
+    playerLoadFailed:
+      'تعذر تحميل مشغل الفيديو. تحقق من اتصالك ثم أعد المحاولة.',
     episodesLoadFailed: 'تعذر تحميل الحلقات. يُرجى إعادة المحاولة.',
     selectSource: 'المصدر',
     playerSettings: 'إعدادات مشغل Lumi',
@@ -350,7 +351,8 @@ export const arabicTranslation = {
     itemCount_other: '{{count}} عنصر',
     latest: 'الأحدث',
     inProgress: 'قيد المشاهدة',
-    librarySubtitle: 'مفضلاتك وأعمالك الأخيرة وما ستشاهده لاحقاً، كلها في مكان واحد.',
+    librarySubtitle:
+      'مفضلاتك وأعمالك الأخيرة وما ستشاهده لاحقاً، كلها في مكان واحد.',
     libraryTitle: 'مكتبتي',
     matchingFavoritesNotFound: 'لم يتم العثور على أعمال تطابق البحث',
     matchingHistoryNotFound: 'لم يتم العثور على سجل مشاهدة مطابق',
@@ -395,6 +397,11 @@ export const arabicTranslation = {
     backupInvalid: 'ملف النسخة الاحتياطية غير صالح أو حجمه كبير جداً.',
     backupFailed: 'تعذرت معالجة النسخة الاحتياطية للمكتبة.',
     watchHistory: 'سجل المشاهدة',
+    weeklyGoal: 'هدف المشاهدة الأسبوعي',
+    completion: 'مكتمل',
+    topSource: 'المصدر الأكثر استخداماً',
+    shareLibrary: 'مشاركة المكتبة',
+    libraryCopied: 'تم نسخ ملخص المكتبة.',
   },
   seasonPicker: {
     chooseSeason: 'اختر موسماً للمشاهدة',

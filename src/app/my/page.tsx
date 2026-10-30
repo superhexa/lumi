@@ -13,9 +13,12 @@ import {
   ListFilter,
   Play,
   Search,
+  Share2,
   Shuffle,
   Sparkles,
   Tags,
+  Target,
+  Trophy,
   Upload,
   X,
 } from 'lucide-react';
@@ -469,6 +472,8 @@ function MyPageClient() {
   const backupFileInputRef = useRef<HTMLInputElement | null>(null);
   const [backupBusy, setBackupBusy] = useState(false);
   const [backupFeedback, setBackupFeedback] = useState('');
+  const [weeklyGoal, setWeeklyGoal] = useState(5);
+  const [showLibraryGoal, setShowLibraryGoal] = useState(false);
 
   const updatePlayRecords = useCallback(
     (records: Record<string, PlayRecord>) => {
@@ -505,6 +510,19 @@ function MyPageClient() {
     },
     [],
   );
+
+  useEffect(() => {
+    const savedGoal = Number(
+      window.localStorage.getItem('lumi-weekly-watch-goal'),
+    );
+    if (Number.isFinite(savedGoal) && savedGoal >= 1 && savedGoal <= 30) {
+      setWeeklyGoal(savedGoal);
+    }
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem('lumi-weekly-watch-goal', String(weeklyGoal));
+  }, [weeklyGoal]);
 
   useEffect(() => {
     const load = async () => {
@@ -1010,7 +1028,8 @@ function MyPageClient() {
     );
   }, [favoriteItemGenres, favoriteItems]);
 
-  const normalizedLibrarySearchKeyword = normalizeSearchText(librarySearchKeyword);
+  const normalizedLibrarySearchKeyword =
+    normalizeSearchText(librarySearchKeyword);
   const continueWatchingRecords = useMemo(
     () => playRecords.filter(isRecordInProgress).slice(0, 8),
     [playRecords],
@@ -1061,6 +1080,49 @@ function MyPageClient() {
     ],
     [favoriteItems, inProgressRecordCount, playRecords.length, t, watchedKeys],
   );
+  const weekStart = useMemo(() => {
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    date.setDate(date.getDate() - date.getDay());
+    return date.getTime();
+  }, []);
+  const watchedThisWeek = useMemo(
+    () => playRecords.filter((record) => record.save_time >= weekStart).length,
+    [playRecords, weekStart],
+  );
+  const completionPercent = useMemo(() => {
+    const denominator = favoriteItems.length + playRecords.length;
+    if (!denominator) return 0;
+    return Math.min(
+      100,
+      Math.round((completedRecordCount / denominator) * 100),
+    );
+  }, [completedRecordCount, favoriteItems.length, playRecords.length]);
+  const topSource = useMemo(() => {
+    const counts = new Map<string, number>();
+    playRecords.forEach((record) => {
+      const source = record.source_name?.trim() || 'Lumi';
+      counts.set(source, (counts.get(source) || 0) + 1);
+    });
+    return (
+      Array.from(counts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] || '—'
+    );
+  }, [playRecords]);
+
+  const handleShareLibrary = useCallback(async () => {
+    const text = `${t('my.libraryTitle')} — ${favoriteItems.length} ${t('my.savedTitles')}, ${playRecords.length} ${t('my.watchHistory')}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: t('my.libraryTitle'), text });
+      } else if (navigator.clipboard) {
+        await navigator.clipboard.writeText(text);
+        setBackupFeedback(t('my.libraryCopied'));
+      }
+    } catch {
+      // The browser may cancel the native share sheet without an error.
+    }
+  }, [favoriteItems.length, playRecords.length, t]);
+
   const libraryGridClassName = compactGrid
     ? 'grid grid-cols-2 gap-x-2 gap-y-6 sm:grid-cols-[repeat(auto-fill,minmax(130px,1fr))] sm:gap-x-3 sm:gap-y-7'
     : 'grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-[repeat(auto-fill,minmax(170px,1fr))] sm:gap-x-[18px] sm:gap-y-8';
@@ -1073,7 +1135,9 @@ function MyPageClient() {
         record.year,
         record.search_title,
       ].some((value) =>
-        normalizeSearchText(value || '').includes(normalizedLibrarySearchKeyword),
+        normalizeSearchText(value || '').includes(
+          normalizedLibrarySearchKeyword,
+        ),
       );
     });
 
@@ -1126,7 +1190,9 @@ function MyPageClient() {
       if (!normalizedLibrarySearchKeyword) return true;
       return [item.title, item.searchTitle, item.sourceName, item.year].some(
         (value) =>
-          normalizeSearchText(value || '').includes(normalizedLibrarySearchKeyword),
+          normalizeSearchText(value || '').includes(
+            normalizedLibrarySearchKeyword,
+          ),
       );
     });
 
@@ -1459,9 +1525,18 @@ function MyPageClient() {
       <div className='overflow-visible px-0 pb-4 sm:px-10 sm:pb-8'>
         <div className='space-y-3 px-4 pt-6 sm:space-y-3 sm:px-0 sm:pt-8 md:pt-4'>
           <section className='relative isolate overflow-hidden rounded-[1.5rem] border border-cyan-300/[0.12] bg-[#09111e]/95 p-4 shadow-[0_24px_70px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.05)] sm:rounded-[2rem] sm:p-6'>
-            <div aria-hidden='true' className='absolute inset-y-0 end-0 w-1/2 opacity-60 [background:radial-gradient(circle_at_70%_35%,rgba(34,211,238,.16),transparent_35%),radial-gradient(circle_at_90%_75%,rgba(59,130,246,.12),transparent_28%)]' />
-            <div aria-hidden='true' className='absolute -end-20 -top-24 h-64 w-64 rounded-full border border-cyan-300/10' />
-            <div aria-hidden='true' className='absolute -end-10 -top-14 h-44 w-44 rounded-full border border-cyan-300/[0.08]' />
+            <div
+              aria-hidden='true'
+              className='absolute inset-y-0 end-0 w-1/2 opacity-60 [background:radial-gradient(circle_at_70%_35%,rgba(34,211,238,.16),transparent_35%),radial-gradient(circle_at_90%_75%,rgba(59,130,246,.12),transparent_28%)]'
+            />
+            <div
+              aria-hidden='true'
+              className='absolute -end-20 -top-24 h-64 w-64 rounded-full border border-cyan-300/10'
+            />
+            <div
+              aria-hidden='true'
+              className='absolute -end-10 -top-14 h-44 w-44 rounded-full border border-cyan-300/[0.08]'
+            />
 
             <div className='relative grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.8fr)] lg:items-center lg:gap-8'>
               <div className='flex min-w-0 items-start gap-3 sm:gap-4'>
@@ -1487,12 +1562,17 @@ function MyPageClient() {
                     key={stat.label}
                     className='group relative min-w-0 overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.045] p-3 backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:border-cyan-300/20 hover:bg-white/[0.07] sm:p-4'
                   >
-                    <div className={`absolute -end-5 -top-8 h-20 w-20 rounded-full bg-gradient-to-br ${stat.accent} opacity-50 blur-2xl`} />
+                    <div
+                      className={`absolute -end-5 -top-8 h-20 w-20 rounded-full bg-gradient-to-br ${stat.accent} opacity-50 blur-2xl`}
+                    />
                     <div className='relative flex items-center justify-between gap-2'>
                       <span className='min-w-0 truncate text-[11px] font-semibold text-slate-400 sm:text-xs'>
                         {stat.label}
                       </span>
-                      <stat.icon aria-hidden='true' className={`h-4 w-4 shrink-0 ${stat.iconClass}`} />
+                      <stat.icon
+                        aria-hidden='true'
+                        className={`h-4 w-4 shrink-0 ${stat.iconClass}`}
+                      />
                     </div>
                     <p className='relative mt-2 text-xl font-black tabular-nums tracking-tight text-white sm:text-2xl'>
                       {stat.value.toLocaleString()}
@@ -1501,6 +1581,127 @@ function MyPageClient() {
                 ))}
               </div>
             </div>
+          </section>
+
+          <section className='grid gap-2 sm:grid-cols-[minmax(0,1.6fr)_minmax(280px,.8fr)]'>
+            <div className='grid grid-cols-4 gap-2 rounded-[1.35rem] border border-white/[0.07] bg-[#0b1322]/90 p-2 shadow-[0_16px_45px_rgba(0,0,0,0.18)]'>
+              {(
+                [
+                  ['all', t('my.allActivity')],
+                  ['inProgress', t('my.inProgress')],
+                  ['completed', t('my.completed')],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  type='button'
+                  onClick={() => {
+                    setActiveTab('play');
+                    setPlaybackStatusFilter(value);
+                  }}
+                  className={`min-h-12 rounded-xl px-2 text-xs font-bold transition sm:text-sm ${
+                    playbackStatusFilter === value && activeTab === 'play'
+                      ? 'bg-cyan-400 text-slate-950 shadow-[0_10px_24px_rgba(34,211,238,.18)]'
+                      : 'text-slate-400 hover:bg-white/[0.06] hover:text-white'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+              <button
+                type='button'
+                onClick={() => setActiveTab('favorite')}
+                className={`min-h-12 rounded-xl px-2 text-xs font-bold transition sm:text-sm ${
+                  activeTab === 'favorite'
+                    ? 'bg-cyan-400 text-slate-950 shadow-[0_10px_24px_rgba(34,211,238,.18)]'
+                    : 'text-slate-400 hover:bg-white/[0.06] hover:text-white'
+                }`}
+              >
+                {t('my.toWatch')}
+              </button>
+            </div>
+
+            <div className='relative overflow-hidden rounded-[1.35rem] border border-cyan-300/[0.12] bg-gradient-to-br from-cyan-400/[0.09] to-blue-500/[0.05] p-3'>
+              <button
+                type='button'
+                onClick={() => setShowLibraryGoal((visible) => !visible)}
+                className='flex w-full items-center gap-3 text-start'
+                aria-expanded={showLibraryGoal}
+              >
+                <span className='grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-cyan-400/15 text-cyan-200'>
+                  <Target className='h-5 w-5' />
+                </span>
+                <span className='min-w-0 flex-1'>
+                  <span className='block text-xs font-semibold text-slate-400'>
+                    {t('my.weeklyGoal')}
+                  </span>
+                  <span className='mt-0.5 block text-sm font-black text-white'>
+                    {watchedThisWeek} / {weeklyGoal}
+                  </span>
+                </span>
+                <Trophy className='h-5 w-5 text-cyan-300' />
+              </button>
+              <div className='mt-2 h-1.5 overflow-hidden rounded-full bg-white/[0.07]'>
+                <div
+                  className='h-full rounded-full bg-gradient-to-r from-cyan-400 to-blue-400 transition-all'
+                  style={{
+                    width: `${Math.min(100, (watchedThisWeek / weeklyGoal) * 100)}%`,
+                  }}
+                />
+              </div>
+              {showLibraryGoal ? (
+                <div className='mt-3 grid grid-cols-[auto_1fr_auto] items-center gap-2'>
+                  <button
+                    type='button'
+                    onClick={() =>
+                      setWeeklyGoal((goal) => Math.max(1, goal - 1))
+                    }
+                    className='grid h-9 w-9 place-items-center rounded-lg border border-white/10 text-white'
+                  >
+                    −
+                  </button>
+                  <span className='text-center text-xs font-semibold text-cyan-100'>
+                    {completionPercent}% {t('my.completion')}
+                  </span>
+                  <button
+                    type='button'
+                    onClick={() =>
+                      setWeeklyGoal((goal) => Math.min(30, goal + 1))
+                    }
+                    className='grid h-9 w-9 place-items-center rounded-lg border border-white/10 text-white'
+                  >
+                    +
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          </section>
+
+          <section className='grid grid-cols-2 gap-2 sm:grid-cols-3'>
+            <div className='rounded-2xl border border-white/[0.07] bg-white/[0.035] p-3 text-center'>
+              <p className='text-[11px] font-semibold text-slate-500'>
+                {t('my.topSource')}
+              </p>
+              <p className='mt-1 truncate text-sm font-bold text-cyan-100'>
+                {topSource}
+              </p>
+            </div>
+            <div className='rounded-2xl border border-white/[0.07] bg-white/[0.035] p-3 text-center'>
+              <p className='text-[11px] font-semibold text-slate-500'>
+                {t('my.completed')}
+              </p>
+              <p className='mt-1 text-sm font-bold text-cyan-100'>
+                {completedRecordCount}
+              </p>
+            </div>
+            <button
+              type='button'
+              onClick={() => void handleShareLibrary()}
+              className='col-span-2 flex min-h-[62px] items-center justify-center gap-2 rounded-2xl border border-cyan-300/15 bg-cyan-400/[0.07] text-sm font-bold text-cyan-100 transition hover:bg-cyan-400/[0.12] sm:col-span-1'
+            >
+              <Share2 className='h-4 w-4' />
+              {t('my.shareLibrary')}
+            </button>
           </section>
 
           <section className='rounded-[1.35rem] border border-white/[0.07] bg-[#0b1322]/90 p-2 shadow-[0_16px_45px_rgba(0,0,0,0.18)] backdrop-blur-xl sm:p-3'>
@@ -1516,11 +1717,16 @@ function MyPageClient() {
               />
 
               <div className='relative flex min-w-0 items-center md:order-none'>
-                <Search aria-hidden='true' className='pointer-events-none absolute start-3.5 h-4 w-4 text-cyan-300/65' />
+                <Search
+                  aria-hidden='true'
+                  className='pointer-events-none absolute start-3.5 h-4 w-4 text-cyan-300/65'
+                />
                 <input
                   type='search'
                   value={librarySearchKeyword}
-                  onChange={(event) => setLibrarySearchKeyword(event.target.value)}
+                  onChange={(event) =>
+                    setLibrarySearchKeyword(event.target.value)
+                  }
                   placeholder={t('my.searchLibrary')}
                   aria-label={t('my.searchLibrary')}
                   className='h-11 w-full rounded-xl border border-white/[0.07] bg-white/[0.045] py-2 ps-10 pe-11 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/35 focus:bg-white/[0.07] focus:ring-2 focus:ring-cyan-400/10'
@@ -1547,23 +1753,42 @@ function MyPageClient() {
                   className='inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.04] px-3 text-sm font-semibold text-slate-300 transition hover:border-cyan-300/20 hover:bg-cyan-400/[0.08] hover:text-white disabled:cursor-wait disabled:opacity-50 md:flex-none'
                 >
                   <Download className='h-4 w-4' />
-                  <span className='hidden sm:inline md:hidden lg:inline'>{t('my.exportBackup')}</span>
+                  <span className='hidden sm:inline md:hidden lg:inline'>
+                    {t('my.exportBackup')}
+                  </span>
                 </button>
                 <button
                   type='button'
-                  disabled={backupBusy || loadingPlayRecords || loadingFavorites}
+                  disabled={
+                    backupBusy || loadingPlayRecords || loadingFavorites
+                  }
                   onClick={() => backupFileInputRef.current?.click()}
                   aria-label={t('my.importBackup')}
                   title={t('my.importBackup')}
                   className='inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.04] px-3 text-sm font-semibold text-slate-300 transition hover:border-cyan-300/20 hover:bg-cyan-400/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-50 md:flex-none'
                 >
                   <Upload className='h-4 w-4' />
-                  <span className='hidden sm:inline md:hidden lg:inline'>{t('my.importBackup')}</span>
+                  <span className='hidden sm:inline md:hidden lg:inline'>
+                    {t('my.importBackup')}
+                  </span>
                 </button>
-                <input ref={backupFileInputRef} type='file' accept='application/json,.json' className='hidden' onChange={(event) => void handleImportLibrary(event)} />
+                <input
+                  ref={backupFileInputRef}
+                  type='file'
+                  accept='application/json,.json'
+                  className='hidden'
+                  onChange={(event) => void handleImportLibrary(event)}
+                />
               </div>
             </div>
-            {backupFeedback ? <p aria-live='polite' className='px-2 pb-1 pt-2 text-center text-xs text-cyan-200/70 md:text-end'>{backupFeedback}</p> : null}
+            {backupFeedback ? (
+              <p
+                aria-live='polite'
+                className='px-2 pb-1 pt-2 text-center text-xs text-cyan-200/70 md:text-end'
+              >
+                {backupFeedback}
+              </p>
+            ) : null}
           </section>
 
           {activeTab === 'play' ? (
@@ -1675,7 +1900,7 @@ function MyPageClient() {
                     type='button'
                     disabled={filteredPlayRecords.length === 0}
                     onClick={handlePlayFirstRecord}
-                    className='inline-flex h-10 shrink-0 items-center gap-2 rounded-full border border-white/5 bg-[#2d3035] px-4 text-sm font-semibold text-zinc-100 transition-colors hover:bg-[#383c42] disabled:cursor-not-allowed disabled:opacity-45'
+                    className='inline-flex h-10 shrink-0 items-center gap-2 rounded-full border border-white/5 border-cyan-300/10 bg-cyan-400/[0.08] px-4 text-sm font-semibold text-cyan-50 transition hover:border-cyan-300/20 hover:bg-cyan-400/[0.14] disabled:cursor-not-allowed disabled:opacity-45'
                   >
                     <Play className='h-4 w-4 fill-current text-zinc-300' />
                     {t('my.play')}
@@ -1684,7 +1909,7 @@ function MyPageClient() {
                     type='button'
                     disabled={filteredPlayRecords.length === 0}
                     onClick={handlePlayRandomRecord}
-                    className='inline-flex h-10 shrink-0 items-center gap-2 rounded-full border border-white/5 bg-[#2d3035] px-4 text-sm font-semibold text-zinc-100 transition-colors hover:bg-[#383c42] disabled:cursor-not-allowed disabled:opacity-45'
+                    className='inline-flex h-10 shrink-0 items-center gap-2 rounded-full border border-white/5 border-cyan-300/10 bg-cyan-400/[0.08] px-4 text-sm font-semibold text-cyan-50 transition hover:border-cyan-300/20 hover:bg-cyan-400/[0.14] disabled:cursor-not-allowed disabled:opacity-45'
                   >
                     <Shuffle className='h-4 w-4 text-zinc-300' />
                     {t('my.shufflePlay')}
@@ -1692,7 +1917,7 @@ function MyPageClient() {
                   <button
                     type='button'
                     onClick={handleToggleTitleSort}
-                    className='inline-flex h-10 shrink-0 items-center gap-2 rounded-full border border-white/5 bg-[#2d3035] px-4 text-sm font-semibold text-zinc-100 transition-colors hover:bg-[#383c42]'
+                    className='inline-flex h-10 shrink-0 items-center gap-2 rounded-full border border-white/5 border-cyan-300/10 bg-cyan-400/[0.08] px-4 text-sm font-semibold text-cyan-50 transition hover:border-cyan-300/20 hover:bg-cyan-400/[0.14]'
                   >
                     {t('my.title')}
                     {playSortMode === 'titleDesc' ? (
@@ -1922,7 +2147,7 @@ function MyPageClient() {
                     type='button'
                     disabled={filteredFavoriteItems.length === 0}
                     onClick={handleFavoriteFirstRecord}
-                    className='inline-flex h-10 shrink-0 items-center gap-2 rounded-full border border-white/5 bg-[#2d3035] px-4 text-sm font-semibold text-zinc-100 transition-colors hover:bg-[#383c42] disabled:cursor-not-allowed disabled:opacity-45'
+                    className='inline-flex h-10 shrink-0 items-center gap-2 rounded-full border border-white/5 border-cyan-300/10 bg-cyan-400/[0.08] px-4 text-sm font-semibold text-cyan-50 transition hover:border-cyan-300/20 hover:bg-cyan-400/[0.14] disabled:cursor-not-allowed disabled:opacity-45'
                   >
                     <Play className='h-4 w-4 fill-current text-zinc-300' />
                     {t('my.play')}
@@ -1931,7 +2156,7 @@ function MyPageClient() {
                     type='button'
                     disabled={filteredFavoriteItems.length === 0}
                     onClick={handleFavoriteRandomRecord}
-                    className='inline-flex h-10 shrink-0 items-center gap-2 rounded-full border border-white/5 bg-[#2d3035] px-4 text-sm font-semibold text-zinc-100 transition-colors hover:bg-[#383c42] disabled:cursor-not-allowed disabled:opacity-45'
+                    className='inline-flex h-10 shrink-0 items-center gap-2 rounded-full border border-white/5 border-cyan-300/10 bg-cyan-400/[0.08] px-4 text-sm font-semibold text-cyan-50 transition hover:border-cyan-300/20 hover:bg-cyan-400/[0.14] disabled:cursor-not-allowed disabled:opacity-45'
                   >
                     <Shuffle className='h-4 w-4 text-zinc-300' />
                     {t('my.shufflePlay')}
@@ -1939,7 +2164,7 @@ function MyPageClient() {
                   <button
                     type='button'
                     onClick={handleToggleFavoriteTitleSort}
-                    className='inline-flex h-10 shrink-0 items-center gap-2 rounded-full border border-white/5 bg-[#2d3035] px-4 text-sm font-semibold text-zinc-100 transition-colors hover:bg-[#383c42]'
+                    className='inline-flex h-10 shrink-0 items-center gap-2 rounded-full border border-white/5 border-cyan-300/10 bg-cyan-400/[0.08] px-4 text-sm font-semibold text-cyan-50 transition hover:border-cyan-300/20 hover:bg-cyan-400/[0.14]'
                   >
                     {t('my.title')}
                     {favoriteSortMode === 'titleDesc' ? (
