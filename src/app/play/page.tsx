@@ -2521,10 +2521,10 @@ function PlayPageClient() {
                     <div
                       role='menu'
                       aria-label={t('play.selectSource')}
-                      className='ui-glass-panel absolute top-[calc(100%+0.5rem)] left-0 w-52 origin-top-left space-y-1 p-2'
+                      className='player-source-menu ui-glass-panel absolute top-[calc(100%+0.5rem)] left-0 w-52 origin-top-left space-y-1 p-2'
                     >
-                      <p className='ui-token-text-subtle px-3 py-1 text-xs'>
-                        {t('play.selectSource')}
+                      <p className='ui-token-text-primary px-3 py-2 text-sm font-semibold'>
+                        {t('play.playerSettings')}
                       </p>
                       {TMDB_PLAYER_PROVIDERS.map((provider) => (
                         <button

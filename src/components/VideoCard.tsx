@@ -1,6 +1,6 @@
 ﻿/* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Bookmark, CheckCircle, Star } from 'lucide-react';
+import { Bookmark, Check, CheckCircle, Share2, Star } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import React, {
@@ -263,6 +263,7 @@ export default function VideoCard({
   const [favoriteDeleteDialogOpen, setFavoriteDeleteDialogOpen] =
     useState(false);
   const [favoriteDeleteLoading, setFavoriteDeleteLoading] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
   const [seasonPickerOpen, setSeasonPickerOpen] = useState(false);
   const [seasonPickerData, setSeasonPickerData] = useState<{
     tmdbId: string;
@@ -447,6 +448,64 @@ export default function VideoCard({
       actualEpisodes,
       favorited,
     ],
+  );
+
+  const canShareTmdbItem = Boolean(
+    getTmdbDetailId(actualId, actualSource, from) && tmdbTrigger.title,
+  );
+  const handleShare = useCallback(
+    async (event: React.MouseEvent<HTMLButtonElement>) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const sharePath = buildTmdbDetailPageUrl({
+        id: getTmdbDetailId(actualId, actualSource, from) || undefined,
+        title: tmdbTrigger.title,
+        mediaType: tmdbTrigger.mediaType,
+        year: tmdbTrigger.year,
+        poster: tmdbTrigger.poster,
+        score: tmdbTrigger.score,
+      });
+      const url = new URL(sharePath, window.location.origin).toString();
+
+      try {
+        if (typeof navigator.share === 'function') {
+          await navigator.share({ title: actualTitle, url });
+          return;
+        }
+        if (!navigator.clipboard?.writeText) {
+          throw new Error('Share and clipboard APIs are unavailable');
+        }
+        await navigator.clipboard.writeText(url);
+        setShareCopied(true);
+        window.setTimeout(() => setShareCopied(false), 1800);
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError')
+          return;
+        if (navigator.clipboard?.writeText) {
+          try {
+            await navigator.clipboard.writeText(url);
+            setShareCopied(true);
+            window.setTimeout(() => setShareCopied(false), 1800);
+            return;
+          } catch (clipboardError) {
+            // eslint-disable-next-line no-console
+            console.error(
+              'Unable to share or copy movie link:',
+              clipboardError,
+            );
+          }
+        } else {
+          // eslint-disable-next-line no-console
+          console.error('Unable to share movie link:', error);
+        }
+        window.dispatchEvent(
+          new CustomEvent('globalError', {
+            detail: { message: t('common.shareFailed') },
+          }),
+        );
+      }
+    },
+    [actualId, actualSource, actualTitle, from, t, tmdbTrigger],
   );
 
   const handleConfirmDeleteFavorite = useCallback(async () => {
@@ -876,10 +935,10 @@ export default function VideoCard({
       : 'bottom-3 right-3';
 
   const cardActionButtons =
-    config.showHeart || config.showCheckCircle ? (
+    config.showHeart || config.showCheckCircle || canShareTmdbItem ? (
       <div
         data-card-action='true'
-        className={`absolute ${cardActionPositionClassName} z-10 flex gap-2 opacity-0 translate-y-2 transition-all duration-300 ease-in-out group-hover:opacity-100 group-hover:translate-y-0`}
+        className={`absolute ${cardActionPositionClassName} z-10 flex gap-2 opacity-100 transition-all duration-300 ease-in-out group-focus-within:opacity-100 sm:translate-y-2 sm:opacity-0 sm:group-hover:translate-y-0 sm:group-hover:opacity-100`}
         onClick={(event) => event.stopPropagation()}
         onMouseDown={(event) => event.stopPropagation()}
       >
@@ -914,6 +973,21 @@ export default function VideoCard({
             />
           </button>
         )}
+        {canShareTmdbItem ? (
+          <button
+            type='button'
+            data-card-action='true'
+            aria-label={
+              shareCopied ? t('common.linkCopied') : t('common.share')
+            }
+            title={shareCopied ? t('common.linkCopied') : t('common.share')}
+            onClick={(event) => void handleShare(event)}
+            onMouseDown={(event) => event.stopPropagation()}
+            className={cardActionButtonClassName}
+          >
+            {shareCopied ? <Check size={18} /> : <Share2 size={18} />}
+          </button>
+        ) : null}
       </div>
     ) : null;
 

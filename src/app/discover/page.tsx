@@ -7,15 +7,17 @@ import {
   Languages,
   ListFilter,
   RotateCcw,
+  Shuffle,
   Star,
   Tags,
   UsersRound,
 } from 'lucide-react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { buildTmdbPlayerPageUrl } from '@/lib/tmdb-player-sources';
 import { mergeUniqueById, uniqueById } from '@/lib/unique-list';
 
 import DiscoverCardSkeleton from '@/components/DiscoverCardSkeleton';
@@ -197,6 +199,34 @@ const SORT_OPTIONS: SortOption[] = [
   { value: 'date', labelKey: 'discover.date' },
   { value: 'rating', labelKey: 'discover.rating' },
 ];
+const DISCOVER_SETTINGS_PREFIX = 'lumi_discover_settings_v1_';
+
+function isFilterState(value: unknown): value is FilterState {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const filters = value as Record<string, unknown>;
+  return (
+    typeof filters.releaseYearMin === 'string' &&
+    typeof filters.releaseYearMax === 'string' &&
+    Array.isArray(filters.selectedGenres) &&
+    filters.selectedGenres.every(
+      (id) => Number.isSafeInteger(id) && Number(id) > 0,
+    ) &&
+    Array.isArray(filters.excludedGenres) &&
+    filters.excludedGenres.every(
+      (id) => Number.isSafeInteger(id) && Number(id) > 0,
+    ) &&
+    typeof filters.language === 'string' &&
+    typeof filters.ratingMin === 'string' &&
+    typeof filters.ratingMax === 'string' &&
+    typeof filters.minVoteCount === 'string' &&
+    typeof filters.runtimeMin === 'string' &&
+    typeof filters.runtimeMax === 'string'
+  );
+}
+
+function isDiscoverSortMode(value: unknown): value is DiscoverSortMode {
+  return value === 'popularity' || value === 'date' || value === 'rating';
+}
 
 function resolveDiscoverSortBy(
   sortMode: DiscoverSortMode,
@@ -213,6 +243,7 @@ function resolveDiscoverSortBy(
 
 function DiscoverPageClient() {
   const { i18n, t } = useTranslation();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const type = normalizeType(searchParams.get('type'));
   const media = type === 'movie' ? 'movie' : 'tv';
@@ -243,15 +274,70 @@ function DiscoverPageClient() {
   const [showCurrentPage, setShowCurrentPage] = useState(0);
   const [showHasMore, setShowHasMore] = useState(true);
   const [sortMode, setSortMode] = useState<DiscoverSortMode>(DEFAULT_SORT_MODE);
+  const [restoredType, setRestoredType] = useState<DiscoverType | null>(null);
 
   useEffect(() => {
-    setFilters(DEFAULT_FILTERS);
-    setShowAdvancedFilters(false);
-    setSortMode(DEFAULT_SORT_MODE);
-    if (type === 'show') {
-      setShowCountries([]);
+    let restoredFilters = DEFAULT_FILTERS;
+    let restoredSort = DEFAULT_SORT_MODE;
+    let restoredCountries: string[] = [];
+    try {
+      const saved = window.localStorage.getItem(
+        `${DISCOVER_SETTINGS_PREFIX}${type}`,
+      );
+      if (saved) {
+        const parsed: unknown = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          const settings = parsed as Record<string, unknown>;
+          if (isFilterState(settings.filters)) {
+            restoredFilters = settings.filters;
+          }
+          if (isDiscoverSortMode(settings.sortMode)) {
+            restoredSort = settings.sortMode;
+          }
+          if (
+            Array.isArray(settings.showCountries) &&
+            settings.showCountries.every(
+              (country) =>
+                typeof country === 'string' &&
+                SHOW_COUNTRY_OPTIONS.some((option) => option.value === country),
+            )
+          ) {
+            restoredCountries = settings.showCountries;
+          }
+        } else {
+          // eslint-disable-next-line no-console
+          console.error(
+            '[Discover] Saved filter settings have an invalid shape.',
+          );
+        }
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(
+        '[Discover] Failed to restore saved filter settings:',
+        error,
+      );
     }
+
+    setFilters(restoredFilters);
+    setShowAdvancedFilters(false);
+    setSortMode(restoredSort);
+    setShowCountries(restoredCountries);
+    setRestoredType(type);
   }, [type]);
+
+  useEffect(() => {
+    if (restoredType !== type) return;
+    try {
+      window.localStorage.setItem(
+        `${DISCOVER_SETTINGS_PREFIX}${type}`,
+        JSON.stringify({ filters, sortMode, showCountries }),
+      );
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('[Discover] Failed to save filter settings:', error);
+    }
+  }, [filters, restoredType, showCountries, sortMode, type]);
 
   const mergedGenres = useMemo(
     () => Array.from(new Set([...filters.selectedGenres])),
@@ -425,7 +511,7 @@ function DiscoverPageClient() {
   );
 
   useEffect(() => {
-    if (!isTmdbType) return;
+    if (!isTmdbType || restoredType !== type) return;
 
     setItems([]);
     setCurrentPage(1);
@@ -441,7 +527,7 @@ function DiscoverPageClient() {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [fetchPage, isTmdbType]);
+  }, [fetchPage, isTmdbType, restoredType, type]);
 
   useEffect(() => {
     if (!isTmdbType) return;
@@ -470,7 +556,7 @@ function DiscoverPageClient() {
   }, [hasMore, isLoadingMore, loading, isTmdbType]);
 
   useEffect(() => {
-    if (type !== 'show') return;
+    if (type !== 'show' || restoredType !== type) return;
 
     setShowItems([]);
     setShowCurrentPage(0);
@@ -485,13 +571,13 @@ function DiscoverPageClient() {
     return () => {
       if (showDebounceRef.current) clearTimeout(showDebounceRef.current);
     };
-  }, [type, showCountryFilter, loadShowPage]);
+  }, [type, restoredType, showCountryFilter, loadShowPage]);
 
   useEffect(() => {
-    if (type !== 'show') return;
+    if (type !== 'show' || restoredType !== type) return;
     if (showCurrentPage <= 0) return;
     loadShowPage(showCurrentPage, true);
-  }, [type, showCurrentPage, loadShowPage]);
+  }, [type, restoredType, showCurrentPage, loadShowPage]);
 
   useEffect(() => {
     if (type !== 'show') return;
@@ -570,6 +656,25 @@ function DiscoverPageClient() {
     return `/discover?${params.toString()}`;
   }, [type]);
 
+  const handleSurpriseMe = useCallback(() => {
+    const availableItems = (type === 'show' ? showItems : items).filter(
+      (item) => /^\d+$/.test(item.id),
+    );
+    if (!availableItems.length) return;
+    const item =
+      availableItems[Math.floor(Math.random() * availableItems.length)];
+    router.push(
+      buildTmdbPlayerPageUrl({
+        tmdbId: item.id,
+        mediaType: type === 'movie' ? 'movie' : 'tv',
+        title: item.title,
+        year: item.year,
+        poster: item.poster,
+        score: item.rate,
+      }),
+    );
+  }, [items, router, showItems, type]);
+
   const skeletonData = useMemo(
     () => Array.from({ length: PAGE_SIZE_HINT }, (_, index) => index),
     [],
@@ -626,7 +731,7 @@ function DiscoverPageClient() {
 
         <div className={hasTopHero ? 'px-4 sm:px-0' : ''}>
           <div className='mb-6 space-y-4 sm:mb-8 sm:space-y-6'>
-            <div className='space-y-1'>
+            <div className='flex flex-wrap items-center justify-between gap-3'>
               <h1 className='text-2xl font-bold text-gray-800 dark:text-gray-200 sm:text-3xl'>
                 {type === 'tv'
                   ? t('common.series')
@@ -636,6 +741,18 @@ function DiscoverPageClient() {
                       ? t('common.shows')
                       : t('common.movies')}
               </h1>
+              <button
+                type='button'
+                onClick={handleSurpriseMe}
+                disabled={
+                  (type === 'show' ? showLoading : loading) ||
+                  (type === 'show' ? showItems.length : items.length) === 0
+                }
+                className='inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-rose-300/30 bg-gradient-to-r from-rose-500/20 to-rose-400/10 px-4 py-2 text-sm font-semibold text-rose-800 shadow-sm transition hover:border-rose-300/60 hover:from-rose-500/30 hover:to-rose-400/20 disabled:cursor-not-allowed disabled:opacity-50 dark:text-rose-200'
+              >
+                <Shuffle className='h-4 w-4' />
+                {t('discover.surpriseMe')}
+              </button>
             </div>
 
             <div className='rounded-2xl border border-gray-200/60 bg-white/75 p-4 backdrop-blur-sm dark:border-gray-700/50 dark:bg-gray-900/50 sm:p-6'>

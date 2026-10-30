@@ -1,6 +1,7 @@
 'use client';
 
 import { Download, RefreshCw, WifiOff, X } from 'lucide-react';
+import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -176,8 +177,14 @@ export function PwaManager() {
             <X className='h-4 w-4' />
           </button>
           <div className='pwa-install-heading'>
-            <span className='pwa-icon-wrap'>
-              <Download aria-hidden='true' className='h-5 w-5' />
+            <span className='pwa-icon-wrap overflow-hidden'>
+              <Image
+                src='/icons/icon-192x192.png'
+                alt=''
+                width={44}
+                height={44}
+                priority
+              />
             </span>
             <div className='min-w-0'>
               <p className='text-base font-semibold tracking-tight'>

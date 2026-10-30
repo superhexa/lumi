@@ -4,13 +4,16 @@ import {
   ArrowDown,
   ArrowUp,
   Clapperboard,
+  Download,
   ListFilter,
   Play,
   Shuffle,
   Tags,
+  Upload,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import {
+  type ChangeEvent,
   type MouseEvent,
   Suspense,
   useCallback,
@@ -27,8 +30,11 @@ import {
   deletePlayRecord,
   getAllFavorites,
   getAllPlayRecords,
+  saveFavorite,
+  savePlayRecord,
   subscribeToDataUpdates,
 } from '@/lib/db.client';
+import { createLibraryBackup, parseLibraryBackup } from '@/lib/library-backup';
 import { fetchTmdbDetailWithClientCache } from '@/lib/tmdb-detail.client';
 import {
   buildTmdbHistoryPlayUrl,
@@ -430,6 +436,9 @@ function MyPageClient() {
   const suppressFavoriteCardClickRef = useRef(false);
   const playToolbarRef = useRef<HTMLDivElement | null>(null);
   const favoriteToolbarRef = useRef<HTMLDivElement | null>(null);
+  const backupFileInputRef = useRef<HTMLInputElement | null>(null);
+  const [backupBusy, setBackupBusy] = useState(false);
+  const [backupFeedback, setBackupFeedback] = useState('');
 
   const updatePlayRecords = useCallback(
     (records: Record<string, PlayRecord>) => {
@@ -1208,6 +1217,86 @@ function MyPageClient() {
     router.push(buildFavoritePlayUrl(filteredFavoriteItems[randomIndex]));
   }, [filteredFavoriteItems, router]);
 
+  const handleExportLibrary = useCallback(async () => {
+    setBackupBusy(true);
+    try {
+      const [favorites, playRecords] = await Promise.all([
+        getAllFavorites(),
+        getAllPlayRecords(),
+      ]);
+      const backup = createLibraryBackup(favorites, playRecords);
+      const blob = new Blob([JSON.stringify(backup, null, 2)], {
+        type: 'application/json',
+      });
+      const downloadUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = downloadUrl;
+      anchor.download = `lumi-library-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+      setBackupFeedback(t('my.backupExported'));
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('[Library] Failed to export backup:', error);
+      setBackupFeedback(t('my.backupFailed'));
+    } finally {
+      setBackupBusy(false);
+    }
+  }, [t]);
+
+  const handleImportLibrary = useCallback(
+    async (event: ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      event.target.value = '';
+      if (!file) return;
+      if (file.size > 5 * 1024 * 1024) {
+        setBackupFeedback(t('my.backupInvalid'));
+        return;
+      }
+
+      setBackupBusy(true);
+      try {
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(await file.text());
+        } catch {
+          setBackupFeedback(t('my.backupInvalid'));
+          return;
+        }
+        const backup = parseLibraryBackup(parsed);
+        if (!backup) {
+          setBackupFeedback(t('my.backupInvalid'));
+          return;
+        }
+
+        let importedCount = 0;
+        for (const [key, record] of Object.entries(backup.favorites)) {
+          const { source, id } = parseStorageKey(key);
+          if (!source || !id) continue;
+          await saveFavorite(source, id, record);
+          importedCount += 1;
+        }
+        for (const [key, record] of Object.entries(backup.playRecords)) {
+          const { source, id } = parseStorageKey(key);
+          if (!source || !id) continue;
+          await savePlayRecord(source, id, record);
+          importedCount += 1;
+        }
+
+        setBackupFeedback(t('my.backupImported', { count: importedCount }));
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('[Library] Failed to import backup:', error);
+        setBackupFeedback(t('my.backupFailed'));
+      } finally {
+        setBackupBusy(false);
+      }
+    },
+    [t],
+  );
+
   const handleToggleFavoriteTitleSort = useCallback(() => {
     setFavoriteSortMode((prev) => {
       if (prev === 'titleAsc') return 'titleDesc';
@@ -1271,6 +1360,43 @@ function MyPageClient() {
               active={activeTab}
               onChange={(value) => setActiveTab(value as ActiveTab)}
             />
+          </div>
+          <div className='flex flex-col items-center gap-2 sm:flex-row sm:justify-end'>
+            <div className='flex w-full flex-wrap justify-center gap-2 sm:w-auto'>
+              <button
+                type='button'
+                disabled={backupBusy}
+                onClick={() => void handleExportLibrary()}
+                className='inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-white/20 hover:bg-white/10 disabled:cursor-wait disabled:opacity-50'
+              >
+                <Download className='h-4 w-4' />
+                {t('my.exportBackup')}
+              </button>
+              <button
+                type='button'
+                disabled={backupBusy || loadingPlayRecords || loadingFavorites}
+                onClick={() => backupFileInputRef.current?.click()}
+                className='inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-white/20 hover:bg-white/10 disabled:cursor-wait disabled:opacity-50'
+              >
+                <Upload className='h-4 w-4' />
+                {t('my.importBackup')}
+              </button>
+              <input
+                ref={backupFileInputRef}
+                type='file'
+                accept='application/json,.json'
+                className='hidden'
+                onChange={(event) => void handleImportLibrary(event)}
+              />
+            </div>
+            {backupFeedback ? (
+              <p
+                aria-live='polite'
+                className='text-center text-xs text-slate-400 sm:text-right'
+              >
+                {backupFeedback}
+              </p>
+            ) : null}
           </div>
 
           {activeTab === 'play' ? (

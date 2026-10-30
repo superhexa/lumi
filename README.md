@@ -33,6 +33,8 @@
 - 🌐 **Multilingual interface**: Switch between English and Chinese, with TMDB requests following the selected language.
 - 🧠 **Personalized recommendation engine**: Build watch-history-aware discovery rails from TMDB recommendations, similar titles, keywords, credits, and ranking signals.
 - 🍿 **Movie and TV discovery**: Browse movies, series, curated categories, years, ratings, and runtime filters.
+- 🎲 **Surprise pick and saved filters**: Jump into a random title from current discovery results and keep filter settings between visits.
+- 🔗 **Share and library backups**: Share a title with the native share sheet, copy a link where sharing is unavailable, and export or restore favorites and watch history as JSON.
 - ⭐ **Favorites and continue watching**: Save favorites, watch history, playback progress, and resume points.
 - 🗄️ **Flexible server storage**: localStorage, Redis, Cloudflare D1, and Upstash Redis.
 - 🔒 **No-account browsing**: No login or registration; favorites, watch history, and playback progress stay in your browser.

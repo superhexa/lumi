@@ -115,6 +115,13 @@
   display: none;
 }
 
+.player-source-menu {
+  max-height: min(60dvh, 30rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
 .pwa-manager {
   position: fixed;
   z-index: 4000;
@@ -322,6 +329,27 @@
 
   .direct-player-shell .vds-menu-items[data-root] .vds-menu-item {
     gap: 12px;
+  }
+
+  .player-source-menu {
+    position: fixed;
+    z-index: 800;
+    top: auto;
+    right: max(0.75rem, env(safe-area-inset-right));
+    bottom: max(0.75rem, env(safe-area-inset-bottom));
+    left: max(0.75rem, env(safe-area-inset-left));
+    width: auto;
+    max-width: 32rem;
+    max-height: min(70dvh, 34rem);
+    margin-inline: auto;
+    border-radius: 1.5rem;
+    padding: 1rem;
+  }
+
+  .player-source-menu [role='menuitemradio'] {
+    min-height: 3.25rem;
+    border-radius: 0.875rem;
+    padding-inline: 1rem;
   }
 }
 
