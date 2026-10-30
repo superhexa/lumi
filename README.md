@@ -35,7 +35,7 @@
 - 🍿 **Movie and TV discovery**: Browse movies, series, curated categories, years, ratings, and runtime filters.
 - 🎲 **Surprise pick and saved filters**: Jump into a random title from current discovery results and keep filter settings between visits.
 - 🔗 **Share and library backups**: Share a title with the native share sheet, copy a link where sharing is unavailable, and export or restore favorites and watch history as JSON.
-- ⭐ **Favorites and continue watching**: Save favorites, watch history, playback progress, and resume points.
+- ⭐ **Personal library dashboard**: Review saved titles and watch progress, search favorites and history, resume in-progress titles, filter completed items, and choose a comfortable or compact poster grid.
 - 🗄️ **Flexible server storage**: localStorage, Redis, Cloudflare D1, and Upstash Redis.
 - 🔒 **No-account browsing**: No login or registration; favorites, watch history, and playback progress stay in your browser.
 - 📱 **Installable PWA**: Home-screen installation, an offline navigation fallback, bounded asset caching, and guided service-worker updates. Live metadata and video streaming still require a network connection.

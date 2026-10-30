@@ -3,13 +3,21 @@
 import {
   ArrowDown,
   ArrowUp,
+  Bookmark,
   Clapperboard,
+  Clock3,
   Download,
+  Film,
+  Grid2X2,
+  Grid3X3,
   ListFilter,
   Play,
+  Search,
   Shuffle,
+  Sparkles,
   Tags,
   Upload,
+  X,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import {
@@ -98,6 +106,7 @@ interface TmdbPosterLookupTarget {
 type ActiveTab = 'play' | 'favorite';
 type PlayToolbarSortMode = 'latest' | 'titleAsc' | 'titleDesc';
 type PlayToolbarFilterMode = 'all' | 'movie' | 'tv';
+type PlaybackStatusFilter = 'all' | 'inProgress' | 'completed';
 
 const TMDB_POSTER_LOOKUP_LIMIT = 40;
 const LONG_PRESS_DURATION_MS = 420;
@@ -341,8 +350,25 @@ function getWatchFormat(
 }
 
 function getProgressPercent(record: PlayRecord): number {
-  if (!record.total_time) return 0;
-  return (record.play_time / record.total_time) * 100;
+  if (
+    !Number.isFinite(record.play_time) ||
+    !Number.isFinite(record.total_time) ||
+    record.total_time <= 0
+  ) {
+    return 0;
+  }
+  return Math.min(
+    100,
+    Math.max(0, (record.play_time / record.total_time) * 100),
+  );
+}
+
+function isRecordCompleted(record: PlayRecord): boolean {
+  return getProgressPercent(record) >= 90;
+}
+
+function isRecordInProgress(record: PlayRecord): boolean {
+  return record.play_time > 0 && !isRecordCompleted(record);
 }
 
 function formatHistoryEpisodeMeta(
@@ -399,11 +425,14 @@ function MyPageClient() {
     null,
   );
   const [deleting, setDeleting] = useState(false);
-  const [playSearchKeyword, setPlaySearchKeyword] = useState('');
+  const [librarySearchKeyword, setLibrarySearchKeyword] = useState('');
   const [playSortMode, setPlaySortMode] =
     useState<PlayToolbarSortMode>('latest');
   const [playFilterMode, setPlayFilterMode] =
     useState<PlayToolbarFilterMode>('all');
+  const [playbackStatusFilter, setPlaybackStatusFilter] =
+    useState<PlaybackStatusFilter>('all');
+  const [compactGrid, setCompactGrid] = useState(false);
   const [favoriteSortMode, setFavoriteSortMode] =
     useState<PlayToolbarSortMode>('latest');
   const [favoriteFilterMode, setFavoriteFilterMode] =
@@ -980,21 +1009,84 @@ function MyPageClient() {
     );
   }, [favoriteItemGenres, favoriteItems]);
 
-  const normalizedPlaySearchKeyword = playSearchKeyword.trim().toLowerCase();
+  const normalizedLibrarySearchKeyword = librarySearchKeyword
+    .trim()
+    .toLowerCase();
+  const continueWatchingRecords = useMemo(
+    () => playRecords.filter(isRecordInProgress).slice(0, 8),
+    [playRecords],
+  );
+  const watchedKeys = useMemo(
+    () => new Set(playRecords.map((record) => record.key)),
+    [playRecords],
+  );
+  const inProgressRecordCount = useMemo(
+    () => playRecords.filter(isRecordInProgress).length,
+    [playRecords],
+  );
+  const completedRecordCount = useMemo(
+    () => playRecords.filter(isRecordCompleted).length,
+    [playRecords],
+  );
+  const libraryStats = useMemo(
+    () => [
+      {
+        label: t('my.savedTitles'),
+        value: favoriteItems.length,
+        icon: Bookmark,
+        accent: 'from-rose-400/20 to-pink-500/5',
+        iconClass: 'text-rose-300',
+      },
+      {
+        label: t('my.watchHistory'),
+        value: playRecords.length,
+        icon: Film,
+        accent: 'from-violet-400/20 to-indigo-500/5',
+        iconClass: 'text-violet-300',
+      },
+      {
+        label: t('my.continuing'),
+        value: inProgressRecordCount,
+        icon: Clock3,
+        accent: 'from-amber-300/20 to-orange-500/5',
+        iconClass: 'text-amber-300',
+      },
+      {
+        label: t('my.toWatch'),
+        value: favoriteItems.filter((item) => !watchedKeys.has(item.key))
+          .length,
+        icon: Sparkles,
+        accent: 'from-cyan-300/20 to-sky-500/5',
+        iconClass: 'text-cyan-300',
+      },
+    ],
+    [favoriteItems, inProgressRecordCount, playRecords.length, t, watchedKeys],
+  );
+  const libraryGridClassName = compactGrid
+    ? 'grid grid-cols-2 gap-x-2 gap-y-6 sm:grid-cols-[repeat(auto-fill,minmax(130px,1fr))] sm:gap-x-3 sm:gap-y-7'
+    : 'grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-[repeat(auto-fill,minmax(170px,1fr))] sm:gap-x-[18px] sm:gap-y-8';
   const filteredPlayRecords = useMemo(() => {
     const searched = playRecords.filter((record) => {
-      if (!normalizedPlaySearchKeyword) return true;
+      if (!normalizedLibrarySearchKeyword) return true;
       return [
         record.title,
         record.source_name,
         record.year,
         record.search_title,
       ].some((value) =>
-        (value || '').toLowerCase().includes(normalizedPlaySearchKeyword),
+        (value || '').toLowerCase().includes(normalizedLibrarySearchKeyword),
       );
     });
 
-    const mediaFiltered = searched.filter((record) => {
+    const statusFiltered = searched.filter((record) => {
+      if (playbackStatusFilter === 'inProgress')
+        return isRecordInProgress(record);
+      if (playbackStatusFilter === 'completed')
+        return isRecordCompleted(record);
+      return true;
+    });
+
+    const mediaFiltered = statusFiltered.filter((record) => {
       if (playFilterMode === 'all') return true;
       return getWatchFormat(record) === playFilterMode;
     });
@@ -1021,16 +1113,25 @@ function MyPageClient() {
 
     return sorted;
   }, [
-    normalizedPlaySearchKeyword,
+    normalizedLibrarySearchKeyword,
     playFilterMode,
     playRecordGenres,
     playRecords,
     playSortMode,
+    playbackStatusFilter,
     selectedPlayGenres,
   ]);
 
   const filteredFavoriteItems = useMemo(() => {
-    const mediaFiltered = favoriteItems.filter((item) => {
+    const searched = favoriteItems.filter((item) => {
+      if (!normalizedLibrarySearchKeyword) return true;
+      return [item.title, item.searchTitle, item.sourceName, item.year].some(
+        (value) =>
+          (value || '').toLowerCase().includes(normalizedLibrarySearchKeyword),
+      );
+    });
+
+    const mediaFiltered = searched.filter((item) => {
       if (favoriteFilterMode === 'all') return true;
       return (item.episodes || 0) > 1
         ? favoriteFilterMode === 'tv'
@@ -1061,6 +1162,7 @@ function MyPageClient() {
     favoriteItemGenres,
     favoriteItems,
     favoriteSortMode,
+    normalizedLibrarySearchKeyword,
     selectedFavoriteGenres,
   ]);
 
@@ -1316,8 +1418,9 @@ function MyPageClient() {
   const resetPlayToolbar = useCallback(() => {
     setPlaySortMode('latest');
     setPlayFilterMode('all');
+    setPlaybackStatusFilter('all');
     setSelectedPlayGenres([]);
-    setPlaySearchKeyword('');
+    setLibrarySearchKeyword('');
   }, []);
 
   const toggleFavoriteGenreFilter = useCallback((genre: SupportedGenre) => {
@@ -1336,9 +1439,14 @@ function MyPageClient() {
   }, []);
 
   const hasActivePlayFilters =
-    playFilterMode !== 'all' || selectedPlayGenres.length > 0;
+    playFilterMode !== 'all' ||
+    playbackStatusFilter !== 'all' ||
+    selectedPlayGenres.length > 0 ||
+    normalizedLibrarySearchKeyword.length > 0;
   const hasActiveFavoriteFilters =
-    favoriteFilterMode !== 'all' || selectedFavoriteGenres.length > 0;
+    favoriteFilterMode !== 'all' ||
+    selectedFavoriteGenres.length > 0 ||
+    normalizedLibrarySearchKeyword.length > 0;
   const translateGenreLabel = useCallback(
     (genre: string) => {
       const labelKey = getGenreLabelKey(genre);
@@ -1351,6 +1459,58 @@ function MyPageClient() {
     <PageLayout activePath='/my'>
       <div className='overflow-visible px-0 pb-4 sm:px-10 sm:pb-8'>
         <div className='space-y-3 px-4 pt-6 sm:space-y-3 sm:px-0 sm:pt-8 md:pt-4'>
+          <section className='relative isolate overflow-hidden rounded-[1.75rem] border border-white/10 bg-[#0b1020] p-5 shadow-[0_24px_70px_rgba(0,0,0,0.28)] sm:rounded-[2rem] sm:p-8'>
+            <div
+              aria-hidden='true'
+              className='pointer-events-none absolute -right-20 -top-32 -z-10 h-72 w-72 rounded-full bg-rose-500/20 blur-3xl'
+            />
+            <div
+              aria-hidden='true'
+              className='pointer-events-none absolute -bottom-36 left-1/3 -z-10 h-72 w-72 rounded-full bg-violet-500/15 blur-3xl'
+            />
+            <div className='mb-6 flex items-start gap-3 sm:mb-8 sm:items-center'>
+              <span className='grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-rose-300/20 bg-gradient-to-br from-rose-400/20 to-violet-500/20 text-rose-200 shadow-inner shadow-white/5 sm:h-14 sm:w-14'>
+                <Film className='h-6 w-6 sm:h-7 sm:w-7' />
+              </span>
+              <div className='min-w-0'>
+                <p className='mb-1 text-[0.65rem] font-bold uppercase tracking-[0.22em] text-rose-200/80'>
+                  {t('my.personalCinema')}
+                </p>
+                <h1 className='text-2xl font-bold tracking-tight text-white sm:text-3xl'>
+                  {t('my.libraryTitle')}
+                </h1>
+                <p className='mt-1 max-w-2xl text-sm leading-relaxed text-slate-400 sm:text-base'>
+                  {t('my.librarySubtitle')}
+                </p>
+              </div>
+            </div>
+
+            <div className='grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4'>
+              {libraryStats.map((stat) => (
+                <div
+                  key={stat.label}
+                  className='relative min-w-0 overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.045] p-3 backdrop-blur-xl transition duration-200 hover:-translate-y-0.5 hover:border-white/[0.14] hover:bg-white/[0.07] sm:p-4'
+                >
+                  <div
+                    className={`pointer-events-none absolute -right-5 -top-7 h-20 w-20 rounded-full bg-gradient-to-br ${stat.accent} opacity-50 blur-2xl`}
+                  />
+                  <div className='relative flex items-center justify-between gap-2'>
+                    <span className='truncate text-xs font-medium text-slate-400 sm:text-sm'>
+                      {stat.label}
+                    </span>
+                    <stat.icon
+                      aria-hidden='true'
+                      className={`h-4 w-4 shrink-0 ${stat.iconClass}`}
+                    />
+                  </div>
+                  <p className='relative mt-2 text-2xl font-bold tabular-nums tracking-tight text-white sm:mt-3 sm:text-3xl'>
+                    {stat.value.toLocaleString()}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+
           <div className='flex justify-center'>
             <CapsuleSwitch
               options={[
@@ -1360,6 +1520,30 @@ function MyPageClient() {
               active={activeTab}
               onChange={(value) => setActiveTab(value as ActiveTab)}
             />
+          </div>
+          <div className='relative mx-auto flex w-full max-w-2xl items-center'>
+            <Search
+              aria-hidden='true'
+              className='pointer-events-none absolute left-4 h-4 w-4 text-slate-400'
+            />
+            <input
+              type='search'
+              value={librarySearchKeyword}
+              onChange={(event) => setLibrarySearchKeyword(event.target.value)}
+              placeholder={t('my.searchLibrary')}
+              aria-label={t('my.searchLibrary')}
+              className='min-h-12 w-full rounded-2xl border border-white/10 bg-white/[0.045] py-3 pl-11 pr-12 text-sm text-white shadow-lg shadow-black/10 outline-none transition placeholder:text-slate-500 focus:border-rose-300/50 focus:bg-white/[0.07] focus:ring-2 focus:ring-rose-400/15'
+            />
+            {librarySearchKeyword ? (
+              <button
+                type='button'
+                aria-label={t('my.clearSearch')}
+                onClick={() => setLibrarySearchKeyword('')}
+                className='absolute right-2 grid h-9 w-9 place-items-center rounded-xl text-slate-400 transition hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-rose-300'
+              >
+                <X className='h-4 w-4' />
+              </button>
+            ) : null}
           </div>
           <div className='flex flex-col items-center gap-2 sm:flex-row sm:justify-end'>
             <div className='flex w-full flex-wrap justify-center gap-2 sm:w-auto'>
@@ -1401,6 +1585,104 @@ function MyPageClient() {
 
           {activeTab === 'play' ? (
             <section className='space-y-3'>
+              {!loadingPlayRecords && continueWatchingRecords.length > 0 ? (
+                <section className='-mx-4 space-y-3 rounded-3xl border border-white/[0.08] bg-gradient-to-br from-rose-950/30 via-[#111522]/80 to-violet-950/20 px-4 py-4 sm:mx-0 sm:p-5'>
+                  <div className='flex items-end justify-between gap-3'>
+                    <div className='min-w-0'>
+                      <p className='mb-1 text-[0.65rem] font-bold uppercase tracking-[0.2em] text-rose-200/75'>
+                        {t('my.pickUpWhereLeftOff')}
+                      </p>
+                      <h2 className='text-lg font-semibold tracking-tight text-white sm:text-xl'>
+                        {t('common.continueWatching')}
+                      </h2>
+                    </div>
+                    <span className='shrink-0 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-slate-300'>
+                      {t('my.itemCount', {
+                        count: continueWatchingRecords.length,
+                      })}
+                    </span>
+                  </div>
+                  <div className='scrollbar-hide -mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-1'>
+                    {continueWatchingRecords.map((record) => {
+                      const { source, id } = parseStorageKey(record.key);
+                      const localizedDisplay =
+                        tmdbDisplayByKey[`${tmdbLanguage}:${record.key}`];
+                      return (
+                        <div
+                          key={`continue-${record.key}`}
+                          className='w-[132px] shrink-0 snap-start sm:w-[158px]'
+                        >
+                          <VideoCard
+                            id={id}
+                            source={source}
+                            title={localizedDisplay?.title || record.title}
+                            poster={localizedDisplay?.poster || record.cover}
+                            source_name={record.source_name}
+                            year={localizedDisplay?.year || record.year}
+                            episodes={record.total_episodes}
+                            currentEpisode={record.index}
+                            subtitle={formatHistoryEpisodeMeta(record, t)}
+                            progress={getProgressPercent(record)}
+                            query={record.search_title}
+                            from='playrecord'
+                            type={record.total_episodes > 1 ? 'tv' : ''}
+                            displayVariant='poster-info'
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              ) : null}
+
+              <div
+                className='flex gap-2 overflow-x-auto pb-1 scrollbar-hide'
+                role='group'
+                aria-label={t('my.progressStatus')}
+              >
+                {[
+                  {
+                    value: 'all',
+                    label: t('my.allActivity'),
+                    count: playRecords.length,
+                  },
+                  {
+                    value: 'inProgress',
+                    label: t('my.inProgress'),
+                    count: inProgressRecordCount,
+                  },
+                  {
+                    value: 'completed',
+                    label: t('my.completed'),
+                    count: completedRecordCount,
+                  },
+                ].map((option) => {
+                  const active = playbackStatusFilter === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type='button'
+                      aria-pressed={active}
+                      onClick={() =>
+                        setPlaybackStatusFilter(
+                          option.value as PlaybackStatusFilter,
+                        )
+                      }
+                      className={`inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition ${
+                        active
+                          ? 'border-rose-300/30 bg-rose-400/15 text-rose-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]'
+                          : 'border-white/[0.08] bg-white/[0.035] text-slate-400 hover:border-white/15 hover:bg-white/[0.07] hover:text-slate-200'
+                      }`}
+                    >
+                      {option.label}
+                      <span className='rounded-full bg-black/20 px-2 py-0.5 text-xs tabular-nums'>
+                        {option.count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
               <div ref={playToolbarRef} className='space-y-3'>
                 <div className='mx-auto flex max-w-full flex-wrap items-center justify-center gap-2 py-1'>
                   <span className='shrink-0 text-xs font-semibold tracking-wide text-zinc-400'>
@@ -1449,6 +1731,23 @@ function MyPageClient() {
                     }`}
                   >
                     <ListFilter className='h-4 w-4' />
+                  </button>
+                  <button
+                    type='button'
+                    aria-label={
+                      compactGrid
+                        ? t('my.comfortableGrid')
+                        : t('my.compactGrid')
+                    }
+                    aria-pressed={compactGrid}
+                    onClick={() => setCompactGrid((value) => !value)}
+                    className='inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/5 bg-[#2d3035] text-zinc-200 transition-colors hover:bg-[#383c42]'
+                  >
+                    {compactGrid ? (
+                      <Grid2X2 className='h-4 w-4' />
+                    ) : (
+                      <Grid3X3 className='h-4 w-4' />
+                    )}
                   </button>
                 </div>
 
@@ -1543,7 +1842,7 @@ function MyPageClient() {
 
               {loadingPlayRecords ? (
                 <div className='px-0'>
-                  <div className='grid grid-cols-2 gap-x-2 gap-y-8 sm:grid-cols-[repeat(auto-fill,minmax(160px,1fr))] sm:gap-x-[18px] sm:gap-y-8'>
+                  <div className={libraryGridClassName}>
                     {Array.from({ length: 8 }).map((_, index) => (
                       <div
                         key={`my-play-skeleton-${index}`}
@@ -1554,7 +1853,7 @@ function MyPageClient() {
                 </div>
               ) : filteredPlayRecords.length > 0 ? (
                 <div className='px-0'>
-                  <div className='grid grid-cols-2 gap-x-2 gap-y-8 sm:grid-cols-[repeat(auto-fill,minmax(160px,1fr))] sm:gap-x-[18px] sm:gap-y-8'>
+                  <div className={libraryGridClassName}>
                     {filteredPlayRecords.map((record) => {
                       const { source, id } = parseStorageKey(record.key);
                       const isSelected = selectedPlayKeys.has(record.key);
@@ -1579,7 +1878,7 @@ function MyPageClient() {
                             id={id}
                             source={source}
                             title={localizedDisplay?.title || record.title}
-                            poster={localizedDisplay?.poster || ''}
+                            poster={localizedDisplay?.poster || record.cover}
                             source_name={record.source_name}
                             year={localizedDisplay?.year || record.year}
                             episodes={record.total_episodes}
@@ -1680,6 +1979,23 @@ function MyPageClient() {
                   >
                     <ListFilter className='h-4 w-4' />
                   </button>
+                  <button
+                    type='button'
+                    aria-label={
+                      compactGrid
+                        ? t('my.comfortableGrid')
+                        : t('my.compactGrid')
+                    }
+                    aria-pressed={compactGrid}
+                    onClick={() => setCompactGrid((value) => !value)}
+                    className='inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/5 bg-[#2d3035] text-zinc-200 transition-colors hover:bg-[#383c42]'
+                  >
+                    {compactGrid ? (
+                      <Grid2X2 className='h-4 w-4' />
+                    ) : (
+                      <Grid3X3 className='h-4 w-4' />
+                    )}
+                  </button>
                 </div>
 
                 {showFavoriteFilterPanel ? (
@@ -1776,7 +2092,7 @@ function MyPageClient() {
 
               {loadingFavorites ? (
                 <div className='px-0'>
-                  <div className='grid grid-cols-2 gap-x-2 gap-y-8 sm:grid-cols-[repeat(auto-fill,minmax(160px,1fr))] sm:gap-x-[18px] sm:gap-y-8'>
+                  <div className={libraryGridClassName}>
                     {Array.from({ length: 8 }).map((_, index) => (
                       <div
                         key={`my-favorite-skeleton-${index}`}
@@ -1787,7 +2103,7 @@ function MyPageClient() {
                 </div>
               ) : filteredFavoriteItems.length > 0 ? (
                 <div className='px-0'>
-                  <div className='grid grid-cols-2 gap-x-2 gap-y-8 sm:grid-cols-[repeat(auto-fill,minmax(160px,1fr))] sm:gap-x-[18px] sm:gap-y-8'>
+                  <div className={libraryGridClassName}>
                     {filteredFavoriteItems.map((item) => {
                       const localizedDisplay =
                         tmdbDisplayByKey[`${tmdbLanguage}:${item.key}`];
