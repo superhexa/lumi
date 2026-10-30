@@ -11,6 +11,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock3,
+  Download,
   Film,
   Info,
   Layers,
@@ -580,6 +581,22 @@ function PlayPageClient() {
       console.error('Unable to enter player fullscreen:', fullscreenError);
       setPlayerFullscreenError(true);
     }
+  };
+
+  const downloadCurrentMovie = () => {
+    const tmdbId = tmdbPlayerIdRef.current;
+    if (!tmdbId) return;
+    const url = new URL('/api/player/download', window.location.origin);
+    url.searchParams.set('tmdbId', String(tmdbId));
+    url.searchParams.set('type', tmdbMediaTypeRef.current);
+    url.searchParams.set('provider', playerProviderRef.current);
+    if (tmdbMediaTypeRef.current === 'tv') {
+      url.searchParams.set('season', String(currentSeasonRef.current));
+      url.searchParams.set('episode', String(currentEpisodeIndexRef.current + 1));
+    }
+    url.searchParams.set('title', displayTitle || videoTitleRef.current || `Movie ${tmdbId}`);
+    url.searchParams.set('year', videoYearRef.current || '');
+    window.location.assign(url.toString());
   };
 
   const openPopupPlayer = () => {
@@ -2372,6 +2389,15 @@ function PlayPageClient() {
               </button>
               <button
                 type='button'
+                aria-label='Download movie'
+                title='Download movie'
+                onClick={downloadCurrentMovie}
+                className='ui-glass-control inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl'
+              >
+                <Download className='h-5 w-5' />
+              </button>
+              <button
+                type='button'
                 aria-label={t(
                   isPlayerFullscreen
                     ? 'play.exitFullscreen'
@@ -2432,6 +2458,15 @@ function PlayPageClient() {
                     className='ui-glass-control absolute right-14 top-3 z-[510] inline-flex h-10 w-10 items-center justify-center rounded-xl'
                   >
                     <PictureInPicture2 className='h-5 w-5' />
+                  </button>
+                  <button
+                    type='button'
+                    aria-label='Download movie'
+                    title='Download movie'
+                    onClick={downloadCurrentMovie}
+                    className='ui-glass-control absolute right-[6.75rem] top-3 z-[510] inline-flex h-10 w-10 items-center justify-center rounded-xl'
+                  >
+                    <Download className='h-5 w-5' />
                   </button>
                   <button
                     type='button'
