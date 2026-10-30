@@ -164,6 +164,8 @@ export async function GET(request: Request) {
       episode,
       accentColor: searchParams.get('color') || 'fb7185',
       subtitleLang: searchParams.get('subtitleLang') || 'en',
+      title: searchParams.get('title') || undefined,
+      year: searchParams.get('year') || undefined,
     });
 
     return NextResponse.json(

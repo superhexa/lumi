@@ -1,6 +1,6 @@
 export type TmdbPlayerMediaType = 'movie' | 'tv';
 export type TmdbPlayerProviderId =
-  'cinesrc' | 'bingr' | 'vidsrc-buzz' | 'vidfast' | 'vidsrc-wtf';
+  'cinesrc' | 'bingr' | 'archive' | 'vidsrc-buzz' | 'vidfast' | 'vidsrc-wtf';
 
 export interface TmdbPlayerProvider {
   id: TmdbPlayerProviderId;
@@ -19,6 +19,8 @@ export interface TmdbProviderUrlInput {
   episode?: number | string | null;
   accentColor?: string | null;
   subtitleLang?: string | null;
+  title?: string | null;
+  year?: string | null;
 }
 
 export interface TmdbPlayerPageUrlInput extends TmdbProviderUrlInput {
@@ -32,6 +34,7 @@ export const DEFAULT_TMDB_PLAYER_PROVIDER: TmdbPlayerProviderId = 'cinesrc';
 
 export const TMDB_PLAYER_PROVIDERS: TmdbPlayerProvider[] = [
   { id: 'bingr', label: 'Bingr' },
+  { id: 'archive', label: 'Internet Archive' },
   {
     id: 'cinesrc',
     label: 'CineSrc',
@@ -113,12 +116,13 @@ function getProviderBaseUrl(
   season: number,
   episode: number,
 ): string {
-  if (provider === 'bingr') {
+  if (provider === 'bingr' || provider === 'archive') {
     const params = new URLSearchParams({
       tmdbId: String(tmdbId),
       type: mediaType,
       season: String(season),
       episode: String(episode),
+      provider: provider,
     });
     return `/player/direct?${params}`;
   }
@@ -178,6 +182,13 @@ export function buildTmdbProviderUrl(input: TmdbProviderUrlInput): string {
     'https://luma.invalid',
   );
 
+  if (provider.id === 'bingr' || provider.id === 'archive') {
+    const title = (input.title || '').trim();
+    const year = (input.year || '').trim();
+    if (title) url.searchParams.set('title', title);
+    if (year) url.searchParams.set('year', year);
+  }
+
   Object.entries(provider.defaultParams || {}).forEach(([key, value]) => {
     url.searchParams.set(key, value);
   });
@@ -192,7 +203,7 @@ export function buildTmdbProviderUrl(input: TmdbProviderUrlInput): string {
     url.searchParams.set(provider.subtitleLangParam, subtitleLang);
   }
 
-  return provider.id === 'bingr'
+  return provider.id === 'bingr' || provider.id === 'archive'
     ? `${url.pathname}${url.search}`
     : url.toString();
 }

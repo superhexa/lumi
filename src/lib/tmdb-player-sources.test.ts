@@ -54,11 +54,21 @@ describe('TMDB player path parameters', () => {
       season: 2,
       episode: 1,
     });
-    expect(url).toBe('/player/direct?tmdbId=63247&type=tv&season=2&episode=1');
+    expect(url).toBe('/player/direct?tmdbId=63247&type=tv&season=2&episode=1&provider=bingr');
     expect(
       buildTmdbPlayerPageUrl({ tmdbId: 63247, provider: 'bingr' }),
     ).toContain('provider=bingr');
   });
+  it('routes Internet Archive through the verified local direct player', () => {
+    const url = buildTmdbProviderUrl({
+      tmdbId: 550,
+      provider: 'archive',
+      title: 'Fight Club',
+      year: '1999',
+    });
+    expect(url).toBe('/player/direct?tmdbId=550&type=movie&season=1&episode=1&provider=archive&title=Fight+Club&year=1999');
+  });
+
   test.each([
     '1/../../admin',
     '123abc',

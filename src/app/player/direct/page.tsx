@@ -25,40 +25,55 @@ function DirectPlayer() {
   const player = useRef<Vidstack.MediaPlayerInstance>(null);
   const shell = useRef<HTMLElement>(null);
   const [streamUrl, setStreamUrl] = useState('');
+  const [streamType, setStreamType] = useState<
+    'application/x-mpegurl' | 'video/mp4' | 'video/webm' | 'video/ogg'
+  >('application/x-mpegurl');
   const [title, setTitle] = useState('');
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const resumeValue = Number(params.get('t'));
   const resume = Number.isFinite(resumeValue) ? Math.max(0, resumeValue) : 0;
+  const provider = params.get('provider') === 'archive' ? 'archive' : 'bingr';
   const query = new URLSearchParams({
     tmdbId: params.get('tmdbId') || '',
     type: params.get('type') || 'movie',
     season: params.get('season') || '1',
     episode: params.get('episode') || '1',
-  }).toString();
+  });
+  if (params.get('title')) query.set('title', params.get('title') || '');
+  if (params.get('year')) query.set('year', params.get('year') || '');
+  const queryString = query.toString();
 
   useEffect(() => {
     const controller = new AbortController();
     setFailed(false);
     setStreamUrl('');
-    void fetch(`/api/player/bingr?${query}`, { signal: controller.signal })
+    void fetch(`/api/player/${provider}?${queryString}`, { signal: controller.signal })
       .then(async (response) => {
         const data = (await response.json()) as {
           streamUrl: string;
           title?: string;
           code?: string;
+          contentType?: string;
         };
         if (!response.ok) {
           // eslint-disable-next-line no-console
           console.error(
-            '[Bingr] Source unavailable:',
+            `[${provider === 'archive' ? 'Internet Archive' : 'Bingr'}] Source unavailable:`,
             data.code || response.status,
           );
           throw new Error('Unavailable source');
         }
         if (!controller.signal.aborted) {
           setTitle(data.title || '');
+          setStreamType(
+            (data.contentType === 'video/webm' || data.contentType === 'video/ogg'
+              ? data.contentType
+              : data.contentType === 'video/mp4'
+                ? 'video/mp4'
+                : 'application/x-mpegurl') as typeof streamType,
+          );
           setStreamUrl(data.streamUrl);
         }
       })
@@ -66,14 +81,14 @@ function DirectPlayer() {
         if (!controller.signal.aborted) {
           // eslint-disable-next-line no-console
           console.error(
-            '[Bingr] Playback request failed:',
+            `[${provider === 'archive' ? 'Internet Archive' : 'Bingr'}] Playback request failed:`,
             error instanceof Error ? error.message : 'Unknown error',
           );
           setFailed(true);
         }
       });
     return () => controller.abort();
-  }, [query, attempt]);
+  }, [queryString, attempt, provider]);
 
   useEffect(() => {
     const seek = (event: MessageEvent) => {
@@ -162,7 +177,7 @@ function DirectPlayer() {
         <MediaPlayer
           ref={player}
           title={title}
-          src={{ src: streamUrl, type: 'application/x-mpegurl' }}
+          src={{ src: streamUrl, type: streamType }}
           autoPlay
           playsInline
           currentTime={resume}
