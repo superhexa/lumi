@@ -316,6 +316,7 @@ export const arabicTranslation = {
     selectSource: 'المصدر',
     playerSettings: 'إعدادات مشغل Lumi',
     sourceMayShowAds: 'قد يفتح إعلانات أو يعيد توجيهك',
+    currentSource: 'المصدر المحدد حالياً',
     noEpisodes: 'لا تتوفر حلقات لهذا الموسم.',
     retry: 'إعادة المحاولة',
     readyStartingPlayback: 'أصبح كل شيء جاهزاً. جارٍ بدء التشغيل...',

@@ -21,6 +21,7 @@ import {
   Sparkles,
   Star,
   Users,
+  X,
   Zap,
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -409,6 +410,7 @@ function PlayPageClient() {
   );
   const [sourceMenuOpen, setSourceMenuOpen] = useState(false);
   const sourceMenuRegionRef = useRef<HTMLDivElement | null>(null);
+  const sourceMenuPanelRef = useRef<HTMLDivElement | null>(null);
   const sourceTriggerRef = useRef<HTMLButtonElement | null>(null);
   const sourceCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
@@ -460,7 +462,8 @@ function PlayPageClient() {
     const closeOutside = (event: PointerEvent) => {
       if (
         event.target instanceof Node &&
-        !sourceMenuRegionRef.current?.contains(event.target)
+        !sourceMenuRegionRef.current?.contains(event.target) &&
+        !sourceMenuPanelRef.current?.contains(event.target)
       )
         setSourceMenuOpen(false);
     };
@@ -586,7 +589,10 @@ function PlayPageClient() {
       const url = new URL(playerEmbedUrlRef.current, window.location.origin);
       const progress = tmdbEmbedProgressRef.current;
       if (progress?.playTime && Number.isFinite(progress.playTime)) {
-        url.searchParams.set('t', String(Math.max(0, Math.floor(progress.playTime))));
+        url.searchParams.set(
+          't',
+          String(Math.max(0, Math.floor(progress.playTime))),
+        );
       }
       const popup = window.open(
         url.toString(),
@@ -2567,45 +2573,95 @@ function PlayPageClient() {
                       className={`ui-token-text-muted ui-episode-trigger-chevron transition-transform duration-200 ${sourceMenuOpen ? '-rotate-90' : 'rotate-90'}`}
                     />
                   </button>
-                  {sourceMenuOpen ? (
-                    <div
-                      role='menu'
-                      aria-label={t('play.selectSource')}
-                      className='player-source-menu ui-glass-panel absolute top-[calc(100%+0.5rem)] left-0 w-52 origin-top-left space-y-1 p-2'
-                    >
-                      <p className='ui-token-text-primary px-3 py-2 text-sm font-semibold'>
-                        {t('play.playerSettings')}
-                      </p>
-                      {TMDB_PLAYER_PROVIDERS.map((provider) => (
-                        <button
-                          key={provider.id}
-                          type='button'
-                          role='menuitemradio'
-                          aria-checked={provider.id === playerProvider}
-                          onClick={() => {
-                            setSourceMenuOpen(false);
-                            if (provider.id !== playerProvider)
-                              void switchTmdbPlayback({
-                                provider: provider.id,
-                              });
+                  {sourceMenuOpen && typeof document !== 'undefined'
+                    ? createPortal(
+                        <motion.div
+                          className='player-source-backdrop'
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          onPointerDown={(event) => {
+                            if (event.target === event.currentTarget)
+                              setSourceMenuOpen(false);
                           }}
-                          className={`ui-glass-row flex min-h-10 w-full items-center justify-between px-3 py-2 text-left text-sm ${provider.id === playerProvider ? 'ui-glass-control-active ui-token-text-strong' : 'ui-token-text-secondary'}`}
                         >
-                          <span>
-                            <span className='block'>{provider.label}</span>
-                            {provider.allowsAdvertisingNavigation ? (
-                              <span className='ui-token-text-subtle block text-xs'>
-                                {t('play.sourceMayShowAds')}
-                              </span>
-                            ) : null}
-                          </span>
-                          {provider.id === playerProvider ? (
-                            <Check className='h-4 w-4' />
-                          ) : null}
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
+                          <motion.div
+                            ref={sourceMenuPanelRef}
+                            role='menu'
+                            aria-label={t('play.selectSource')}
+                            className='player-source-menu ui-glass-panel'
+                            initial={{ opacity: 0, y: 18, scale: 0.98 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            transition={{ duration: 0.18, ease: 'easeOut' }}
+                          >
+                            <div className='player-source-dragger' />
+                            <div className='player-source-header'>
+                              <div className='min-w-0'>
+                                <p className='player-source-eyebrow'>
+                                  {t('play.selectSource')}
+                                </p>
+                                <h3 className='player-source-title'>
+                                  {t('play.playerSettings')}
+                                </h3>
+                              </div>
+                              <button
+                                type='button'
+                                aria-label={t('common.close')}
+                                onClick={() => setSourceMenuOpen(false)}
+                                className='player-source-close'
+                              >
+                                <X className='h-5 w-5' />
+                              </button>
+                            </div>
+                            <div className='player-source-list'>
+                              {TMDB_PLAYER_PROVIDERS.map((provider, index) => {
+                                const isActive = provider.id === playerProvider;
+                                return (
+                                  <button
+                                    key={provider.id}
+                                    type='button'
+                                    role='menuitemradio'
+                                    aria-checked={isActive}
+                                    onClick={() => {
+                                      setSourceMenuOpen(false);
+                                      if (!isActive)
+                                        void switchTmdbPlayback({
+                                          provider: provider.id,
+                                        });
+                                    }}
+                                    className={`player-source-option ${isActive ? 'is-active' : ''}`}
+                                  >
+                                    <span className='player-source-index'>
+                                      {String(index + 1).padStart(2, '0')}
+                                    </span>
+                                    <span className='min-w-0 flex-1 text-start'>
+                                      <span className='player-source-name'>
+                                        {provider.label}
+                                      </span>
+                                      {provider.allowsAdvertisingNavigation ? (
+                                        <span className='player-source-warning'>
+                                          {t('play.sourceMayShowAds')}
+                                        </span>
+                                      ) : isActive ? (
+                                        <span className='player-source-status'>
+                                          {t('play.currentSource')}
+                                        </span>
+                                      ) : null}
+                                    </span>
+                                    <span className='player-source-check'>
+                                      {isActive ? (
+                                        <Check className='h-4 w-4' />
+                                      ) : null}
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </motion.div>
+                        </motion.div>,
+                        document.body,
+                      )
+                    : null}
                 </div>
               ) : null}
             </div>
