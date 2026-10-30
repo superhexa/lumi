@@ -27,9 +27,12 @@ describe('Bingr resolver', () => {
         new Response(JSON.stringify({ title: 'Westworld', year: '2016' })),
       )
       .mockResolvedValueOnce(
-        new Response('<html><video src="https://futurefocusedentrepreneurs.site/watch/master.m3u8"></video></html>', {
-          headers: { 'Content-Type': 'text/html' },
-        }),
+        new Response(
+          '<html><video src="https://futurefocusedentrepreneurs.site/watch/master.m3u8"></video></html>',
+          {
+            headers: { 'Content-Type': 'text/html' },
+          },
+        ),
       );
     const response = await GET(
       new Request(
@@ -42,7 +45,7 @@ describe('Bingr resolver', () => {
     );
     expect(fetchMock.mock.calls.map((call) => String(call[0]))).toEqual([
       'https://api.bingr.one/api/details/tv/63247',
-      'https://bingr.one/watch/tv/63247?s=2&e=1',
+      'https://bingr.one/watch/tv/63247/2/1',
     ]);
     expect(fetchMock.mock.calls[0][1].redirect).toBe('manual');
     expect(String(fetchMock.mock.calls[1][0])).toContain('/watch/tv/63247');
@@ -79,6 +82,7 @@ describe('Bingr resolver', () => {
         )
       ).status,
     ).toBe(502);
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock.mock.calls.length).toBeGreaterThanOrEqual(3);
+    expect(fetchMock.mock.calls[2][0]).toBe('https://api.bingr.one/api/stream');
   });
 });

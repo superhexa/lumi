@@ -8,16 +8,28 @@ const MEDIA_HOSTS = new Set([
   'img.rousav.tech',
   'hakunamatata.rousav.tech',
   'lingering-sky-2e99.badrishhmehar.workers.dev',
+  'dash-hls-bridge.johndoesdmc.workers.dev',
+  'dash-hls-bridge.johndoesfmc.workers.dev',
+  'img1.hscow.com',
+  'img2.hscow.com',
+  'proxy.streamrip.fun',
 ]);
 
 export function validateBingrMediaUrl(value: string): URL {
   const url = new URL(value);
+  const allowedByPattern =
+    url.hostname.endsWith('.workers.dev') ||
+    url.hostname.endsWith('.streamrip.fun') ||
+    url.hostname.endsWith('.hscow.com') ||
+    url.hostname.endsWith('.rousav.tech') ||
+    url.hostname.endsWith('.hakunaymatata.com') ||
+    url.hostname.endsWith('.cloudfront.net');
   if (
     url.protocol !== 'https:' ||
     url.username ||
     url.password ||
     url.port ||
-    !MEDIA_HOSTS.has(url.hostname)
+    (!MEDIA_HOSTS.has(url.hostname) && !allowedByPattern)
   )
     throw new Error('Unsupported media host');
   url.hash = '';

@@ -8,6 +8,7 @@ import {
 } from '@/lib/tmdb-player-sources';
 
 const API = 'https://api.bingr.one/api';
+const SERVER_IDS = ['s31', 's40', 's50', 's51', 's62', 's70', 's80', 's81'];
 const HEADERS = {
   Accept: 'application/json',
   'Accept-Language': 'en-US,en;q=0.9',
@@ -32,11 +33,11 @@ async function resolveBingrWatchPage(
   episode: number,
   signal: AbortSignal,
 ): Promise<URL | null> {
-  const pageUrl = new URL(`https://bingr.one/watch/${mediaType}/${tmdbId}`);
-  if (mediaType === 'tv') {
-    pageUrl.searchParams.set('s', String(season));
-    pageUrl.searchParams.set('e', String(episode));
-  }
+  const pageUrl = new URL(
+    mediaType === 'tv'
+      ? `https://bingr.one/watch/tv/${tmdbId}/${season}/${episode}`
+      : `https://bingr.one/watch/movie/${tmdbId}`,
+  );
   const response = await fetch(pageUrl, {
     signal,
     redirect: 'follow',
@@ -114,7 +115,10 @@ export async function GET(request: Request) {
       );
       if (watchUrl) {
         return NextResponse.json(
-          { streamUrl: bingrMediaProxyUrl(watchUrl.href), title: details.title },
+          {
+            streamUrl: bingrMediaProxyUrl(watchUrl.href),
+            title: details.title,
+          },
           { headers: { 'Cache-Control': 'no-store' } },
         );
       }
@@ -122,42 +126,44 @@ export async function GET(request: Request) {
       // The public API fallback below remains available for older deployments.
     }
     failureCode = 'stream-request';
-    const response = await fetch(`${API}/stream`, {
-      ...options,
-      method: 'POST',
-      headers: { ...HEADERS, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        srv: 's3',
-        t: mediaType,
-        id: String(tmdbId),
-        query,
-      }),
-    });
-    if (!response.ok) {
-      failureCode = `stream-http-${response.status}`;
-      throw new Error('Stream unavailable');
-    }
+    const responses = await Promise.allSettled(
+      SERVER_IDS.map((srv) =>
+        fetch(`${API}/stream`, {
+          ...options,
+          method: 'POST',
+          headers: { ...HEADERS, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            srv,
+            t: mediaType,
+            id: String(tmdbId),
+            query,
+          }),
+        }),
+      ),
+    );
     failureCode = 'stream-response';
-    const payload = (await response.json()) as {
-      sources?: Array<{ url?: string; type?: string }>;
-    };
-    failureCode = 'no-supported-media';
-    for (const source of (payload.sources || []).slice(0, 8)) {
-      if (
-        typeof source.url !== 'string' ||
-        !/mpegurl|hls/i.test(source.type || '')
-      )
-        continue;
+    for (const result of responses) {
+      if (result.status !== 'fulfilled' || !result.value?.ok) continue;
+      let payload: { sources?: Array<{ url?: string; type?: string }> };
       try {
-        const url = unwrapBingrMediaUrl(source.url);
-        return NextResponse.json(
-          { streamUrl: bingrMediaProxyUrl(url.href), title: details.title },
-          { headers: { 'Cache-Control': 'no-store' } },
-        );
+        payload = (await result.value.json()) as typeof payload;
       } catch {
-        /* Try another supported source. */
+        continue;
+      }
+      for (const source of (payload.sources || []).slice(0, 20)) {
+        if (typeof source.url !== 'string') continue;
+        try {
+          const url = unwrapBingrMediaUrl(source.url);
+          return NextResponse.json(
+            { streamUrl: bingrMediaProxyUrl(url.href), title: details.title },
+            { headers: { 'Cache-Control': 'no-store' } },
+          );
+        } catch {
+          // Try the next server/source returned by Bingr.
+        }
       }
     }
+    failureCode = 'no-supported-media';
     throw new Error('No supported stream');
   } catch {
     return NextResponse.json(
