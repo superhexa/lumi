@@ -1,29 +1,29 @@
-export type TmdbLanguage = 'en-US' | 'zh-CN';
+export type TmdbLanguage = 'en-US' | 'ar-SA';
 
 export const DEFAULT_TMDB_LANGUAGE: TmdbLanguage = 'en-US';
 
 export function normalizeTmdbLanguage(value?: string | null): TmdbLanguage {
   const normalized = (value || '').trim().toLowerCase();
-  if (
-    normalized === 'zh-cn' ||
-    normalized === 'zh' ||
-    normalized.startsWith('zh-')
-  ) {
-    return 'zh-CN';
+  if (normalized === 'ar' || normalized.startsWith('ar-')) {
+    return 'ar-SA';
   }
   return DEFAULT_TMDB_LANGUAGE;
 }
 
 export function getTmdbImageLanguage(language?: string | null): string {
-  return normalizeTmdbLanguage(language) === 'zh-CN' ? 'zh,en,null' : 'en,null';
+  const normalized = normalizeTmdbLanguage(language);
+  if (normalized === 'ar-SA') return 'ar,en,null';
+  return 'en,null';
 }
 
 export function getStableTmdbImageLanguage(): string {
-  return 'en,zh,null';
+  return 'en,null';
 }
 
 export function getTmdbVideoLanguage(language?: string | null): string {
-  return normalizeTmdbLanguage(language) === 'zh-CN' ? 'zh,en,null' : 'en,null';
+  const normalized = normalizeTmdbLanguage(language);
+  if (normalized === 'ar-SA') return 'ar,en,null';
+  return 'en,null';
 }
 
 export function appendTmdbLanguageParam(

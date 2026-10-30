@@ -2013,7 +2013,7 @@ function PlayPageClient() {
         Number.isNaN(date.getTime())
           ? episode.airDate
           : date.toLocaleDateString(
-              i18n.language === 'zh' ? 'zh-CN' : 'en-US',
+              i18n.language?.startsWith('ar') ? 'ar-SA' : 'en-US',
               {
                 month: 'short',
                 day: 'numeric',

@@ -7,7 +7,7 @@ interface TmdbDetailPageUrlInput {
   year?: string | null;
   poster?: string | null;
   score?: string | null;
-  logoLang?: 'zh' | 'en' | null;
+  logoLang?: 'ar' | 'en' | null;
 }
 
 function normalizeMediaType(

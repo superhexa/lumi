@@ -57,7 +57,7 @@ async function fetchTmdbSeason(
 
   const params = new URLSearchParams({
     api_key: apiKey,
-    language: tmdbLanguage === 'zh-CN' ? 'zh-CN' : 'en-US',
+    language: tmdbLanguage,
   });
 
   try {

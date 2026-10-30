@@ -43,6 +43,7 @@ import {
   subscribeToDataUpdates,
 } from '@/lib/db.client';
 import { createLibraryBackup, parseLibraryBackup } from '@/lib/library-backup';
+import { normalizeSearchText } from '@/lib/search-normalize';
 import { fetchTmdbDetailWithClientCache } from '@/lib/tmdb-detail.client';
 import {
   buildTmdbHistoryPlayUrl,
@@ -1009,9 +1010,7 @@ function MyPageClient() {
     );
   }, [favoriteItemGenres, favoriteItems]);
 
-  const normalizedLibrarySearchKeyword = librarySearchKeyword
-    .trim()
-    .toLowerCase();
+  const normalizedLibrarySearchKeyword = normalizeSearchText(librarySearchKeyword);
   const continueWatchingRecords = useMemo(
     () => playRecords.filter(isRecordInProgress).slice(0, 8),
     [playRecords],
@@ -1034,22 +1033,22 @@ function MyPageClient() {
         label: t('my.savedTitles'),
         value: favoriteItems.length,
         icon: Bookmark,
-        accent: 'from-rose-400/20 to-pink-500/5',
-        iconClass: 'text-rose-300',
+        accent: 'from-cyan-400/20 to-sky-500/5',
+        iconClass: 'text-cyan-300',
       },
       {
         label: t('my.watchHistory'),
         value: playRecords.length,
         icon: Film,
-        accent: 'from-violet-400/20 to-indigo-500/5',
-        iconClass: 'text-violet-300',
+        accent: 'from-blue-400/20 to-indigo-500/5',
+        iconClass: 'text-sky-300',
       },
       {
         label: t('my.continuing'),
         value: inProgressRecordCount,
         icon: Clock3,
-        accent: 'from-amber-300/20 to-orange-500/5',
-        iconClass: 'text-amber-300',
+        accent: 'from-blue-300/20 to-cyan-500/5',
+        iconClass: 'text-blue-300',
       },
       {
         label: t('my.toWatch'),
@@ -1074,7 +1073,7 @@ function MyPageClient() {
         record.year,
         record.search_title,
       ].some((value) =>
-        (value || '').toLowerCase().includes(normalizedLibrarySearchKeyword),
+        normalizeSearchText(value || '').includes(normalizedLibrarySearchKeyword),
       );
     });
 
@@ -1104,7 +1103,7 @@ function MyPageClient() {
     const sorted = [...genreFiltered].sort((a, b) => {
       const aTitle = (a.search_title || a.title || '').trim();
       const bTitle = (b.search_title || b.title || '').trim();
-      const result = aTitle.localeCompare(bTitle, 'zh-Hans-CN', {
+      const result = aTitle.localeCompare(bTitle, undefined, {
         sensitivity: 'base',
         numeric: true,
       });
@@ -1127,7 +1126,7 @@ function MyPageClient() {
       if (!normalizedLibrarySearchKeyword) return true;
       return [item.title, item.searchTitle, item.sourceName, item.year].some(
         (value) =>
-          (value || '').toLowerCase().includes(normalizedLibrarySearchKeyword),
+          normalizeSearchText(value || '').includes(normalizedLibrarySearchKeyword),
       );
     });
 
@@ -1151,7 +1150,7 @@ function MyPageClient() {
     return [...genreFiltered].sort((a, b) => {
       const aTitle = (a.searchTitle || a.title || '').trim();
       const bTitle = (b.searchTitle || b.title || '').trim();
-      const result = aTitle.localeCompare(bTitle, 'zh-Hans-CN', {
+      const result = aTitle.localeCompare(bTitle, undefined, {
         sensitivity: 'base',
         numeric: true,
       });
@@ -1459,21 +1458,21 @@ function MyPageClient() {
     <PageLayout activePath='/my'>
       <div className='overflow-visible px-0 pb-4 sm:px-10 sm:pb-8'>
         <div className='space-y-3 px-4 pt-6 sm:space-y-3 sm:px-0 sm:pt-8 md:pt-4'>
-          <section className='relative isolate overflow-hidden rounded-[1.75rem] border border-white/10 bg-[#0b1020] p-5 shadow-[0_24px_70px_rgba(0,0,0,0.28)] sm:rounded-[2rem] sm:p-8'>
+          <section className='relative isolate overflow-hidden rounded-[1.75rem] border border-cyan-300/10 bg-gradient-to-br from-[#0d1726] via-[#09111e] to-[#080d18] p-5 shadow-[0_24px_70px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.04)] sm:rounded-[2rem] sm:p-8'>
             <div
               aria-hidden='true'
-              className='pointer-events-none absolute -right-20 -top-32 -z-10 h-72 w-72 rounded-full bg-rose-500/20 blur-3xl'
+              className='pointer-events-none absolute -right-20 -top-32 -z-10 h-72 w-72 rounded-full bg-cyan-500/20 blur-3xl'
             />
             <div
               aria-hidden='true'
-              className='pointer-events-none absolute -bottom-36 left-1/3 -z-10 h-72 w-72 rounded-full bg-violet-500/15 blur-3xl'
+              className='pointer-events-none absolute -bottom-36 left-1/3 -z-10 h-72 w-72 rounded-full bg-blue-500/15 blur-3xl'
             />
             <div className='mb-6 flex items-start gap-3 sm:mb-8 sm:items-center'>
-              <span className='grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-rose-300/20 bg-gradient-to-br from-rose-400/20 to-violet-500/20 text-rose-200 shadow-inner shadow-white/5 sm:h-14 sm:w-14'>
+              <span className='grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-cyan-300/20 bg-gradient-to-br from-cyan-400/20 to-blue-500/20 text-cyan-200 shadow-inner shadow-white/5 sm:h-14 sm:w-14'>
                 <Film className='h-6 w-6 sm:h-7 sm:w-7' />
               </span>
               <div className='min-w-0'>
-                <p className='mb-1 text-[0.65rem] font-bold uppercase tracking-[0.22em] text-rose-200/80'>
+                <p className='mb-1 text-[0.65rem] font-bold uppercase tracking-[0.22em] text-cyan-100/80'>
                   {t('my.personalCinema')}
                 </p>
                 <h1 className='text-2xl font-bold tracking-tight text-white sm:text-3xl'>
@@ -1489,7 +1488,7 @@ function MyPageClient() {
               {libraryStats.map((stat) => (
                 <div
                   key={stat.label}
-                  className='relative min-w-0 overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.045] p-3 backdrop-blur-xl transition duration-200 hover:-translate-y-0.5 hover:border-white/[0.14] hover:bg-white/[0.07] sm:p-4'
+                  className='group relative min-w-0 overflow-hidden rounded-2xl border border-cyan-300/[0.08] bg-gradient-to-br from-white/[0.055] to-white/[0.025] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] backdrop-blur-xl transition duration-200 hover:-translate-y-1 hover:border-cyan-300/20 hover:shadow-[0_14px_36px_rgba(0,0,0,0.22)] sm:p-4'
                 >
                   <div
                     className={`pointer-events-none absolute -right-5 -top-7 h-20 w-20 rounded-full bg-gradient-to-br ${stat.accent} opacity-50 blur-2xl`}
@@ -1521,10 +1520,10 @@ function MyPageClient() {
               onChange={(value) => setActiveTab(value as ActiveTab)}
             />
           </div>
-          <div className='relative mx-auto flex w-full max-w-2xl items-center'>
+          <div className='relative mx-auto flex w-full max-w-3xl items-center'>
             <Search
               aria-hidden='true'
-              className='pointer-events-none absolute left-4 h-4 w-4 text-slate-400'
+              className='pointer-events-none absolute start-4 h-4 w-4 text-slate-400'
             />
             <input
               type='search'
@@ -1532,14 +1531,14 @@ function MyPageClient() {
               onChange={(event) => setLibrarySearchKeyword(event.target.value)}
               placeholder={t('my.searchLibrary')}
               aria-label={t('my.searchLibrary')}
-              className='min-h-12 w-full rounded-2xl border border-white/10 bg-white/[0.045] py-3 pl-11 pr-12 text-sm text-white shadow-lg shadow-black/10 outline-none transition placeholder:text-slate-500 focus:border-rose-300/50 focus:bg-white/[0.07] focus:ring-2 focus:ring-rose-400/15'
+              className='min-h-12 w-full rounded-2xl border border-white/10 bg-white/[0.045] py-3 ps-11 pe-12 text-sm text-white shadow-[0_12px_30px_rgba(0,0,0,0.16)] outline-none transition placeholder:text-slate-500 focus:border-cyan-300/50 focus:bg-white/[0.07] focus:ring-2 focus:ring-cyan-400/15'
             />
             {librarySearchKeyword ? (
               <button
                 type='button'
                 aria-label={t('my.clearSearch')}
                 onClick={() => setLibrarySearchKeyword('')}
-                className='absolute right-2 grid h-9 w-9 place-items-center rounded-xl text-slate-400 transition hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-rose-300'
+                className='absolute end-2 grid h-9 w-9 place-items-center rounded-xl text-slate-400 transition hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300'
               >
                 <X className='h-4 w-4' />
               </button>
@@ -1586,10 +1585,10 @@ function MyPageClient() {
           {activeTab === 'play' ? (
             <section className='space-y-3'>
               {!loadingPlayRecords && continueWatchingRecords.length > 0 ? (
-                <section className='-mx-4 space-y-3 rounded-3xl border border-white/[0.08] bg-gradient-to-br from-rose-950/30 via-[#111522]/80 to-violet-950/20 px-4 py-4 sm:mx-0 sm:p-5'>
+                <section className='-mx-4 space-y-3 rounded-3xl border border-white/[0.08] bg-gradient-to-br from-cyan-950/30 via-[#111522]/80 to-blue-950/20 px-4 py-4 sm:mx-0 sm:p-5'>
                   <div className='flex items-end justify-between gap-3'>
                     <div className='min-w-0'>
-                      <p className='mb-1 text-[0.65rem] font-bold uppercase tracking-[0.2em] text-rose-200/75'>
+                      <p className='mb-1 text-[0.65rem] font-bold uppercase tracking-[0.2em] text-cyan-200/75'>
                         {t('my.pickUpWhereLeftOff')}
                       </p>
                       <h2 className='text-lg font-semibold tracking-tight text-white sm:text-xl'>
@@ -1670,7 +1669,7 @@ function MyPageClient() {
                       }
                       className={`inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition ${
                         active
-                          ? 'border-rose-300/30 bg-rose-400/15 text-rose-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]'
+                          ? 'border-cyan-300/30 bg-cyan-400/15 text-cyan-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]'
                           : 'border-white/[0.08] bg-white/[0.035] text-slate-400 hover:border-white/15 hover:bg-white/[0.07] hover:text-slate-200'
                       }`}
                     >
@@ -1791,7 +1790,7 @@ function MyPageClient() {
                                 }
                                 className={`rounded-full border px-3 py-1.5 text-sm transition ${
                                   active
-                                    ? 'border-rose-300 bg-rose-50 text-rose-700 dark:border-rose-600/60 dark:bg-rose-900/20 dark:text-rose-300'
+                                    ? 'border-cyan-300 bg-cyan-50 text-cyan-700 dark:border-cyan-600/60 dark:bg-cyan-900/20 dark:text-cyan-300'
                                     : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300'
                                 }`}
                               >
@@ -1820,7 +1819,7 @@ function MyPageClient() {
                                   onClick={() => togglePlayGenreFilter(genre)}
                                   className={`rounded-full border px-3 py-1.5 text-sm transition ${
                                     active
-                                      ? 'border-rose-300 bg-rose-50 text-rose-700 dark:border-rose-600/60 dark:bg-rose-900/20 dark:text-rose-300'
+                                      ? 'border-cyan-300 bg-cyan-50 text-cyan-700 dark:border-cyan-600/60 dark:bg-cyan-900/20 dark:text-cyan-300'
                                       : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300'
                                   }`}
                                 >
@@ -2038,7 +2037,7 @@ function MyPageClient() {
                                 }
                                 className={`rounded-full border px-3 py-1.5 text-sm transition ${
                                   active
-                                    ? 'border-rose-300 bg-rose-50 text-rose-700 dark:border-rose-600/60 dark:bg-rose-900/20 dark:text-rose-300'
+                                    ? 'border-cyan-300 bg-cyan-50 text-cyan-700 dark:border-cyan-600/60 dark:bg-cyan-900/20 dark:text-cyan-300'
                                     : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300'
                                 }`}
                               >
@@ -2070,7 +2069,7 @@ function MyPageClient() {
                                   }
                                   className={`rounded-full border px-3 py-1.5 text-sm transition ${
                                     active
-                                      ? 'border-rose-300 bg-rose-50 text-rose-700 dark:border-rose-600/60 dark:bg-rose-900/20 dark:text-rose-300'
+                                      ? 'border-cyan-300 bg-cyan-50 text-cyan-700 dark:border-cyan-600/60 dark:bg-cyan-900/20 dark:text-cyan-300'
                                       : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300'
                                   }`}
                                 >

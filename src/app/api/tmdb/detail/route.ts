@@ -13,7 +13,7 @@ const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p';
 const DETAIL_REQUEST_TIMEOUT_MS = 10000;
 
 type TmdbMediaType = 'movie' | 'tv';
-type LogoLanguagePreference = 'zh' | 'en';
+type LogoLanguagePreference = 'ar' | 'en';
 
 interface TmdbLogoItem {
   file_path?: string | null;
@@ -241,8 +241,8 @@ function normalizeLogoLanguagePreference(
   value: string | null,
   tmdbLanguage?: string | null,
 ): LogoLanguagePreference {
-  if (value === 'en' || value === 'zh') return value;
-  return normalizeTmdbLanguage(tmdbLanguage) === 'zh-CN' ? 'zh' : 'en';
+  if (value === 'en' || value === 'ar') return value;
+  return normalizeTmdbLanguage(tmdbLanguage) === 'ar-SA' ? 'en' : 'en';
 }
 
 function normalizeYear(value: string | null): string {
@@ -573,7 +573,7 @@ function pickTrailerUrlFromRaw(raw: TmdbDetailRawResponse): string {
   if (!candidates.length) return '';
 
   const getLangPriority = (lang?: string | null): number => {
-    if (lang === 'zh') return 3;
+    if (lang === 'ar') return 3;
     if (lang === 'en') return 2;
     if (lang === null || lang === undefined) return 1;
     return 0;
@@ -603,11 +603,11 @@ function selectBestLogo(
     if (logoLanguagePreference === 'en') {
       if (lang === 'en') return 4;
       if (lang === null || lang === undefined || lang === '') return 3;
-      if (lang === 'zh') return 2;
+      if (lang === 'ar') return 2;
       return 1;
     }
 
-    if (lang === 'zh') return 4;
+    if (lang === 'ar') return 4;
     if (lang === null || lang === undefined || lang === '') return 3;
     if (lang === 'en') return 2;
     return 1;

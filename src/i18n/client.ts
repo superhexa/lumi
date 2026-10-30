@@ -16,7 +16,7 @@ export const LANGUAGE_STORAGE_KEY = 'luma-language';
 
 function normalizeLanguage(value?: string | null): AppLanguage {
   const normalized = (value || '').toLowerCase();
-  if (normalized.startsWith('zh')) return 'zh';
+  if (normalized.startsWith('ar')) return 'ar';
   if (normalized.startsWith('en')) return 'en';
   return fallbackLanguage;
 }
@@ -37,7 +37,8 @@ export function getInitialLanguage(): AppLanguage {
 export function persistLanguage(language: AppLanguage) {
   if (typeof window === 'undefined') return;
   window.localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
-  document.documentElement.lang = language === 'zh' ? 'zh-CN' : 'en';
+  document.documentElement.lang = language === 'ar' ? 'ar' : 'en';
+  document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
 }
 
 export function getCurrentTmdbLanguage(language?: string): TmdbLanguage {

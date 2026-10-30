@@ -61,14 +61,14 @@ const CapsuleSwitch: React.FC<CapsuleSwitchProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`relative inline-flex rounded-full border border-white/5 bg-[#1f2125] p-0.5 ${
+      className={`relative inline-flex rounded-full border border-cyan-300/10 bg-[#0d1726]/95 p-1 shadow-[0_12px_32px_rgba(0,0,0,0.24)] backdrop-blur-xl ${
         className || ''
       }`}
     >
       {/* 滑动的白色背景指示器 */}
       {indicatorStyle.width > 0 && (
         <div
-          className='absolute bottom-0.5 top-0.5 rounded-full border border-white/5 bg-[#2d3035] shadow-sm transition-all duration-300 ease-out'
+          className='absolute bottom-1 top-1 rounded-full border border-cyan-300/20 bg-gradient-to-r from-cyan-400/20 to-blue-400/20 shadow-[0_4px_18px_rgba(34,211,238,0.12)] transition-all duration-300 ease-out'
           style={{
             left: `${indicatorStyle.left}px`,
             width: `${indicatorStyle.width}px`,

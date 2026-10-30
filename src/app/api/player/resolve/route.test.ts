@@ -25,7 +25,7 @@ describe('player resolver outbound requests', () => {
   it('builds a fixed-origin request with encoded query parameters and no redirects', async () => {
     const response = await GET(
       new Request(
-        'https://luma.example/api/player/resolve?tmdbId=123&type=tv&season=2&tmdbLanguage=zh-CN%26url%3Dhttp%3A%2F%2F127.0.0.1',
+        'https://luma.example/api/player/resolve?tmdbId=123&type=tv&season=2&tmdbLanguage=ar-SA%26url%3Dhttp%3A%2F%2F127.0.0.1',
       ),
     );
     expect(response.status).toBe(200);
@@ -33,7 +33,7 @@ describe('player resolver outbound requests', () => {
     const [url, options] = fetchMock.mock.calls[0];
     expect(url.origin).toBe('https://api.themoviedb.org');
     expect(url.pathname).toBe('/3/tv/123/season/2');
-    expect(url.searchParams.get('language')).toBe('zh-CN');
+    expect(url.searchParams.get('language')).toBe('ar-SA');
     expect(url.searchParams.has('url')).toBe(false);
     expect(options.redirect).toBe('manual');
   });

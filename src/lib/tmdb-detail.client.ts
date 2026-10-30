@@ -5,7 +5,7 @@ import { normalizeTmdbLanguage } from '@/lib/tmdb-language';
 import { getCurrentTmdbLanguage } from '@/i18n/client';
 
 export type TmdbDetailMediaType = 'movie' | 'tv';
-export type TmdbLogoLanguagePreference = 'zh' | 'en';
+export type TmdbLogoLanguagePreference = 'ar' | 'en';
 
 export interface TmdbDetailClientRequest {
   id?: number | string | null;
@@ -64,8 +64,8 @@ function normalizeLogoLanguagePreference(
   value: TmdbLogoLanguagePreference | null | undefined,
   tmdbLanguage?: string | null,
 ): TmdbLogoLanguagePreference {
-  if (value === 'en' || value === 'zh') return value;
-  return normalizeTmdbLanguage(tmdbLanguage) === 'zh-CN' ? 'zh' : 'en';
+  if (value === 'en' || value === 'ar') return value;
+  return normalizeTmdbLanguage(tmdbLanguage) === 'ar-SA' ? 'en' : 'en';
 }
 
 function normalizeId(value?: number | string | null): number | null {

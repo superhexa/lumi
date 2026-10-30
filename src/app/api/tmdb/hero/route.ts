@@ -156,15 +156,15 @@ function selectBestLogoPath(
   if (!logos.length) return '';
 
   const getLanguagePriority = (lang?: string | null): number => {
-    if (normalizeTmdbLanguage(tmdbLanguage) === 'zh-CN') {
-      if (lang === 'zh') return 4;
+    if (normalizeTmdbLanguage(tmdbLanguage) === 'ar-SA') {
+      if (lang === 'ar') return 4;
       if (lang === 'en') return 3;
       if (lang === null) return 2;
       if (lang === undefined) return 2;
       return 1;
     }
     if (lang === 'en') return 4;
-    if (lang === 'zh') return 3;
+    if (lang === 'ar') return 3;
     if (lang === null) return 2;
     if (lang === undefined) return 2;
     return 1;

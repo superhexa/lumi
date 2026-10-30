@@ -332,7 +332,7 @@ function DetailPageClient() {
   const requestInput = useMemo(() => {
     const logoLang = searchParams.get('logoLang');
     const logoLanguagePreference: TmdbLogoLanguagePreference | undefined =
-      logoLang === 'en' || logoLang === 'zh' ? logoLang : undefined;
+      logoLang === 'en' || logoLang === 'ar' ? logoLang : undefined;
     return {
       id: searchParams.get('id'),
       title: searchParams.get('title'),

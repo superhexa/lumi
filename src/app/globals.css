@@ -39,10 +39,10 @@
   --ui-glass-overlay-bg: rgb(3 6 14 / 0.82);
   --ui-glass-border: rgb(139 155 180 / 0.34);
   --ui-glass-border-strong: rgb(165 178 199 / 0.52);
-  --ui-glass-border-hover: rgb(251 113 133 / 0.76);
+  --ui-glass-border-hover: rgb(34 211 238 / 0.76);
   --ui-glass-divider: rgb(139 155 180 / 0.28);
-  --ui-glass-row-hover: rgb(251 113 133 / 0.1);
-  --ui-glass-row-active: rgb(251 113 133 / 0.18);
+  --ui-glass-row-hover: rgb(34 211 238 / 0.1);
+  --ui-glass-row-active: rgb(34 211 238 / 0.18);
   --ui-glass-input-bg: rgb(12 19 34 / 0.68);
   --ui-glass-input-bg-disabled: rgb(22 29 44 / 0.62);
   --ui-glass-shortcut-bg: rgb(12 19 34 / 0.7);
@@ -53,7 +53,7 @@
   --ui-text-secondary: rgb(219 226 237);
   --ui-text-muted: rgb(164 176 195);
   --ui-text-subtle: rgb(125 140 163);
-  --ui-accent: #fb7185;
+  --ui-accent: #22d3ee;
   --ui-highlight: #c7d2e0;
   --ui-shadow-control: 0 8px 18px rgb(3 4 14 / 0.34);
   --ui-shadow-panel: 0 12px 30px rgb(3 4 14 / 0.58);
@@ -82,7 +82,7 @@
   margin-inline: auto;
   border-radius: 20px;
   background:
-    radial-gradient(ellipse at 50% 0%, rgb(190 18 60 / 0.14), transparent 58%),
+    radial-gradient(ellipse at 50% 0%, rgb(8 145 178 / 0.14), transparent 58%),
     #000;
 }
 
@@ -125,7 +125,7 @@
 .pwa-manager {
   position: fixed;
   z-index: 4000;
-  right: max(1.25rem, env(safe-area-inset-right));
+  inset-inline-end: max(1.25rem, env(safe-area-inset-right));
   bottom: max(1.25rem, env(safe-area-inset-bottom));
   display: flex;
   width: min(26rem, calc(100vw - 2rem));
@@ -140,7 +140,7 @@
   border: 1px solid rgb(226 232 240 / 0.18);
   border-radius: 1.5rem;
   background:
-    radial-gradient(ellipse at 0% 0%, rgb(190 18 60 / 0.2), transparent 58%),
+    radial-gradient(ellipse at 0% 0%, rgb(8 145 178 / 0.2), transparent 58%),
     linear-gradient(145deg, rgb(16 24 40 / 0.98), rgb(5 9 18 / 0.98));
   padding: 1.25rem;
   box-shadow:
@@ -160,7 +160,7 @@
   display: flex;
   align-items: flex-start;
   gap: 0.875rem;
-  padding-right: 2rem;
+  padding-inline-end: 2rem;
 }
 
 .pwa-icon-wrap {
@@ -169,21 +169,21 @@
   height: 2.75rem;
   flex: 0 0 auto;
   place-items: center;
-  border: 1px solid rgb(251 113 133 / 0.32);
+  border: 1px solid rgb(34 211 238 / 0.32);
   border-radius: 1rem;
   background: linear-gradient(
     145deg,
-    rgb(190 18 60 / 0.3),
-    rgb(190 18 60 / 0.1)
+    rgb(8 145 178 / 0.3),
+    rgb(8 145 178 / 0.1)
   );
-  color: #fda4af;
+  color: #67e8f9;
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12);
 }
 
 .pwa-close {
   position: absolute;
   top: 0.875rem;
-  right: 0.875rem;
+  inset-inline-end: 0.875rem;
   display: grid;
   width: 2.5rem;
   height: 2.5rem;
@@ -199,12 +199,12 @@
   gap: 0.5rem;
   border: 1px solid rgb(255 255 255 / 0.18);
   border-radius: 1rem;
-  background: linear-gradient(120deg, #fb7185, #fda4af);
+  background: linear-gradient(120deg, #22d3ee, #67e8f9);
   padding: 0.75rem 1rem;
-  color: #18080c;
+  color: #082f49;
   font-size: 0.9375rem;
   font-weight: 700;
-  box-shadow: 0 8px 24px rgb(190 18 60 / 0.28);
+  box-shadow: 0 8px 24px rgb(8 145 178 / 0.28);
   transition:
     filter 160ms ease,
     transform 160ms ease,
@@ -213,7 +213,7 @@
 
 .pwa-primary-action:hover {
   filter: brightness(1.06);
-  box-shadow: 0 10px 28px rgb(190 18 60 / 0.38);
+  box-shadow: 0 10px 28px rgb(8 145 178 / 0.38);
 }
 
 .pwa-primary-action:active {
@@ -222,7 +222,7 @@
 
 .pwa-primary-action:focus-visible,
 .pwa-close:focus-visible {
-  outline: 2px solid #fda4af;
+  outline: 2px solid #67e8f9;
   outline-offset: 3px;
 }
 
@@ -242,9 +242,9 @@
   }
 
   .pwa-manager {
-    right: max(0.75rem, env(safe-area-inset-right));
+    inset-inline-end: max(0.75rem, env(safe-area-inset-right));
+    inset-inline-start: max(0.75rem, env(safe-area-inset-left));
     bottom: calc(env(safe-area-inset-bottom) + 5.25rem);
-    left: max(0.75rem, env(safe-area-inset-left));
     width: auto;
     gap: 0.625rem;
   }
@@ -261,7 +261,7 @@
 
   .pwa-install-heading {
     gap: 0.75rem;
-    padding-right: 2.5rem;
+    padding-inline-end: 2.5rem;
   }
 
   .pwa-icon-wrap {
@@ -272,7 +272,7 @@
 
   .pwa-close {
     top: 0.625rem;
-    right: 0.625rem;
+    inset-inline-end: 0.625rem;
     width: 2.75rem;
     height: 2.75rem;
   }
@@ -301,7 +301,7 @@
     border-radius: 16px;
     box-shadow:
       0 18px 42px rgb(0 0 0 / 0.46),
-      0 0 0 1px rgb(251 113 133 / 0.08);
+      0 0 0 1px rgb(34 211 238 / 0.08);
   }
 }
 
@@ -335,9 +335,9 @@
     position: fixed;
     z-index: 800;
     top: auto;
-    right: max(0.75rem, env(safe-area-inset-right));
+    inset-inline-end: max(0.75rem, env(safe-area-inset-right));
+    inset-inline-start: max(0.75rem, env(safe-area-inset-left));
     bottom: max(0.75rem, env(safe-area-inset-bottom));
-    left: max(0.75rem, env(safe-area-inset-left));
     width: auto;
     max-width: 32rem;
     max-height: min(70dvh, 34rem);
@@ -361,7 +361,8 @@
 
 @media (max-width: 767px) and (orientation: landscape) {
   .pwa-manager {
-    right: max(0.75rem, env(safe-area-inset-right));
+    inset-inline-end: max(0.75rem, env(safe-area-inset-right));
+    inset-inline-start: max(0.75rem, env(safe-area-inset-left));
     bottom: max(0.75rem, env(safe-area-inset-bottom));
     left: auto;
     width: min(26rem, calc(100vw - 1.5rem));

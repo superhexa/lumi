@@ -142,7 +142,7 @@ const ANIME_KEYWORD_OPTIONS: GenreOption[] = [
 
 const LANGUAGE_OPTIONS = [
   { value: '', labelKey: 'discover.anyLanguage' },
-  { value: 'zh', labelKey: 'discover.chinese' },
+  { value: 'ar', labelKey: 'discover.arabic' },
   { value: 'en', labelKey: 'discover.english' },
   { value: 'ja', labelKey: 'discover.japanese' },
   { value: 'ko', labelKey: 'discover.korean' },

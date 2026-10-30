@@ -33,7 +33,7 @@ import WarpLoadingOverlay from '@/components/WarpLoadingOverlay';
 import { getCurrentTmdbLanguage } from '@/i18n/client';
 
 type TmdbMediaType = 'movie' | 'tv';
-type LogoLanguagePreference = 'zh' | 'en';
+type LogoLanguagePreference = 'ar' | 'en';
 type LogoAspectType = 'ultraWide' | 'wide' | 'standard' | 'squareish' | 'tall';
 const TOP_RATED_DISPLAY_COUNT = 9;
 
@@ -231,7 +231,7 @@ async function fetchTmdbDetailById(
   return fetchTmdbDetailWithClientCache<TmdbDetailResponse>({
     id,
     mediaType,
-    logoLanguagePreference: options?.logoLanguagePreference || 'zh',
+    logoLanguagePreference: options?.logoLanguagePreference || 'ar',
     signal: options?.signal,
   });
 }
