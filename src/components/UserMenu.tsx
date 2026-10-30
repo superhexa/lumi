@@ -34,7 +34,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [hasUpdate, setHasUpdate] = useState(false);
-  const [menuPosition, setMenuPosition] = useState({ top: 58, right: 12 });
+  const [menuPosition, setMenuPosition] = useState({ top: 58, left: 12 });
 
   useEffect(() => {
     setMounted(true);
@@ -47,9 +47,27 @@ export const UserMenu: React.FC<UserMenuProps> = ({
     const rect = triggerRef.current?.getBoundingClientRect();
     if (!rect || typeof window === 'undefined') return;
 
+    const viewportPadding = 12;
+    const panelWidth =
+      window.innerWidth < 640 ? window.innerWidth - viewportPadding * 2 : 280;
+    const preferredLeft =
+      window.innerWidth < 640
+        ? viewportPadding
+        : Math.min(
+            rect.right - panelWidth,
+            window.innerWidth - panelWidth - viewportPadding,
+          );
+
+    const preferredTop = Math.max(
+      viewportPadding + 56,
+      rect.bottom + MENU_PANEL_GAP,
+    );
     setMenuPosition({
-      top: Math.max(68, rect.bottom + MENU_PANEL_GAP),
-      right: Math.max(MENU_PANEL_GAP, window.innerWidth - rect.right),
+      top: Math.min(
+        preferredTop,
+        Math.max(viewportPadding + 56, window.innerHeight - 190),
+      ),
+      left: Math.max(viewportPadding, preferredLeft),
     });
   }, []);
 
@@ -87,8 +105,8 @@ export const UserMenu: React.FC<UserMenuProps> = ({
       ref={panelRef}
       role='dialog'
       aria-label={t('common.siteMenu')}
-      className='ui-glass-panel fixed z-[1001] w-[min(82vw,240px)] overflow-hidden p-2'
-      style={{ top: menuPosition.top, right: menuPosition.right }}
+      className='ui-glass-panel fixed z-[1001] max-h-[calc(100dvh-24px)] w-[calc(100vw-24px)] max-w-[280px] overflow-y-auto rounded-[20px] border border-cyan-300/15 p-2 shadow-[0_24px_70px_rgba(0,0,0,.68),0_8px_30px_rgba(34,211,238,.08)] sm:w-[280px]'
+      style={{ top: menuPosition.top, left: menuPosition.left }}
       initial={
         shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -8, scale: 0.96 }
       }
@@ -99,7 +117,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({
       transition={{ duration: shouldReduceMotion ? 0 : 0.16 }}
     >
       <div className='border-b border-[var(--ui-glass-divider)] px-2 pb-2'>
-        <p className='truncate text-sm font-semibold text-[var(--ui-text-strong)]'>
+        <p className='break-words text-sm font-semibold leading-5 text-[var(--ui-text-strong)]'>
           {siteName}
         </p>
         <p className='mt-0.5 text-xs text-[var(--ui-text-muted)]'>

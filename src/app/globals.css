@@ -673,6 +673,14 @@ body {
   background-image: none;
 }
 
+html[dir='rtl'] body {
+  font-family:
+    var(--font-arabic), var(--font-latin), 'Noto Sans Arabic', 'Segoe UI',
+    sans-serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
 html:not(.dark) body {
   background: #000000;
   background-attachment: fixed;

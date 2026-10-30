@@ -17,7 +17,7 @@ function LanguageBadge({ language }: { language: AppLanguage }) {
     <span
       aria-hidden='true'
       dir='auto'
-      className='grid h-7 min-w-7 place-items-center rounded-full border border-rose-200/20 bg-gradient-to-br from-rose-300/20 to-violet-300/10 px-1 text-[11px] font-bold tracking-wide text-rose-100 shadow-inner shadow-white/10'
+      className='grid h-7 min-w-7 place-items-center rounded-full border border-cyan-300/25 bg-gradient-to-br from-cyan-300/20 to-blue-400/10 px-1 text-[11px] font-bold tracking-wide text-cyan-100 shadow-inner shadow-white/10'
     >
       {language === 'ar' ? 'ع' : 'EN'}
     </span>
@@ -50,7 +50,7 @@ export default function LanguageSwitcher({
         aria-label={accessibleLabel}
         title={accessibleLabel}
         onClick={changeLanguage}
-        className={`ui-glass-row flex w-full items-center justify-between gap-2 px-2.5 py-2 text-left text-[13px] text-zinc-200 hover:text-white ${className}`}
+        className={`ui-glass-row flex w-full items-center justify-between gap-2 px-2.5 py-2 text-start text-[13px] text-zinc-200 hover:text-white ${className}`}
       >
         <span className='inline-flex min-w-0 items-center gap-2'>
           <Languages className='h-3.5 w-3.5 shrink-0 text-zinc-400' />

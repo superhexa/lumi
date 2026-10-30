@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
+import { Cairo, Inter } from 'next/font/google';
 
 import './globals.css';
 import 'sweetalert2/dist/sweetalert2.min.css';
@@ -14,7 +14,12 @@ import { PwaManager } from '../components/PwaManager';
 import { SiteProvider } from '../components/SiteProvider';
 import { ThemeProvider } from '../components/ThemeProvider';
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({ subsets: ['latin'], variable: '--font-latin' });
+const cairo = Cairo({
+  subsets: ['arabic', 'latin'],
+  variable: '--font-arabic',
+  weight: ['400', '500', '600', '700', '800', '900'],
+});
 
 // Generate metadata from the active site configuration.
 export async function generateMetadata(): Promise<Metadata> {
@@ -97,7 +102,7 @@ export default async function RootLayout({
         />
       </head>
       <body
-        className={`${inter.className} min-h-screen bg-black text-slate-100`}
+        className={`${inter.className} ${cairo.variable} ${inter.variable} min-h-screen bg-black text-slate-100`}
       >
         <ThemeProvider
           attribute='class'
