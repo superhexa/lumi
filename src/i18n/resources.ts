@@ -307,6 +307,8 @@ export const resources = {
         playerSettings: 'Lumi player settings',
         sourceMayShowAds: 'May open ads or redirect',
         currentSource: 'Currently selected',
+        featuredSource: 'Huge source',
+        archiveSourceDescription: 'Verified public catalog · multiple resolutions',
         noEpisodes: 'No episodes are available for this season.',
         retry: 'Retry',
         readyStartingPlayback: 'Ready. Starting playback...',

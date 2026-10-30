@@ -317,6 +317,8 @@ export const arabicTranslation = {
     playerSettings: 'إعدادات مشغل Lumi',
     sourceMayShowAds: 'قد يفتح إعلانات أو يعيد توجيهك',
     currentSource: 'المصدر المحدد حالياً',
+    featuredSource: 'مصدر ضخم',
+    archiveSourceDescription: 'فهرس عام موثّق · عدة دقات وجودات',
     noEpisodes: 'لا تتوفر حلقات لهذا الموسم.',
     retry: 'إعادة المحاولة',
     readyStartingPlayback: 'أصبح كل شيء جاهزاً. جارٍ بدء التشغيل...',

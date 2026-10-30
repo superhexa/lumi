@@ -2635,9 +2635,23 @@ function PlayPageClient() {
                                       {String(index + 1).padStart(2, '0')}
                                     </span>
                                     <span className='min-w-0 flex-1 text-start'>
-                                      <span className='player-source-name'>
-                                        {provider.label}
+                                      <span className='player-source-name-row'>
+                                        <span className='player-source-name'>
+                                          {provider.label}
+                                        </span>
+                                        {provider.featured ? (
+                                          <span className='player-source-featured'>
+                                            {t('play.featuredSource')}
+                                          </span>
+                                        ) : null}
                                       </span>
+                                      {provider.description ? (
+                                        <span className='player-source-description'>
+                                          {provider.id === 'archive'
+                                            ? t('play.archiveSourceDescription')
+                                            : provider.description}
+                                        </span>
+                                      ) : null}
                                       {provider.allowsAdvertisingNavigation ? (
                                         <span className='player-source-warning'>
                                           {t('play.sourceMayShowAds')}

@@ -5,6 +5,8 @@ export type TmdbPlayerProviderId =
 export interface TmdbPlayerProvider {
   id: TmdbPlayerProviderId;
   label: string;
+  description?: string;
+  featured?: boolean;
   colorParam?: string;
   subtitleLangParam?: string;
   defaultParams?: Record<string, string>;
@@ -33,8 +35,13 @@ export interface TmdbPlayerPageUrlInput extends TmdbProviderUrlInput {
 export const DEFAULT_TMDB_PLAYER_PROVIDER: TmdbPlayerProviderId = 'cinesrc';
 
 export const TMDB_PLAYER_PROVIDERS: TmdbPlayerProvider[] = [
-  { id: 'bingr', label: 'Bingr' },
-  { id: 'archive', label: 'Internet Archive' },
+  { id: 'bingr', label: 'Bingr', description: 'Fast stream discovery' },
+  {
+    id: 'archive',
+    label: 'Internet Archive',
+    description: 'Verified public catalog · multiple qualities',
+    featured: true,
+  },
   {
     id: 'cinesrc',
     label: 'CineSrc',

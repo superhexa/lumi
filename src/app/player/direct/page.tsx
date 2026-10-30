@@ -19,6 +19,11 @@ interface DismissibleMenuElement extends HTMLElement {
   close?: (trigger?: Event) => void;
 }
 
+interface ArchiveAlternative {
+  streamUrl: string;
+  contentType?: string;
+}
+
 function DirectPlayer() {
   const params = useSearchParams();
   const { t } = useTranslation();
@@ -32,6 +37,7 @@ function DirectPlayer() {
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
+  const alternatives = useRef<ArchiveAlternative[]>([]);
   const resumeValue = Number(params.get('t'));
   const resume = Number.isFinite(resumeValue) ? Math.max(0, resumeValue) : 0;
   const provider = params.get('provider') === 'archive' ? 'archive' : 'bingr';
@@ -56,6 +62,7 @@ function DirectPlayer() {
           title?: string;
           code?: string;
           contentType?: string;
+          alternatives?: ArchiveAlternative[];
         };
         if (!response.ok) {
           // eslint-disable-next-line no-console
@@ -66,6 +73,7 @@ function DirectPlayer() {
           throw new Error('Unavailable source');
         }
         if (!controller.signal.aborted) {
+          alternatives.current = provider === 'archive' && Array.isArray(data.alternatives) ? data.alternatives : [];
           setTitle(data.title || '');
           setStreamType(
             (data.contentType === 'video/webm' || data.contentType === 'video/ogg'
@@ -129,6 +137,22 @@ function DirectPlayer() {
     return () => observer.disconnect();
   }, [streamUrl]);
 
+  const tryNextArchiveStream = () => {
+    const next = alternatives.current.shift();
+    if (!next) {
+      setFailed(true);
+      return;
+    }
+    setStreamType(
+      next.contentType === 'video/webm' || next.contentType === 'video/ogg'
+        ? next.contentType
+        : next.contentType === 'video/mp4'
+          ? 'video/mp4'
+          : 'application/x-mpegurl',
+    );
+    setStreamUrl(next.streamUrl);
+  };
+
   const closePlayerMenus = () => {
     shell.current
       ?.querySelectorAll<DismissibleMenuElement>('media-menu[data-open]')
@@ -188,7 +212,7 @@ function DirectPlayer() {
           onPause={() => send('pause')}
           onSeeked={() => send('seeked')}
           onEnded={() => send('ended')}
-          onError={() => setFailed(true)}
+          onError={() => provider === 'archive' ? tryNextArchiveStream() : setFailed(true)}
         >
           <MediaProvider />
           <DefaultVideoLayout
