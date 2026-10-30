@@ -364,6 +364,8 @@ export const resources = {
         backupInvalid: 'That backup file is invalid or too large.',
         backupFailed: 'Library backup could not be processed.',
         watchHistory: 'Watch History',
+        formatMovie: 'Movies',
+        formatTv: 'Series',
         weeklyGoal: 'Weekly watching goal',
         completion: 'completed',
         topSource: 'Most used source',

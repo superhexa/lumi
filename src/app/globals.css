@@ -668,24 +668,12 @@ body {
 
 body {
   color: rgb(var(--foreground-rgb));
-  background-image: radial-gradient(
-    ellipse at 18% 0%,
-    rgb(136 19 55 / 0.16),
-    transparent 42%
-  );
-  background-attachment: fixed;
+  background-color: #000000;
+  background-image: none;
 }
 
 html:not(.dark) body {
-  background: linear-gradient(
-    180deg,
-    #e6f3fb 0%,
-    #eaf3f7 18%,
-    #f7f7f3 38%,
-    #e9ecef 60%,
-    #dbe3ea 80%,
-    #d3dde6 100%
-  );
+  background: #000000;
   background-attachment: fixed;
 }
 

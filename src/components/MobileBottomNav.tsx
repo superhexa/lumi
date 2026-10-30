@@ -1,14 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
 'use client';
 
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
   ArrowLeft,
+  ChevronLeft,
   Film,
   HeartPulse,
   Home,
   Origami,
+  Search,
   Tv,
   UserRound,
   X,
@@ -19,13 +20,9 @@ import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useWarpRouteTransition } from '@/hooks/useWarpRouteTransition';
-
 import WarpLoadingOverlay from '@/components/WarpLoadingOverlay';
 
 interface MobileBottomNavProps {
-  /**
-   * Active path override. When omitted, it falls back to usePathname().
-   */
   activePath?: string;
   isOpen: boolean;
   onClose: () => void;
@@ -34,28 +31,25 @@ interface MobileBottomNavProps {
   useHeroHeaderStyle?: boolean;
 }
 
-const MobileBottomNav = ({
+export default function MobileBottomNav({
   activePath,
   isOpen,
   onClose,
   onMenuToggle,
   showBackButton = false,
-  useHeroHeaderStyle = false,
-}: MobileBottomNavProps) => {
+}: MobileBottomNavProps) {
   const { t } = useTranslation();
   const pathname = usePathname();
   const shouldReduceMotion = useReducedMotion();
   const { showWarpLoading, navigateLinkWithWarpLoading } =
     useWarpRouteTransition();
-
   const currentActive = activePath ?? pathname;
-  const useHomeHeaderPosition = activePath === '/' || useHeroHeaderStyle;
 
   const navItems = [
     { icon: Home, label: t('common.home'), href: '/' },
     { icon: UserRound, label: t('common.myLibrary'), href: '/my' },
+    { icon: Search, label: t('common.search'), href: '/search' },
   ];
-
   const categoryItems = [
     { icon: Film, label: t('common.movies'), href: '/discover?type=movie' },
     { icon: Tv, label: t('common.series'), href: '/discover?type=tv' },
@@ -63,150 +57,144 @@ const MobileBottomNav = ({
     { icon: HeartPulse, label: t('common.shows'), href: '/discover?type=show' },
   ];
 
+  useEffect(() => onClose(), [onClose, pathname]);
   useEffect(() => {
-    onClose();
-  }, [onClose, pathname]);
+    document.body.style.overflow = isOpen ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
 
   const isActive = (href: string) => {
-    const typeMatch = href.match(/type=([^&]+)/)?.[1];
-
-    const decodedActive = decodeURIComponent(currentActive);
-    const decodedItemHref = decodeURIComponent(href);
-
-    return (
-      decodedActive === decodedItemHref ||
-      (decodedActive.startsWith('/discover') &&
-        decodedActive.includes(`type=${typeMatch}`))
-    );
+    if (href.includes('?type='))
+      return (
+        currentActive.startsWith('/discover') &&
+        currentActive.includes(href.split('?type=')[1])
+      );
+    return href === currentActive;
   };
 
-  const renderNavItem = (item: (typeof navItems)[number]) => {
-    const active = isActive(item.href);
-    const itemClassName = `group flex items-center gap-2.5 text-[17px] font-semibold leading-tight tracking-normal transition-colors ${
-      active ? 'text-white' : 'text-zinc-100 active:text-white/70'
-    }`;
+  const renderItem = (item: {
+    icon: typeof Home;
+    label: string;
+    href: string;
+  }) => {
     const Icon = item.icon;
-
+    const active = isActive(item.href);
     return (
-      <li key={item.href}>
-        <Link
-          href={item.href}
-          onClick={(event) =>
-            navigateLinkWithWarpLoading(event, item.href, {
-              onBeforeNavigate: onClose,
-            })
-          }
-          className={itemClassName}
+      <Link
+        key={item.href}
+        href={item.href}
+        onClick={(event) =>
+          navigateLinkWithWarpLoading(event, item.href, {
+            onBeforeNavigate: onClose,
+          })
+        }
+        className={`group flex min-h-[58px] items-center gap-3 rounded-2xl border px-3.5 transition duration-200 active:scale-[.98] ${active ? 'border-cyan-300/25 bg-cyan-400/[0.12] text-white' : 'border-white/[0.06] bg-white/[0.035] text-zinc-200 hover:border-cyan-300/15 hover:bg-white/[0.07]'}`}
+      >
+        <span
+          className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${active ? 'bg-cyan-400 text-slate-950' : 'bg-white/[0.06] text-cyan-300'}`}
         >
-          <Icon
-            className={`h-5 w-5 ${
-              active ? 'text-white' : 'text-zinc-500 group-active:text-white/70'
-            }`}
-          />
-          <span>{item.label}</span>
-        </Link>
-      </li>
+          <Icon className='h-[19px] w-[19px]' />
+        </span>
+        <span className='min-w-0 flex-1 truncate text-[15px] font-bold'>
+          {item.label}
+        </span>
+        <ChevronLeft
+          className={`h-4 w-4 rtl:rotate-180 ${active ? 'text-cyan-300' : 'text-zinc-600'}`}
+        />
+      </Link>
     );
   };
 
   return (
     <>
       <WarpLoadingOverlay visible={showWarpLoading} />
-
       <AnimatePresence>
         {isOpen ? (
-          <>
-            <motion.nav
-              key='mobile-nav-panel'
-              className='md:hidden fixed inset-0 z-[700] overflow-y-auto bg-[var(--ui-glass-panel-strong-bg)] pb-10 text-white shadow-[var(--ui-shadow-panel)] backdrop-blur-2xl'
+          <motion.div
+            className='fixed inset-0 z-[700] md:hidden'
+            initial={false}
+            animate={{}}
+            exit={{}}
+          >
+            <motion.button
+              type='button'
+              aria-label={t('common.closeMenu')}
+              onClick={onClose}
+              className='absolute inset-0 h-full w-full bg-black/75 backdrop-blur-md'
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            />
+            <motion.aside
+              dir={undefined}
+              role='dialog'
+              aria-modal='true'
+              aria-label={t('common.menu')}
+              className='absolute inset-y-0 start-0 flex w-[min(88vw,340px)] flex-col border-e border-white/[0.08] bg-[#05070a] text-white shadow-[28px_0_80px_rgba(0,0,0,.7)]'
               style={{
                 paddingTop: 'env(safe-area-inset-top)',
-                paddingBottom: 'calc(env(safe-area-inset-bottom) + 2.5rem)',
-                originX: 0.05,
-                originY: 0.04,
+                paddingBottom: 'env(safe-area-inset-bottom)',
               }}
               initial={
                 shouldReduceMotion
                   ? { opacity: 0 }
-                  : { opacity: 0, scale: 0.92, y: -10, filter: 'blur(10px)' }
+                  : { x: '-100%', opacity: 0.8 }
               }
-              animate={
-                shouldReduceMotion
-                  ? { opacity: 1 }
-                  : { opacity: 1, scale: 1, x: 0, y: 0, filter: 'blur(0px)' }
-              }
+              animate={{ x: 0, opacity: 1 }}
               exit={
                 shouldReduceMotion
                   ? { opacity: 0 }
-                  : { opacity: 0, scale: 0.96, y: -8, filter: 'blur(8px)' }
+                  : { x: '-100%', opacity: 0.6 }
               }
-              transition={
-                shouldReduceMotion
-                  ? { duration: 0 }
-                  : {
-                      type: 'spring',
-                      stiffness: 520,
-                      damping: 38,
-                      mass: 0.72,
-                    }
-              }
+              transition={{ type: 'spring', stiffness: 480, damping: 38 }}
             >
-              <div
-                className={`relative mx-auto h-12 max-w-[720px] ${
-                  useHomeHeaderPosition
-                    ? 'mt-3 w-[calc(100%-2.5rem)]'
-                    : 'mt-2 w-[calc(100%-1.5rem)]'
-                }`}
-              >
-                <div className='flex h-full items-center gap-2.5'>
+              <div className='flex h-[72px] shrink-0 items-center justify-between border-b border-white/[0.07] px-4'>
+                <div className='flex items-center gap-2'>
+                  <span className='grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-cyan-400 to-blue-500 text-slate-950 shadow-[0_8px_24px_rgba(34,211,238,.2)]'>
+                    <Film className='h-5 w-5' />
+                  </span>
+                  <span className='text-lg font-black tracking-tight'>
+                    Lumi
+                  </span>
+                </div>
+                <button
+                  type='button'
+                  onClick={onMenuToggle || onClose}
+                  aria-label={t('common.closeMenu')}
+                  className='grid h-11 w-11 place-items-center rounded-full border border-white/[0.08] bg-white/[0.05] text-zinc-300 active:bg-white/[0.1]'
+                >
+                  <X className='h-5 w-5' />
+                </button>
+              </div>
+
+              <nav className='scrollbar-hide flex-1 overflow-y-auto px-3 py-4'>
+                <div className='grid gap-2'>{navItems.map(renderItem)}</div>
+                <p className='mb-2 mt-5 px-2 text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-500'>
+                  {t('common.categories')}
+                </p>
+                <div className='grid grid-cols-2 gap-2'>
+                  {categoryItems.map(renderItem)}
+                </div>
+              </nav>
+
+              {showBackButton ? (
+                <div className='border-t border-white/[0.07] p-3'>
                   <button
                     type='button'
-                    aria-label={t('common.closeMenu')}
-                    onClick={onMenuToggle || onClose}
-                    className='flex h-11 w-11 items-center justify-center rounded-full text-zinc-100 transition-colors active:bg-[var(--ui-glass-row-hover)]'
+                    onClick={() => window.history.back()}
+                    className='flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-white/[0.08] bg-white/[0.04] text-sm font-bold text-white'
                   >
-                    <X className='h-6 w-6' />
+                    <ArrowLeft className='h-4 w-4 rtl:rotate-180' />
+                    {t('common.back')}
                   </button>
-                  <div className='text-[20px] font-semibold leading-none text-white'>
-                    {t('common.menu')}
-                  </div>
-                  {showBackButton ? (
-                    <>
-                      <div className='ui-glass-divider h-5 w-px' />
-                      <button
-                        type='button'
-                        aria-label={t('common.back')}
-                        onClick={() => window.history.back()}
-                        className='flex h-10 w-10 items-center justify-center rounded-full text-zinc-200 transition-colors active:bg-[var(--ui-glass-row-hover)]'
-                      >
-                        <ArrowLeft className='h-6 w-6' />
-                      </button>
-                    </>
-                  ) : null}
                 </div>
-              </div>
-
-              <div className='mx-auto max-w-[720px] px-7'>
-                <div className='mt-8 text-sm font-semibold text-zinc-500'>
-                  {t('common.menu')}
-                </div>
-                <ul className='mt-3.5 flex flex-col gap-3.5'>
-                  {navItems.map(renderNavItem)}
-                </ul>
-
-                <div className='mt-6 text-sm font-semibold text-zinc-500'>
-                  {t('common.categories')}
-                </div>
-                <ul className='mt-3.5 flex flex-col gap-3.5'>
-                  {categoryItems.map(renderNavItem)}
-                </ul>
-              </div>
-            </motion.nav>
-          </>
+              ) : null}
+            </motion.aside>
+          </motion.div>
         ) : null}
       </AnimatePresence>
     </>
   );
-};
-
-export default MobileBottomNav;
+}

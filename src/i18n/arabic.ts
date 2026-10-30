@@ -397,6 +397,8 @@ export const arabicTranslation = {
     backupInvalid: 'ملف النسخة الاحتياطية غير صالح أو حجمه كبير جداً.',
     backupFailed: 'تعذرت معالجة النسخة الاحتياطية للمكتبة.',
     watchHistory: 'سجل المشاهدة',
+    formatMovie: 'أفلام',
+    formatTv: 'مسلسلات',
     weeklyGoal: 'هدف المشاهدة الأسبوعي',
     completion: 'مكتمل',
     topSource: 'المصدر الأكثر استخداماً',
