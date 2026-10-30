@@ -61,16 +61,15 @@ const CapsuleSwitch: React.FC<CapsuleSwitchProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`relative inline-flex rounded-full border border-cyan-300/10 bg-[#0d1726]/95 p-1 shadow-[0_12px_32px_rgba(0,0,0,0.24)] backdrop-blur-xl ${
+      className={`relative inline-flex h-11 w-full items-center rounded-xl border border-cyan-300/10 bg-[#09111e]/95 p-1 shadow-[0_8px_24px_rgba(0,0,0,0.18)] backdrop-blur-xl md:w-auto md:min-w-[280px] ${
         className || ''
       }`}
     >
-      {/* 滑动的白色背景指示器 */}
       {indicatorStyle.width > 0 && (
         <div
-          className='absolute bottom-1 top-1 rounded-full border border-cyan-300/20 bg-gradient-to-r from-cyan-400/20 to-blue-400/20 shadow-[0_4px_18px_rgba(34,211,238,0.12)] transition-all duration-300 ease-out'
+          className='absolute bottom-1 top-1 rounded-lg border border-cyan-300/20 bg-gradient-to-r from-cyan-400/20 to-blue-400/20 shadow-[0_4px_18px_rgba(34,211,238,0.12)] transition-all duration-300 ease-out'
           style={{
-            left: `${indicatorStyle.left}px`,
+            insetInlineStart: `${indicatorStyle.left}px`,
             width: `${indicatorStyle.width}px`,
           }}
         />
@@ -85,7 +84,7 @@ const CapsuleSwitch: React.FC<CapsuleSwitchProps> = ({
               buttonRefs.current[index] = el;
             }}
             onClick={() => onChange(opt.value)}
-            className={`relative z-10 inline-flex h-10 items-center justify-center whitespace-nowrap rounded-full px-4 text-sm font-semibold transition-all duration-200 cursor-pointer ${
+            className={`relative z-10 inline-flex h-9 flex-1 items-center justify-center whitespace-nowrap rounded-lg px-3 text-sm font-semibold transition-all duration-200 cursor-pointer md:flex-none md:px-4 ${
               isActive ? 'text-zinc-100' : 'text-zinc-300 hover:text-zinc-100'
             }`}
           >

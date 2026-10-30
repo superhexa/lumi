@@ -128,7 +128,7 @@
   inset-inline-end: max(1.25rem, env(safe-area-inset-right));
   bottom: max(1.25rem, env(safe-area-inset-bottom));
   display: flex;
-  width: min(26rem, calc(100vw - 2rem));
+  width: min(21rem, calc(100vw - 1.5rem));
   flex-direction: column;
   gap: 0.75rem;
   color: white;
@@ -142,7 +142,7 @@
   background:
     radial-gradient(ellipse at 0% 0%, rgb(8 145 178 / 0.2), transparent 58%),
     linear-gradient(145deg, rgb(16 24 40 / 0.98), rgb(5 9 18 / 0.98));
-  padding: 1.25rem;
+  padding: 1rem;
   box-shadow:
     0 24px 70px rgb(0 0 0 / 0.48),
     inset 0 1px 0 rgb(255 255 255 / 0.07);
@@ -152,21 +152,21 @@
 
 .pwa-install-card {
   display: grid;
-  gap: 1rem;
-  padding-top: 1.375rem;
+  gap: 0.75rem;
+  padding-top: 1rem;
 }
 
 .pwa-install-heading {
   display: flex;
   align-items: flex-start;
-  gap: 0.875rem;
-  padding-inline-end: 2rem;
+  gap: 0.75rem;
+  padding-inline-end: 2.25rem;
 }
 
 .pwa-icon-wrap {
   display: grid;
-  width: 2.75rem;
-  height: 2.75rem;
+  width: 2.375rem;
+  height: 2.375rem;
   flex: 0 0 auto;
   place-items: center;
   border: 1px solid rgb(34 211 238 / 0.32);
@@ -193,7 +193,7 @@
 
 .pwa-primary-action {
   display: inline-flex;
-  min-height: 3rem;
+  min-height: 2.75rem;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
@@ -226,6 +226,21 @@
   outline-offset: 3px;
 }
 
+
+.pwa-status-card {
+  border: 1px solid rgb(226 232 240 / 0.12);
+  border-radius: 1rem;
+  background: linear-gradient(145deg, rgb(16 24 40 / 0.98), rgb(5 9 18 / 0.98));
+  padding: 0.75rem;
+  box-shadow: 0 16px 45px rgb(0 0 0 / 0.42), inset 0 1px 0 rgb(255 255 255 / 0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.pwa-status-action {
+  min-height: 2.5rem;
+}
+
 .pwa-ios-instructions {
   border: 1px solid rgb(255 255 255 / 0.1);
   border-radius: 1rem;
@@ -244,19 +259,19 @@
   .pwa-manager {
     inset-inline-end: max(0.75rem, env(safe-area-inset-right));
     inset-inline-start: max(0.75rem, env(safe-area-inset-left));
-    bottom: calc(env(safe-area-inset-bottom) + 5.25rem);
+    bottom: calc(env(safe-area-inset-bottom) + 4.75rem);
     width: auto;
     gap: 0.625rem;
   }
 
   .pwa-card {
-    border-radius: 1.375rem;
-    padding: 1rem;
+    border-radius: 1.125rem;
+    padding: 0.75rem;
   }
 
   .pwa-install-card {
-    gap: 0.875rem;
-    padding-top: 1.125rem;
+    gap: 0.625rem;
+    padding-top: 0.875rem;
   }
 
   .pwa-install-heading {
@@ -265,20 +280,29 @@
   }
 
   .pwa-icon-wrap {
-    width: 2.625rem;
-    height: 2.625rem;
+    width: 2.25rem;
+    height: 2.25rem;
     border-radius: 0.875rem;
   }
 
   .pwa-close {
     top: 0.625rem;
     inset-inline-end: 0.625rem;
-    width: 2.75rem;
-    height: 2.75rem;
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .pwa-status-card {
+    border-radius: 0.875rem;
+    padding: 0.625rem;
+  }
+
+  .pwa-status-action {
+    min-height: 2.25rem;
   }
 
   .pwa-primary-action {
-    min-height: 3.125rem;
+    min-height: 2.75rem;
     border-radius: 0.9375rem;
   }
 

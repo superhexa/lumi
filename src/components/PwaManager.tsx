@@ -155,7 +155,7 @@ export function PwaManager() {
   return (
     <aside aria-live='polite' className='pwa-manager'>
       {isOffline ? (
-        <div className='flex items-start gap-3 rounded-2xl border border-white/10 bg-[#080d18]/95 p-4 text-white shadow-2xl backdrop-blur-xl'>
+        <div className='pwa-status-card flex items-start gap-2.5 text-white'>
           <WifiOff className='mt-0.5 h-5 w-5 shrink-0 text-cyan-300' />
           <div className='min-w-0'>
             <p className='font-semibold'>{t('pwa.offlineTitle')}</p>
@@ -230,7 +230,7 @@ export function PwaManager() {
       ) : null}
 
       {updateAvailable ? (
-        <div className='flex items-center gap-3 rounded-2xl border border-white/10 bg-[#080d18]/95 p-4 text-white shadow-2xl backdrop-blur-xl'>
+        <div className='pwa-status-card flex items-center gap-2.5 text-white'>
           <RefreshCw className='h-5 w-5 shrink-0 text-cyan-300' />
           <p className='min-w-0 flex-1 text-sm font-medium'>
             {t('pwa.updateAvailable')}
@@ -238,7 +238,7 @@ export function PwaManager() {
           <button
             type='button'
             onClick={activateUpdate}
-            className='shrink-0 rounded-full bg-cyan-400 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300'
+            className='pwa-status-action shrink-0 rounded-lg bg-cyan-400 px-3 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300'
           >
             {t('pwa.update')}
           </button>
@@ -246,7 +246,7 @@ export function PwaManager() {
       ) : null}
 
       {reloadForUpdate ? (
-        <div className='flex items-center gap-3 rounded-2xl border border-white/10 bg-[#080d18]/95 p-4 text-white shadow-2xl backdrop-blur-xl'>
+        <div className='pwa-status-card flex items-center gap-2.5 text-white'>
           <RefreshCw className='h-5 w-5 shrink-0 text-cyan-300' />
           <p className='min-w-0 flex-1 text-sm font-medium'>
             {t('pwa.updateReady')}
@@ -254,7 +254,7 @@ export function PwaManager() {
           <button
             type='button'
             onClick={() => window.location.reload()}
-            className='shrink-0 rounded-full bg-cyan-400 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300'
+            className='pwa-status-action shrink-0 rounded-lg bg-cyan-400 px-3 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300'
           >
             {t('pwa.reload')}
           </button>

@@ -1458,129 +1458,113 @@ function MyPageClient() {
     <PageLayout activePath='/my'>
       <div className='overflow-visible px-0 pb-4 sm:px-10 sm:pb-8'>
         <div className='space-y-3 px-4 pt-6 sm:space-y-3 sm:px-0 sm:pt-8 md:pt-4'>
-          <section className='relative isolate overflow-hidden rounded-[1.75rem] border border-cyan-300/10 bg-gradient-to-br from-[#0d1726] via-[#09111e] to-[#080d18] p-5 shadow-[0_24px_70px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.04)] sm:rounded-[2rem] sm:p-8'>
-            <div
-              aria-hidden='true'
-              className='pointer-events-none absolute -right-20 -top-32 -z-10 h-72 w-72 rounded-full bg-cyan-500/20 blur-3xl'
-            />
-            <div
-              aria-hidden='true'
-              className='pointer-events-none absolute -bottom-36 left-1/3 -z-10 h-72 w-72 rounded-full bg-blue-500/15 blur-3xl'
-            />
-            <div className='mb-6 flex items-start gap-3 sm:mb-8 sm:items-center'>
-              <span className='grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-cyan-300/20 bg-gradient-to-br from-cyan-400/20 to-blue-500/20 text-cyan-200 shadow-inner shadow-white/5 sm:h-14 sm:w-14'>
-                <Film className='h-6 w-6 sm:h-7 sm:w-7' />
-              </span>
-              <div className='min-w-0'>
-                <p className='mb-1 text-[0.65rem] font-bold uppercase tracking-[0.22em] text-cyan-100/80'>
-                  {t('my.personalCinema')}
-                </p>
-                <h1 className='text-2xl font-bold tracking-tight text-white sm:text-3xl'>
-                  {t('my.libraryTitle')}
-                </h1>
-                <p className='mt-1 max-w-2xl text-sm leading-relaxed text-slate-400 sm:text-base'>
-                  {t('my.librarySubtitle')}
-                </p>
-              </div>
-            </div>
+          <section className='relative isolate overflow-hidden rounded-[1.5rem] border border-cyan-300/[0.12] bg-[#09111e]/95 p-4 shadow-[0_24px_70px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.05)] sm:rounded-[2rem] sm:p-6'>
+            <div aria-hidden='true' className='absolute inset-y-0 end-0 w-1/2 opacity-60 [background:radial-gradient(circle_at_70%_35%,rgba(34,211,238,.16),transparent_35%),radial-gradient(circle_at_90%_75%,rgba(59,130,246,.12),transparent_28%)]' />
+            <div aria-hidden='true' className='absolute -end-20 -top-24 h-64 w-64 rounded-full border border-cyan-300/10' />
+            <div aria-hidden='true' className='absolute -end-10 -top-14 h-44 w-44 rounded-full border border-cyan-300/[0.08]' />
 
-            <div className='grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4'>
-              {libraryStats.map((stat) => (
-                <div
-                  key={stat.label}
-                  className='group relative min-w-0 overflow-hidden rounded-2xl border border-cyan-300/[0.08] bg-gradient-to-br from-white/[0.055] to-white/[0.025] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] backdrop-blur-xl transition duration-200 hover:-translate-y-1 hover:border-cyan-300/20 hover:shadow-[0_14px_36px_rgba(0,0,0,0.22)] sm:p-4'
-                >
-                  <div
-                    className={`pointer-events-none absolute -right-5 -top-7 h-20 w-20 rounded-full bg-gradient-to-br ${stat.accent} opacity-50 blur-2xl`}
-                  />
-                  <div className='relative flex items-center justify-between gap-2'>
-                    <span className='truncate text-xs font-medium text-slate-400 sm:text-sm'>
-                      {stat.label}
-                    </span>
-                    <stat.icon
-                      aria-hidden='true'
-                      className={`h-4 w-4 shrink-0 ${stat.iconClass}`}
-                    />
-                  </div>
-                  <p className='relative mt-2 text-2xl font-bold tabular-nums tracking-tight text-white sm:mt-3 sm:text-3xl'>
-                    {stat.value.toLocaleString()}
+            <div className='relative grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.8fr)] lg:items-center lg:gap-8'>
+              <div className='flex min-w-0 items-start gap-3 sm:gap-4'>
+                <span className='grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-cyan-300/20 bg-gradient-to-br from-cyan-400/25 to-blue-500/15 text-cyan-100 shadow-[0_12px_30px_rgba(34,211,238,.08)] sm:h-16 sm:w-16 sm:rounded-[1.35rem]'>
+                  <Film className='h-6 w-6 sm:h-8 sm:w-8' />
+                </span>
+                <div className='min-w-0 pt-0.5'>
+                  <p className='mb-1.5 text-[0.62rem] font-bold uppercase tracking-[0.24em] text-cyan-200/75'>
+                    {t('my.personalCinema')}
+                  </p>
+                  <h1 className='text-[1.75rem] font-black leading-tight tracking-tight text-white sm:text-4xl'>
+                    {t('my.libraryTitle')}
+                  </h1>
+                  <p className='mt-2 max-w-xl text-sm leading-relaxed text-slate-400 sm:text-[15px]'>
+                    {t('my.librarySubtitle')}
                   </p>
                 </div>
-              ))}
+              </div>
+
+              <div className='grid grid-cols-2 gap-2 sm:gap-3'>
+                {libraryStats.map((stat) => (
+                  <div
+                    key={stat.label}
+                    className='group relative min-w-0 overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.045] p-3 backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:border-cyan-300/20 hover:bg-white/[0.07] sm:p-4'
+                  >
+                    <div className={`absolute -end-5 -top-8 h-20 w-20 rounded-full bg-gradient-to-br ${stat.accent} opacity-50 blur-2xl`} />
+                    <div className='relative flex items-center justify-between gap-2'>
+                      <span className='min-w-0 truncate text-[11px] font-semibold text-slate-400 sm:text-xs'>
+                        {stat.label}
+                      </span>
+                      <stat.icon aria-hidden='true' className={`h-4 w-4 shrink-0 ${stat.iconClass}`} />
+                    </div>
+                    <p className='relative mt-2 text-xl font-black tabular-nums tracking-tight text-white sm:text-2xl'>
+                      {stat.value.toLocaleString()}
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
           </section>
 
-          <div className='flex justify-center'>
-            <CapsuleSwitch
-              options={[
-                { label: t('my.watchHistory'), value: 'play' },
-                { label: t('my.favorites'), value: 'favorite' },
-              ]}
-              active={activeTab}
-              onChange={(value) => setActiveTab(value as ActiveTab)}
-            />
-          </div>
-          <div className='relative mx-auto flex w-full max-w-3xl items-center'>
-            <Search
-              aria-hidden='true'
-              className='pointer-events-none absolute start-4 h-4 w-4 text-slate-400'
-            />
-            <input
-              type='search'
-              value={librarySearchKeyword}
-              onChange={(event) => setLibrarySearchKeyword(event.target.value)}
-              placeholder={t('my.searchLibrary')}
-              aria-label={t('my.searchLibrary')}
-              className='min-h-12 w-full rounded-2xl border border-white/10 bg-white/[0.045] py-3 ps-11 pe-12 text-sm text-white shadow-[0_12px_30px_rgba(0,0,0,0.16)] outline-none transition placeholder:text-slate-500 focus:border-cyan-300/50 focus:bg-white/[0.07] focus:ring-2 focus:ring-cyan-400/15'
-            />
-            {librarySearchKeyword ? (
-              <button
-                type='button'
-                aria-label={t('my.clearSearch')}
-                onClick={() => setLibrarySearchKeyword('')}
-                className='absolute end-2 grid h-9 w-9 place-items-center rounded-xl text-slate-400 transition hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300'
-              >
-                <X className='h-4 w-4' />
-              </button>
-            ) : null}
-          </div>
-          <div className='flex flex-col items-center gap-2 sm:flex-row sm:justify-end'>
-            <div className='flex w-full flex-wrap justify-center gap-2 sm:w-auto'>
-              <button
-                type='button'
-                disabled={backupBusy}
-                onClick={() => void handleExportLibrary()}
-                className='inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-white/20 hover:bg-white/10 disabled:cursor-wait disabled:opacity-50'
-              >
-                <Download className='h-4 w-4' />
-                {t('my.exportBackup')}
-              </button>
-              <button
-                type='button'
-                disabled={backupBusy || loadingPlayRecords || loadingFavorites}
-                onClick={() => backupFileInputRef.current?.click()}
-                className='inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-white/20 hover:bg-white/10 disabled:cursor-wait disabled:opacity-50'
-              >
-                <Upload className='h-4 w-4' />
-                {t('my.importBackup')}
-              </button>
-              <input
-                ref={backupFileInputRef}
-                type='file'
-                accept='application/json,.json'
-                className='hidden'
-                onChange={(event) => void handleImportLibrary(event)}
+          <section className='rounded-[1.35rem] border border-white/[0.07] bg-[#0b1322]/90 p-2 shadow-[0_16px_45px_rgba(0,0,0,0.18)] backdrop-blur-xl sm:p-3'>
+            <div className='grid gap-2 md:grid-cols-[auto_minmax(220px,1fr)_auto] md:items-center'>
+              <CapsuleSwitch
+                className='w-full justify-between md:w-auto'
+                options={[
+                  { label: t('my.watchHistory'), value: 'play' },
+                  { label: t('my.favorites'), value: 'favorite' },
+                ]}
+                active={activeTab}
+                onChange={(value) => setActiveTab(value as ActiveTab)}
               />
+
+              <div className='relative flex min-w-0 items-center md:order-none'>
+                <Search aria-hidden='true' className='pointer-events-none absolute start-3.5 h-4 w-4 text-cyan-300/65' />
+                <input
+                  type='search'
+                  value={librarySearchKeyword}
+                  onChange={(event) => setLibrarySearchKeyword(event.target.value)}
+                  placeholder={t('my.searchLibrary')}
+                  aria-label={t('my.searchLibrary')}
+                  className='h-11 w-full rounded-xl border border-white/[0.07] bg-white/[0.045] py-2 ps-10 pe-11 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/35 focus:bg-white/[0.07] focus:ring-2 focus:ring-cyan-400/10'
+                />
+                {librarySearchKeyword ? (
+                  <button
+                    type='button'
+                    aria-label={t('my.clearSearch')}
+                    onClick={() => setLibrarySearchKeyword('')}
+                    className='absolute end-1.5 grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-300'
+                  >
+                    <X className='h-4 w-4' />
+                  </button>
+                ) : null}
+              </div>
+
+              <div className='flex items-center gap-1.5 md:justify-end'>
+                <button
+                  type='button'
+                  disabled={backupBusy}
+                  onClick={() => void handleExportLibrary()}
+                  aria-label={t('my.exportBackup')}
+                  title={t('my.exportBackup')}
+                  className='inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.04] px-3 text-sm font-semibold text-slate-300 transition hover:border-cyan-300/20 hover:bg-cyan-400/[0.08] hover:text-white disabled:cursor-wait disabled:opacity-50 md:flex-none'
+                >
+                  <Download className='h-4 w-4' />
+                  <span className='hidden sm:inline md:hidden lg:inline'>{t('my.exportBackup')}</span>
+                </button>
+                <button
+                  type='button'
+                  disabled={backupBusy || loadingPlayRecords || loadingFavorites}
+                  onClick={() => backupFileInputRef.current?.click()}
+                  aria-label={t('my.importBackup')}
+                  title={t('my.importBackup')}
+                  className='inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.04] px-3 text-sm font-semibold text-slate-300 transition hover:border-cyan-300/20 hover:bg-cyan-400/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-50 md:flex-none'
+                >
+                  <Upload className='h-4 w-4' />
+                  <span className='hidden sm:inline md:hidden lg:inline'>{t('my.importBackup')}</span>
+                </button>
+                <input ref={backupFileInputRef} type='file' accept='application/json,.json' className='hidden' onChange={(event) => void handleImportLibrary(event)} />
+              </div>
             </div>
-            {backupFeedback ? (
-              <p
-                aria-live='polite'
-                className='text-center text-xs text-slate-400 sm:text-right'
-              >
-                {backupFeedback}
-              </p>
-            ) : null}
-          </div>
+            {backupFeedback ? <p aria-live='polite' className='px-2 pb-1 pt-2 text-center text-xs text-cyan-200/70 md:text-end'>{backupFeedback}</p> : null}
+          </section>
 
           {activeTab === 'play' ? (
             <section className='space-y-3'>
@@ -1902,7 +1886,7 @@ function MyPageClient() {
                               onClick={() => togglePlaySelection(record.key)}
                             >
                               <span
-                                className={`absolute left-2 top-2 inline-flex h-5 w-5 items-center justify-center rounded-full border text-xs font-bold ${
+                                className={`absolute start-2 top-2 inline-flex h-5 w-5 items-center justify-center rounded-full border text-xs font-bold ${
                                   isSelected
                                     ? 'border-red-500 bg-red-500 text-white'
                                     : 'border-white/80 bg-black/40 text-transparent'
@@ -2145,7 +2129,7 @@ function MyPageClient() {
                               onClick={() => toggleFavoriteSelection(item.key)}
                             >
                               <span
-                                className={`absolute left-2 top-2 inline-flex h-5 w-5 items-center justify-center rounded-full border text-xs font-bold ${
+                                className={`absolute start-2 top-2 inline-flex h-5 w-5 items-center justify-center rounded-full border text-xs font-bold ${
                                   selectedFavoriteKeys.has(item.key)
                                     ? 'border-red-500 bg-red-500 text-white'
                                     : 'border-white/80 bg-black/40 text-transparent'
