@@ -141,15 +141,15 @@ export async function GET(request: Request) {
     }
     candidates.sort((a, b) => {
       const rank = (url: URL) => {
-        if (/\.rousav\.tech$/.test(url.hostname)) return 5;
-        if (/\.hscow\.com$/.test(url.hostname)) return 4;
-        if (/\.streamrip\.fun$/.test(url.hostname)) return 3;
-        if (/\.workers\.dev$/.test(url.hostname)) return 2;
-        return 1;
+        if (/\.hscow\.com$/.test(url.hostname)) return 5;
+        if (/\.streamrip\.fun$/.test(url.hostname)) return 4;
+        if (/\.workers\.dev$/.test(url.hostname)) return 3;
+        if (/\.rousav\.tech$/.test(url.hostname)) return 1;
+        return 2;
       };
       return rank(b) - rank(a);
     });
-    for (const url of candidates.slice(0, 8)) {
+    for (const url of candidates.slice(0, 12)) {
       try {
         const candidateResponse = await fetch(url, {
           signal: AbortSignal.timeout(12_000),
@@ -159,33 +159,55 @@ export async function GET(request: Request) {
         if (!candidateResponse.ok) continue;
         const manifest = await candidateResponse.text();
         if (!manifest.includes('#EXTM3U')) continue;
+
         if (!manifest.includes('#EXT-X-STREAM-INF')) {
+          const mediaLines = manifest.split(/\r?\n/)
+            .map((line) => line.trim())
+            .filter((line) => line && !line.startsWith('#'));
+          const onlyImageSegments = mediaLines.length > 0 && mediaLines.every((line) => /\.(jpg|jpeg|png)(\?|$)/i.test(line));
+          if (onlyImageSegments) continue;
+          const hasPlayableSegment = mediaLines.some((line) => /\.(ts|m4s|mp4|aac)(\?|$)/i.test(line));
+          const hasEncryption = manifest.includes('#EXT-X-KEY');
+          if (hasPlayableSegment || hasEncryption || mediaLines.length === 0) {
+            return NextResponse.json(
+              { streamUrl: bingrMediaProxyUrl(url.href), title: details.title },
+              { headers: { 'Cache-Control': 'no-store' } },
+            );
+          }
+          continue;
+        }
+
+        const lines = manifest.split(/\r?\n/);
+        let variantUrl: URL | null = null;
+        for (let index = 0; index < lines.length; index++) {
+          if (!lines[index].startsWith('#EXT-X-STREAM-INF:')) continue;
+          const next = lines[index + 1]?.trim();
+          if (!next || next.startsWith('#') || /(?:tile|thumb|subtitle)/i.test(next)) continue;
+          const resolution = lines[index].match(/RESOLUTION=(\d+)x(\d+)/i);
+          const pixels = resolution ? Number(resolution[1]) * Number(resolution[2]) : 0;
+          const candidateVariant = new URL(next, url);
+          if (!variantUrl || pixels >= 1280 * 720) variantUrl = candidateVariant;
+          if (variantUrl && pixels >= 1280 * 720) break;
+        }
+        if (!variantUrl) continue;
+
+        const variantResponse = await fetch(variantUrl, {
+          signal: AbortSignal.timeout(12_000),
+          redirect: 'follow',
+          headers: HEADERS,
+        });
+        if (!variantResponse.ok) continue;
+        const variantManifest = await variantResponse.text();
+        const variantMediaLines = variantManifest.split(/\r?\n/)
+          .map((line) => line.trim())
+          .filter((line) => line && !line.startsWith('#'));
+        const variantHasVideo = variantMediaLines.some((line) => /\.(ts|m4s|mp4|aac)(\?|$)/i.test(line));
+        const variantHasImagesOnly = variantMediaLines.length > 0 && variantMediaLines.every((line) => /\.(jpg|jpeg|png)(\?|$)/i.test(line));
+        if (!variantHasImagesOnly && (variantHasVideo || variantManifest.includes('#EXT-X-KEY'))) {
           return NextResponse.json(
             { streamUrl: bingrMediaProxyUrl(url.href), title: details.title },
             { headers: { 'Cache-Control': 'no-store' } },
           );
-        }
-        const variantLine = manifest
-          .split(/\r?\n/)
-          .find((line, index, lines) =>
-            !line.startsWith('#') && line.trim() && index > 0 && lines[index - 1].includes('#EXT-X-STREAM-INF'),
-          );
-        if (variantLine) {
-          const variantUrl = new URL(variantLine.trim(), url);
-          const variantResponse = await fetch(variantUrl, {
-            signal: AbortSignal.timeout(12_000),
-            redirect: 'follow',
-            headers: HEADERS,
-          });
-          if (variantResponse.ok) {
-            const variantManifest = await variantResponse.text();
-            if (variantManifest.includes('#EXTM3U')) {
-              return NextResponse.json(
-                { streamUrl: bingrMediaProxyUrl(url.href), title: details.title },
-                { headers: { 'Cache-Control': 'no-store' } },
-              );
-            }
-          }
         }
       } catch {
         // Probe the next candidate when a CDN source is expired or unavailable.

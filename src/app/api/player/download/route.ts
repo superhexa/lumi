@@ -187,6 +187,40 @@ async function resolveStream(request: Request, origin: string) {
   const episode = normalizePositiveInteger(params.get('episode'), 1);
   const title = params.get('title') || '';
   const year = params.get('year') || '';
+  if (provider === 'cinesrc') {
+    try {
+      const cachePath = mediaType === 'tv'
+        ? join(tmpdir(), `lumi-cinesrc-${tmdbId}-tv-${season}-${episode}.json`)
+        : join(tmpdir(), `lumi-cinesrc-${tmdbId}-movie.json`);
+      const fallbackCachePath = join(tmpdir(), `lumi-cinesrc-${tmdbId}.json`);
+      let cached: { streamUrl?: string; createdAt?: number; type?: string; season?: number; episode?: number };
+      try {
+        cached = JSON.parse(await fs.readFile(cachePath, 'utf8'));
+      } catch {
+        cached = JSON.parse(await fs.readFile(fallbackCachePath, 'utf8'));
+      }
+      if (cached.streamUrl && (!cached.createdAt || Date.now() - cached.createdAt < 24 * 60 * 60 * 1000)) {
+        const streamUrl = new URL(cached.streamUrl);
+        const isCapturedCinesrc = streamUrl.protocol === 'https:' && (
+          streamUrl.hostname === 'cinesrc.st' ||
+          streamUrl.hostname.endsWith('.bright67.online') ||
+          streamUrl.hostname.includes('cinesrc') ||
+          /\.m3u8(?:$|\?)/i.test(streamUrl.pathname + streamUrl.search)
+        );
+        if (isCapturedCinesrc) {
+          return {
+            streamUrl,
+            referer: 'https://cinesrc.st/',
+            origin: 'https://cinesrc.st',
+            contentType: 'application/x-mpegurl',
+            title: title || `movie-${tmdbId}`,
+          } as const;
+        }
+      }
+    } catch {
+      // Fall through to the server-side resolver when no browser-captured source exists.
+    }
+  }
   if (provider !== 'bingr' && provider !== 'archive') {
     const embedUrl = buildProviderEmbedUrl(provider, mediaType, tmdbId, season, episode);
     if (!embedUrl) return { error: 'Provider embed URL is unavailable', status: 502 } as const;
@@ -240,6 +274,72 @@ async function resolveStream(request: Request, origin: string) {
     contentType: payload.contentType || '',
     title: payload.title || title,
   } as const;
+}
+
+async function materializeBingrHls(streamUrl: URL, referer: string, origin: string, tempDirectory: string): Promise<string> {
+  const headers = {
+    Accept: '*/*',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36',
+    Referer: referer,
+    Origin: origin,
+  };
+  const fetchManifest = async (url: URL) => {
+    const response = await fetch(url, { headers, redirect: 'follow', signal: AbortSignal.timeout(30_000), cache: 'no-store' });
+    if (!response.ok) throw new Error('HLS manifest unavailable');
+    return response.text();
+  };
+
+  let manifestUrl = streamUrl;
+  let manifest = await fetchManifest(manifestUrl);
+  if (manifest.includes('#EXT-X-STREAM-INF')) {
+    const lines = manifest.split(/\r?\n/);
+    let selected: URL | null = null;
+    let selectedPixels = -1;
+    for (let index = 0; index < lines.length; index++) {
+      if (!lines[index].startsWith('#EXT-X-STREAM-INF:')) continue;
+      const next = lines[index + 1]?.trim();
+      if (!next || next.startsWith('#')) continue;
+      const candidate = new URL(next, manifestUrl);
+      const resolution = lines[index].match(/RESOLUTION=(\d+)x(\d+)/i);
+      const pixels = resolution ? Number(resolution[1]) * Number(resolution[2]) : 0;
+      if (pixels >= selectedPixels && !/(tile|thumb|subtitle)/i.test(candidate.pathname)) {
+        selected = candidate;
+        selectedPixels = pixels;
+      }
+    }
+    if (!selected) throw new Error('No playable HLS variant found');
+    manifestUrl = selected;
+    manifest = await fetchManifest(manifestUrl);
+  }
+
+  const segments = manifest.split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith('#'))
+    .filter((line) => !/\.(jpg|jpeg|png)(\?|$)/i.test(line));
+  if (segments.length === 0) throw new Error('No HLS media segments found');
+
+  const localManifest: string[] = [];
+  let segmentIndex = 0;
+  for (const line of manifest.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) {
+      if (trimmed && !trimmed.startsWith('#EXT-X-MAP')) localManifest.push(line);
+      continue;
+    }
+    if (/\.(jpg|jpeg|png)(\?|$)/i.test(trimmed)) continue;
+    const segmentUrl = new URL(trimmed, manifestUrl);
+    const response = await fetch(segmentUrl, { headers, redirect: 'follow', signal: AbortSignal.timeout(45_000), cache: 'no-store' });
+    if (!response.ok || !response.body) throw new Error('HLS segment unavailable');
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    if (bytes.length === 0) throw new Error('HLS segment is empty');
+    const segmentName = `segment-${String(segmentIndex++).padStart(6, '0')}.bin`;
+    await fs.writeFile(join(tempDirectory, segmentName), bytes);
+    localManifest.push(segmentName);
+  }
+
+  const playlistPath = join(tempDirectory, 'video.m3u8');
+  await fs.writeFile(playlistPath, localManifest.join('\n'), 'utf8');
+  return playlistPath;
 }
 
 export async function GET(request: Request) {
@@ -301,13 +401,22 @@ export async function GET(request: Request) {
   const tempDirectory = await fs.mkdtemp(join(tmpdir(), 'lumi-download-'));
   const outputPath = join(tempDirectory, 'video.mp4');
   let ffmpegError = '';
+  let ffmpegInput = resolved.streamUrl.toString();
+  if (resolved.streamUrl.hostname === 'cinesrc.st' || resolved.streamUrl.hostname.endsWith('.workers.dev') || resolved.streamUrl.hostname.endsWith('.bingr.one') || resolved.streamUrl.hostname.endsWith('.hscow.com') || resolved.streamUrl.hostname.endsWith('.rousav.tech')) {
+    try {
+      ffmpegInput = await materializeBingrHls(resolved.streamUrl, resolved.referer || origin, resolved.origin || origin, tempDirectory);
+    } catch (error) {
+      await fs.rm(tempDirectory, { recursive: true, force: true }).catch(() => undefined);
+      return NextResponse.json({ error: error instanceof Error ? error.message : 'HLS source could not be prepared' }, { status: 502 });
+    }
+  }
   const mergeResult = await new Promise<{ code: number | null }>((resolve) => {
     const ffmpeg = spawn(executable, [
       '-nostdin', '-hide_banner', '-loglevel', 'error', '-y',
       '-user_agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36',
       '-referer', resolved.referer || origin,
       '-headers', 'Accept: */*\r\nOrigin: ' + (resolved.origin || resolved.streamUrl.origin) + '\r\n',
-      '-i', resolved.streamUrl.toString(),
+      '-i', ffmpegInput,
       '-map', '0:v:0', '-map', '0:a?',
       '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k',
       '-movflags', '+faststart+frag_keyframe+empty_moov',
