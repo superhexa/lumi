@@ -146,7 +146,9 @@ async function fetchTmdbMetadata(tmdbId: number, mediaType: 'movie' | 'tv', lang
   let detail: { title?: string; name?: string; original_title?: string; original_name?: string; release_date?: string; first_air_date?: string } = {};
   try {
     if (detailResponse.status === 'fulfilled' && detailResponse.value.ok) detail = await detailResponse.value.json();
-  } catch {}
+  } catch {
+    // Keep the title search available even if TMDB details fail.
+  }
 
   const titles = new Map<string, string>();
   const addTitle = (value: unknown) => {
@@ -161,14 +163,18 @@ async function fetchTmdbMetadata(tmdbId: number, mediaType: 'movie' | 'tv', lang
       const alternatives = await alternativesResponse.value.json() as { titles?: Array<{ title?: string; name?: string }>; results?: Array<{ title?: string; name?: string }> };
       (alternatives.titles || []).concat(alternatives.results || []).forEach((item) => addTitle(item.title || item.name));
     }
-  } catch {}
+  } catch {
+    // Alternative titles are optional metadata.
+  }
 
   try {
     if (translationsResponse.status === 'fulfilled' && translationsResponse.value.ok) {
       const translations = await translationsResponse.value.json() as { translations?: Array<{ data?: { title?: string; name?: string } }> };
       translations.translations?.forEach((item) => addTitle(item.data?.title || item.data?.name));
     }
-  } catch {}
+  } catch {
+    // Translations are optional metadata.
+  }
 
   return {
     title: normalizeText(detail.title || detail.name),

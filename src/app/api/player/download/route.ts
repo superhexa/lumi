@@ -1,8 +1,7 @@
-import { spawn } from 'node:child_process';
-import { Readable } from 'node:stream';
-
 import ffmpegPath from 'ffmpeg-static';
 import { NextResponse } from 'next/server';
+import { spawn } from 'node:child_process';
+import { Readable } from 'node:stream';
 
 import {
   normalizePositiveInteger,
@@ -15,12 +14,14 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 function safeFilename(value: string | null, tmdbId: number): string {
-  const base = (value || `movie-${tmdbId}`)
-    .normalize('NFKC')
-    .replace(/[\\/:*?"<>|\u0000-\u001f]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, 120);
+  const normalized = (value || `movie-${tmdbId}`).normalize('NFKC');
+  const cleaned = Array.from(normalized, (character) => {
+    const code = character.charCodeAt(0);
+    return /[\\/:*?"<>|]/.test(character) || code < 32
+      ? ' '
+      : character;
+  }).join('');
+  const base = cleaned.replace(/\s+/g, ' ').trim().slice(0, 120);
   return `${base || `movie-${tmdbId}`}.mp4`;
 }
 
@@ -54,7 +55,7 @@ function buildProviderEmbedUrl(provider: string, mediaType: 'movie' | 'tv', tmdb
 }
 
 function decodeExtractedUrl(value: string, base: URL): URL | null {
-  let text = value
+  const text = value
     .replace(/\\u0026/gi, '&')
     .replace(/\\u002F/gi, '/')
     .replace(/\\\//g, '/')
