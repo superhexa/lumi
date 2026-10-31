@@ -410,6 +410,8 @@ function PlayPageClient() {
     null,
   );
   const [sourceMenuOpen, setSourceMenuOpen] = useState(false);
+  const [downloadStatus, setDownloadStatus] = useState<'idle' | 'preparing' | 'ready' | 'error'>('idle');
+  const [downloadError, setDownloadError] = useState<string | null>(null);
   const sourceMenuRegionRef = useRef<HTMLDivElement | null>(null);
   const sourceMenuPanelRef = useRef<HTMLDivElement | null>(null);
   const sourceTriggerRef = useRef<HTMLButtonElement | null>(null);
@@ -583,9 +585,11 @@ function PlayPageClient() {
     }
   };
 
-  const downloadCurrentMovie = () => {
+  const downloadCurrentMovie = async () => {
     const tmdbId = tmdbPlayerIdRef.current;
-    if (!tmdbId) return;
+    if (!tmdbId || downloadStatus === 'preparing') return;
+    setDownloadStatus('preparing');
+    setDownloadError(null);
     const url = new URL('/api/player/download', window.location.origin);
     url.searchParams.set('tmdbId', String(tmdbId));
     url.searchParams.set('type', tmdbMediaTypeRef.current);
@@ -596,7 +600,31 @@ function PlayPageClient() {
     }
     url.searchParams.set('title', displayTitle || videoTitleRef.current || `Movie ${tmdbId}`);
     url.searchParams.set('year', videoYearRef.current || '');
-    window.location.assign(url.toString());
+    try {
+      const response = await fetch(url, { cache: 'no-store', credentials: 'same-origin' });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null) as { error?: string } | null;
+        throw new Error(payload?.error || 'This source could not be downloaded');
+      }
+      const blob = await response.blob();
+      if (!blob.size) throw new Error('The download was empty');
+      const disposition = response.headers.get('content-disposition') || '';
+      const utf8Name = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+      const plainName = disposition.match(/filename="([^"]+)"/i)?.[1];
+      const filename = utf8Name ? decodeURIComponent(utf8Name) : plainName || `${displayTitle || `Movie ${tmdbId}`}.mp4`;
+      const objectUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = objectUrl;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+      setDownloadStatus('ready');
+    } catch (error) {
+      setDownloadStatus('error');
+      setDownloadError(error instanceof Error ? error.message : 'Download failed');
+    }
   };
 
   const openPopupPlayer = () => {
@@ -2389,15 +2417,6 @@ function PlayPageClient() {
               </button>
               <button
                 type='button'
-                aria-label='Download movie'
-                title='Download movie'
-                onClick={downloadCurrentMovie}
-                className='ui-glass-control inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl'
-              >
-                <Download className='h-5 w-5' />
-              </button>
-              <button
-                type='button'
                 aria-label={t(
                   isPlayerFullscreen
                     ? 'play.exitFullscreen'
@@ -2417,6 +2436,34 @@ function PlayPageClient() {
                   <Maximize2 className='h-5 w-5' />
                 )}
               </button>
+            </div>
+            <div className='mb-3 flex items-center justify-end gap-2 px-1'>
+              <div className='mr-auto hidden min-w-0 sm:block'>
+                <p className='line-clamp-1 text-sm font-semibold text-white'>{displayTitle}</p>
+                <p className='text-xs text-white/55'>{playerProvider}</p>
+              </div>
+              <button
+                type='button'
+                disabled={downloadStatus === 'preparing'}
+                onClick={() => void downloadCurrentMovie()}
+                className='inline-flex h-11 items-center gap-2 rounded-xl border border-white/15 bg-white/[0.08] px-4 text-sm font-semibold text-white shadow-lg backdrop-blur-xl transition hover:border-white/30 hover:bg-white/[0.14] disabled:cursor-wait disabled:opacity-70'
+              >
+                <Download className={`h-4 w-4 ${downloadStatus === 'preparing' ? 'animate-bounce' : ''}`} />
+                <span>
+                  {downloadStatus === 'preparing'
+                    ? 'Preparing download...'
+                    : downloadStatus === 'ready'
+                      ? 'Downloaded'
+                      : downloadStatus === 'error'
+                        ? 'Try download again'
+                        : 'Download MP4'}
+                </span>
+              </button>
+              {downloadError ? (
+                <span className='max-w-[18rem] rounded-lg border border-red-400/20 bg-red-950/70 px-3 py-2 text-xs text-red-100'>
+                  {downloadError}
+                </span>
+              ) : null}
             </div>
             <div
               className={`ui-player-surface relative min-w-0 ${
@@ -2458,15 +2505,6 @@ function PlayPageClient() {
                     className='ui-glass-control absolute right-14 top-3 z-[510] inline-flex h-10 w-10 items-center justify-center rounded-xl'
                   >
                     <PictureInPicture2 className='h-5 w-5' />
-                  </button>
-                  <button
-                    type='button'
-                    aria-label='Download movie'
-                    title='Download movie'
-                    onClick={downloadCurrentMovie}
-                    className='ui-glass-control absolute right-[6.75rem] top-3 z-[510] inline-flex h-10 w-10 items-center justify-center rounded-xl'
-                  >
-                    <Download className='h-5 w-5' />
                   </button>
                   <button
                     type='button'

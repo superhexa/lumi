@@ -104,27 +104,6 @@ export async function GET(request: Request) {
       query.season = season;
       query.episode = episode;
     }
-    failureCode = 'watch-page-request';
-    try {
-      const watchUrl = await resolveBingrWatchPage(
-        String(tmdbId),
-        mediaType,
-        season,
-        episode,
-        controller.signal,
-      );
-      if (watchUrl) {
-        return NextResponse.json(
-          {
-            streamUrl: bingrMediaProxyUrl(watchUrl.href),
-            title: details.title,
-          },
-          { headers: { 'Cache-Control': 'no-store' } },
-        );
-      }
-    } catch {
-      // The public API fallback below remains available for older deployments.
-    }
     failureCode = 'stream-request';
     const responses = await Promise.allSettled(
       SERVER_IDS.map((srv) =>
@@ -142,6 +121,7 @@ export async function GET(request: Request) {
       ),
     );
     failureCode = 'stream-response';
+    const candidates: URL[] = [];
     for (const result of responses) {
       if (result.status !== 'fulfilled' || !result.value?.ok) continue;
       let payload: { sources?: Array<{ url?: string; type?: string }> };
@@ -153,14 +133,62 @@ export async function GET(request: Request) {
       for (const source of (payload.sources || []).slice(0, 20)) {
         if (typeof source.url !== 'string') continue;
         try {
-          const url = unwrapBingrMediaUrl(source.url);
+          candidates.push(unwrapBingrMediaUrl(source.url));
+        } catch {
+          // Try the next server/source returned by Bingr.
+        }
+      }
+    }
+    candidates.sort((a, b) => {
+      const rank = (url: URL) => {
+        if (/\.rousav\.tech$/.test(url.hostname)) return 5;
+        if (/\.hscow\.com$/.test(url.hostname)) return 4;
+        if (/\.streamrip\.fun$/.test(url.hostname)) return 3;
+        if (/\.workers\.dev$/.test(url.hostname)) return 2;
+        return 1;
+      };
+      return rank(b) - rank(a);
+    });
+    for (const url of candidates.slice(0, 8)) {
+      try {
+        const candidateResponse = await fetch(url, {
+          signal: AbortSignal.timeout(12_000),
+          redirect: 'follow',
+          headers: HEADERS,
+        });
+        if (!candidateResponse.ok) continue;
+        const manifest = await candidateResponse.text();
+        if (!manifest.includes('#EXTM3U')) continue;
+        if (!manifest.includes('#EXT-X-STREAM-INF')) {
           return NextResponse.json(
             { streamUrl: bingrMediaProxyUrl(url.href), title: details.title },
             { headers: { 'Cache-Control': 'no-store' } },
           );
-        } catch {
-          // Try the next server/source returned by Bingr.
         }
+        const variantLine = manifest
+          .split(/\r?\n/)
+          .find((line, index, lines) =>
+            !line.startsWith('#') && line.trim() && index > 0 && lines[index - 1].includes('#EXT-X-STREAM-INF'),
+          );
+        if (variantLine) {
+          const variantUrl = new URL(variantLine.trim(), url);
+          const variantResponse = await fetch(variantUrl, {
+            signal: AbortSignal.timeout(12_000),
+            redirect: 'follow',
+            headers: HEADERS,
+          });
+          if (variantResponse.ok) {
+            const variantManifest = await variantResponse.text();
+            if (variantManifest.includes('#EXTM3U')) {
+              return NextResponse.json(
+                { streamUrl: bingrMediaProxyUrl(url.href), title: details.title },
+                { headers: { 'Cache-Control': 'no-store' } },
+              );
+            }
+          }
+        }
+      } catch {
+        // Probe the next candidate when a CDN source is expired or unavailable.
       }
     }
     failureCode = 'no-supported-media';

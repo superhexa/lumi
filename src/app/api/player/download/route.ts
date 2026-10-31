@@ -1,8 +1,12 @@
 import ffmpegPath from 'ffmpeg-static';
 import { NextResponse } from 'next/server';
 import { spawn } from 'node:child_process';
+import { createReadStream, promises as fs } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { Readable } from 'node:stream';
 
+import { unwrapBingrMediaUrl, validateBingrMediaUrl } from '@/lib/bingr-player';
 import {
   normalizePositiveInteger,
   normalizeTmdbId,
@@ -214,11 +218,25 @@ async function resolveStream(request: Request, origin: string) {
   }
   const payload = await response.json() as { streamUrl?: string; title?: string; contentType?: string };
   if (!payload.streamUrl) return { error: 'Playable source is unavailable', status: 502 } as const;
-  const streamUrl = new URL(payload.streamUrl, origin);
+  let streamUrl = new URL(payload.streamUrl, origin);
+  if (streamUrl.pathname === '/api/player/media') {
+    const upstreamParam = streamUrl.searchParams.get('url');
+    if (upstreamParam) {
+      try {
+        streamUrl = unwrapBingrMediaUrl(upstreamParam);
+      } catch {
+        try {
+          streamUrl = validateBingrMediaUrl(upstreamParam);
+        } catch {
+          return { error: 'Bingr returned an unsupported media source', status: 502 } as const;
+        }
+      }
+    }
+  }
   return {
     streamUrl,
-    referer: streamUrl.pathname.startsWith('/api/player/') ? origin : streamUrl.origin + '/',
-    origin: streamUrl.origin,
+    referer: provider === 'bingr' ? 'https://bingr.one/' : streamUrl.pathname.startsWith('/api/player/') ? origin : streamUrl.origin + '/',
+    origin: provider === 'bingr' ? 'https://bingr.one' : streamUrl.origin,
     contentType: payload.contentType || '',
     title: payload.title || title,
   } as const;
@@ -279,28 +297,50 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Video merging is unavailable on this server' }, { status: 503 });
   }
 
-  const ffmpeg = spawn(ffmpegPath, [
-    '-nostdin', '-hide_banner', '-loglevel', 'error', '-y',
-    '-user_agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36',
-    '-referer', resolved.referer || origin,
-    '-headers', 'Accept: */*\r\n',
-    '-i', resolved.streamUrl.toString(),
-    '-map', '0:v:0', '-map', '0:a?',
-    '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k',
-    '-movflags', '+faststart+frag_keyframe+empty_moov',
-    '-f', 'mp4', 'pipe:1',
-  ], { stdio: ['ignore', 'pipe', 'pipe'] });
+  const executable = ffmpegPath;
+  const tempDirectory = await fs.mkdtemp(join(tmpdir(), 'lumi-download-'));
+  const outputPath = join(tempDirectory, 'video.mp4');
+  let ffmpegError = '';
+  const mergeResult = await new Promise<{ code: number | null }>((resolve) => {
+    const ffmpeg = spawn(executable, [
+      '-nostdin', '-hide_banner', '-loglevel', 'error', '-y',
+      '-user_agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36',
+      '-referer', resolved.referer || origin,
+      '-headers', 'Accept: */*\r\nOrigin: ' + (resolved.origin || resolved.streamUrl.origin) + '\r\n',
+      '-i', resolved.streamUrl.toString(),
+      '-map', '0:v:0', '-map', '0:a?',
+      '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k',
+      '-movflags', '+faststart+frag_keyframe+empty_moov',
+      '-f', 'mp4', outputPath,
+    ], { stdio: ['ignore', 'ignore', 'pipe'] });
+    const timeout = setTimeout(() => ffmpeg.kill('SIGKILL'), 25 * 60 * 1000);
+    ffmpeg.stderr?.on('data', (chunk) => { ffmpegError += String(chunk).slice(-8000); });
+    ffmpeg.on('error', () => resolve({ code: -1 }));
+    ffmpeg.on('close', (code) => { clearTimeout(timeout); resolve({ code }); });
+  });
 
-  ffmpeg.stderr?.on('data', () => undefined);
-  ffmpeg.on('error', () => undefined);
-  const output = Readable.toWeb(ffmpeg.stdout) as ReadableStream<Uint8Array>;
-  return new Response(output, {
+  let outputSize = 0;
+  try { outputSize = (await fs.stat(outputPath)).size; } catch { outputSize = 0; }
+  if (mergeResult.code !== 0 || outputSize < 1024) {
+    await fs.rm(tempDirectory, { recursive: true, force: true }).catch(() => undefined);
+    const detail = ffmpegError.trim().slice(-500);
+    return NextResponse.json({
+      error: 'This provider stream could not be merged into MP4',
+      ...(detail ? { code: detail } : {}),
+    }, { status: 502 });
+  }
+
+  const output = createReadStream(outputPath);
+  output.on('close', () => void fs.rm(tempDirectory, { recursive: true, force: true }).catch(() => undefined));
+  return new Response(Readable.toWeb(output) as ReadableStream<Uint8Array>, {
     status: 200,
     headers: {
       'Content-Type': 'video/mp4',
+      'Content-Length': String(outputSize),
       'Content-Disposition': contentDisposition(filename),
       'Cache-Control': 'private, max-age=0, no-store',
       'X-Content-Type-Options': 'nosniff',
+      'Accept-Ranges': 'bytes',
     },
   });
 }

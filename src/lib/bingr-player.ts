@@ -20,6 +20,7 @@ export function validateBingrMediaUrl(value: string): URL {
   const allowedByPattern =
     url.hostname.endsWith('.workers.dev') ||
     url.hostname.endsWith('.streamrip.fun') ||
+    url.hostname.endsWith('.bingr.one') ||
     url.hostname.endsWith('.hscow.com') ||
     url.hostname.endsWith('.rousav.tech') ||
     url.hostname.endsWith('.hakunaymatata.com') ||
@@ -38,11 +39,11 @@ export function validateBingrMediaUrl(value: string): URL {
 
 export function unwrapBingrMediaUrl(value: string): URL {
   let url = new URL(value);
-  for (
-    let depth = 0;
-    depth < 4 && url.hostname === 'wormhole.filmu.in';
-    depth++
-  ) {
+  for (let depth = 0; depth < 4; depth++) {
+    if (
+      url.hostname !== 'wormhole.filmu.in' &&
+      !url.hostname.endsWith('.bingr.one')
+    ) break;
     const upstream = url.searchParams.get('url');
     if (!upstream) throw new Error('Missing upstream media URL');
     url = new URL(upstream);
