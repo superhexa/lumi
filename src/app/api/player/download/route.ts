@@ -4,6 +4,7 @@ import { spawn } from 'node:child_process';
 import { createReadStream, promises as fs } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { existsSync } from 'node:fs';
 import { Readable } from 'node:stream';
 
 import { unwrapBingrMediaUrl, validateBingrMediaUrl } from '@/lib/bingr-player';
@@ -370,6 +371,13 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: resolved.error }, { status: resolved.status });
   }
   const filename = safeFilename(resolved.title || url.searchParams.get('title'), normalizeTmdbId(url.searchParams.get('tmdbId')) || 0);
+  if (url.searchParams.get('streamInfo') === '1') {
+    return NextResponse.json({
+      streamUrl: resolved.streamUrl.toString(),
+      referer: resolved.referer || origin,
+      title: filename,
+    });
+  }
 
   let sourceResponse: Response;
   try {
@@ -418,64 +426,48 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Video merging is unavailable on this server' }, { status: 503 });
   }
 
-  const executable = ffmpegPath;
-  const tempDirectory = await fs.mkdtemp(join(tmpdir(), 'lumi-download-'));
-  const outputPath = join(tempDirectory, 'video.mp4');
+  const executable = existsSync('/usr/bin/ffmpeg') ? '/usr/bin/ffmpeg' : ffmpegPath;
   let ffmpegError = '';
-  let ffmpegInputs: string[];
-  let audioPlaylist: string | undefined;
-  try {
-    const materialized = await materializeHls(resolved.streamUrl, resolved.referer || origin, resolved.origin || resolved.streamUrl.origin, tempDirectory);
-    ffmpegInputs = [materialized.videoPlaylist];
-    audioPlaylist = materialized.audioPlaylist;
-  } catch (error) {
-    await fs.rm(tempDirectory, { recursive: true, force: true }).catch(() => undefined);
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'HLS source could not be prepared' }, { status: 502 });
-  }
-  const mergeResult = await new Promise<{ code: number | null }>((resolve) => {
-    const ffmpeg = spawn(executable, [
-      '-nostdin', '-hide_banner', '-loglevel', 'error', '-y',
-      '-protocol_whitelist', 'file,http,https,tcp,tls,crypto,data',
-      '-rw_timeout', '30000000', '-timeout', '30000000',
-      '-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '15', '-reconnect_at_eof', '1',
-      '-user_agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36',
-      '-referer', resolved.referer || origin,
-      '-headers', 'Accept: */*\r\nOrigin: ' + (resolved.origin || resolved.streamUrl.origin) + '\r\n',
-      '-i', ffmpegInputs[0],
-      ...(audioPlaylist ? ['-i', audioPlaylist] : []),
-      '-map', '0:v:0', ...(audioPlaylist ? ['-map', '1:a:0'] : ['-map', '0:a?']),
-      '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k',
-      '-movflags', '+faststart+frag_keyframe+empty_moov',
-      '-f', 'mp4', outputPath,
-    ], { stdio: ['ignore', 'ignore', 'pipe'] });
-    const timeout = setTimeout(() => ffmpeg.kill('SIGKILL'), 25 * 60 * 1000);
-    ffmpeg.stderr?.on('data', (chunk) => { ffmpegError += String(chunk).slice(-8000); });
-    ffmpeg.on('error', () => resolve({ code: -1 }));
-    ffmpeg.on('close', (code) => { clearTimeout(timeout); resolve({ code }); });
-  });
-
-  let outputSize = 0;
-  try { outputSize = (await fs.stat(outputPath)).size; } catch { outputSize = 0; }
-  if (mergeResult.code !== 0 || outputSize < 1024) {
-    await fs.rm(tempDirectory, { recursive: true, force: true }).catch(() => undefined);
+  let firstChunkTimer: ReturnType<typeof setTimeout> | undefined;
+  const ffmpeg = spawn(executable, [
+    '-nostdin', '-hide_banner', '-loglevel', 'error', '-y',
+    '-protocol_whitelist', 'file,http,https,tcp,tls,crypto,data',
+    '-rw_timeout', '30000000', '-timeout', '30000000',
+    '-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '15', '-reconnect_at_eof', '1',
+    '-user_agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36',
+    '-referer', resolved.referer || origin,
+    '-headers', 'Accept: */*\r\nOrigin: ' + (resolved.origin || resolved.streamUrl.origin) + '\r\n',
+    '-i', resolved.streamUrl.toString(),
+    '-map', '0:v:0', '-map', '0:a?',
+    '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k',
+    '-movflags', '+frag_keyframe+empty_moov+default_base_moof',
+    '-f', 'mp4', 'pipe:1',
+  ], { stdio: ['ignore', 'pipe', 'pipe'] });
+  ffmpeg.stderr?.on('data', (chunk) => { ffmpegError = (ffmpegError + String(chunk)).slice(-8000); });
+  const started = await new Promise<boolean>((resolve) => {
+    let settled = false;
+    const settle = (value: boolean) => { if (settled) return; settled = true; if (firstChunkTimer) clearTimeout(firstChunkTimer); resolve(value); };
+    ffmpeg.stdout?.once('data', () => settle(true));
+    ffmpeg.once('error', () => settle(false));
+    ffmpeg.once('close', (code) => { if (!settled) settle(code !== null && code === 0); });
+    firstChunkTimer = setTimeout(() => settle(false), 60_000);
+  }).catch(() => false);
+  if (!started) {
+    ffmpeg.kill('SIGKILL');
     const detail = ffmpegError.trim().slice(-500);
     return NextResponse.json({
-      error: 'This provider stream could not be merged into MP4',
+      error: 'This provider stream could not be opened for download',
       ...(detail ? { code: detail } : {}),
     }, { status: 502 });
   }
-
-  const output = createReadStream(outputPath);
-  output.on('close', () => void fs.rm(tempDirectory, { recursive: true, force: true }).catch(() => undefined));
-  return new Response(Readable.toWeb(output) as ReadableStream<Uint8Array>, {
+  return new Response(Readable.toWeb(ffmpeg.stdout as Readable) as ReadableStream<Uint8Array>, {
     status: 200,
     headers: {
       'Content-Type': 'video/mp4',
-      'Content-Length': String(outputSize),
       'Content-Disposition': contentDisposition(filename),
       'Cache-Control': 'private, max-age=0, no-store',
       'X-Content-Type-Options': 'nosniff',
-      'Accept-Ranges': 'bytes',
     },
   });
+
 }

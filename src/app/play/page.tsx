@@ -585,6 +585,65 @@ function PlayPageClient() {
     }
   };
 
+  const downloadOnDevice = async (streamInfoUrl: URL, filename: string) => {
+    const infoResponse = await fetch(streamInfoUrl, { cache: 'no-store', credentials: 'same-origin' });
+    if (!infoResponse.ok) {
+      const payload = await infoResponse.json().catch(() => null) as { error?: string } | null;
+      throw new Error(payload?.error || 'CineSrc stream was not found');
+    }
+    const info = await infoResponse.json() as { streamUrl: string };
+    const firstUrl = new URL(info.streamUrl);
+    let manifestUrl = firstUrl;
+    let manifest = await (await fetch(firstUrl.toString(), { cache: 'no-store' })).text();
+
+    if (manifest.includes('#EXT-X-STREAM-INF')) {
+      const lines = manifest.split(/\r?\n/);
+      let selected: URL | null = null;
+      let selectedPixels = -1;
+      for (let index = 0; index < lines.length; index++) {
+        if (!lines[index].startsWith('#EXT-X-STREAM-INF:')) continue;
+        const next = lines[index + 1]?.trim();
+        if (!next || next.startsWith('#')) continue;
+        const candidate = new URL(next, manifestUrl);
+        const resolution = lines[index].match(/RESOLUTION=(\d+)x(\d+)/i);
+        const pixels = resolution ? Number(resolution[1]) * Number(resolution[2]) : 0;
+        if (pixels >= selectedPixels) { selected = candidate; selectedPixels = pixels; }
+      }
+      if (!selected) throw new Error('No CineSrc video quality was found');
+      manifestUrl = selected;
+      manifest = await (await fetch(manifestUrl.toString(), { cache: 'no-store' })).text();
+    }
+
+    const parts: BlobPart[] = [];
+    for (const line of manifest.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) {
+        const mapMatch = trimmed.match(/#EXT-X-MAP:URI="([^"]+)"/i);
+        if (mapMatch) {
+          const response = await fetch(new URL(mapMatch[1], manifestUrl).toString(), { cache: 'no-store' });
+          if (!response.ok) throw new Error('CineSrc video initialization failed');
+          parts.push(await response.arrayBuffer());
+        }
+        continue;
+      }
+      if (/\.(jpg|jpeg|png)(\?|$)/i.test(trimmed) && !manifest.includes('#EXT-X-MAP')) continue;
+      const response = await fetch(new URL(trimmed, manifestUrl).toString(), { cache: 'no-store' });
+      if (!response.ok) throw new Error('A CineSrc video segment could not be downloaded');
+      parts.push(await response.arrayBuffer());
+    }
+    if (parts.length === 0) throw new Error('CineSrc returned an empty video stream');
+    const blob = new Blob(parts, { type: 'video/mp4' });
+    if (!blob.size) throw new Error('The CineSrc download was empty');
+    const objectUrl = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = objectUrl;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+  };
+
   const downloadCurrentMovie = async () => {
     const tmdbId = tmdbPlayerIdRef.current;
     if (!tmdbId || downloadStatus === 'preparing') return;
@@ -601,6 +660,12 @@ function PlayPageClient() {
     url.searchParams.set('title', displayTitle || videoTitleRef.current || `Movie ${tmdbId}`);
     url.searchParams.set('year', videoYearRef.current || '');
     try {
+      if (playerProviderRef.current === 'cinesrc') {
+        url.searchParams.set('streamInfo', '1');
+        await downloadOnDevice(url, `${(displayTitle || videoTitleRef.current || `Movie ${tmdbId}`).replace(/[\\/:*?"<>|]/g, ' ').trim() || `Movie ${tmdbId}`}.mp4`);
+        setDownloadStatus('ready');
+        return;
+      }
       const response = await fetch(url, { cache: 'no-store', credentials: 'same-origin' });
       if (!response.ok) {
         const payload = await response.json().catch(() => null) as { error?: string } | null;
