@@ -276,70 +276,90 @@ async function resolveStream(request: Request, origin: string) {
   } as const;
 }
 
-async function materializeBingrHls(streamUrl: URL, referer: string, origin: string, tempDirectory: string): Promise<string> {
+async function materializeHls(streamUrl: URL, referer: string, origin: string, tempDirectory: string): Promise<{ videoPlaylist: string; audioPlaylist?: string }> {
   const headers = {
     Accept: '*/*',
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36',
     Referer: referer,
     Origin: origin,
   };
-  const fetchManifest = async (url: URL) => {
-    const response = await fetch(url, { headers, redirect: 'follow', signal: AbortSignal.timeout(30_000), cache: 'no-store' });
-    if (!response.ok) throw new Error('HLS manifest unavailable');
-    return response.text();
+  const fetchText = async (url: URL) => {
+    const response = await fetch(url, { headers, redirect: 'follow', signal: AbortSignal.timeout(45_000), cache: 'no-store' });
+    if (!response.ok) throw new Error(`HLS manifest unavailable (${response.status})`);
+    const text = await response.text();
+    if (!text.trimStart().startsWith('#EXTM3U')) throw new Error('Invalid HLS manifest');
+    return text;
+  };
+  const downloadFile = async (url: URL, fileName: string) => {
+    const response = await fetch(url, { headers, redirect: 'follow', signal: AbortSignal.timeout(45_000), cache: 'no-store' });
+    if (!response.ok || !response.body) throw new Error(`HLS segment unavailable (${response.status})`);
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    if (bytes.byteLength < 16) throw new Error('HLS segment is empty or invalid');
+    await fs.writeFile(join(tempDirectory, fileName), bytes);
   };
 
   let manifestUrl = streamUrl;
-  let manifest = await fetchManifest(manifestUrl);
+  let manifest = await fetchText(manifestUrl);
+  let audioUrl: URL | null = null;
   if (manifest.includes('#EXT-X-STREAM-INF')) {
+    const audioMatch = manifest.match(/#EXT-X-MEDIA:TYPE=AUDIO[^\n]*URI="([^"]+)"/i);
+    if (audioMatch) audioUrl = new URL(audioMatch[1], manifestUrl);
     const lines = manifest.split(/\r?\n/);
     let selected: URL | null = null;
     let selectedPixels = -1;
     for (let index = 0; index < lines.length; index++) {
       if (!lines[index].startsWith('#EXT-X-STREAM-INF:')) continue;
       const next = lines[index + 1]?.trim();
-      if (!next || next.startsWith('#')) continue;
+      if (!next || next.startsWith('#') || /(tile|thumb|subtitle)/i.test(next)) continue;
       const candidate = new URL(next, manifestUrl);
       const resolution = lines[index].match(/RESOLUTION=(\d+)x(\d+)/i);
       const pixels = resolution ? Number(resolution[1]) * Number(resolution[2]) : 0;
-      if (pixels >= selectedPixels && !/(tile|thumb|subtitle)/i.test(candidate.pathname)) {
-        selected = candidate;
-        selectedPixels = pixels;
-      }
+      if (pixels >= selectedPixels) { selected = candidate; selectedPixels = pixels; }
     }
     if (!selected) throw new Error('No playable HLS variant found');
     manifestUrl = selected;
-    manifest = await fetchManifest(manifestUrl);
+    manifest = await fetchText(manifestUrl);
   }
 
-  const segments = manifest.split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => line && !line.startsWith('#'))
-    .filter((line) => !/\.(jpg|jpeg|png)(\?|$)/i.test(line));
-  if (segments.length === 0) throw new Error('No HLS media segments found');
-
-  const localManifest: string[] = [];
-  let segmentIndex = 0;
-  for (const line of manifest.split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) {
-      if (trimmed && !trimmed.startsWith('#EXT-X-MAP')) localManifest.push(line);
-      continue;
+  const rewriteManifest = async (source: string, baseUrl: URL, prefix: string) => {
+    const localLines: string[] = [];
+    const downloads: Array<{ url: URL; fileName: string }> = [];
+    let index = 0;
+    for (const line of source.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed) { localLines.push(line); continue; }
+      if (trimmed.startsWith('#EXT-X-MAP:URI=')) {
+        const match = trimmed.match(/URI="([^"]+)"/i);
+        if (!match) { localLines.push(line); continue; }
+        const fileName = `${prefix}-init-${String(index++).padStart(5, '0')}.m4s`;
+        downloads.push({ url: new URL(match[1], baseUrl), fileName });
+        localLines.push(trimmed.replace(match[1], fileName));
+      } else if (trimmed.startsWith('#')) {
+        localLines.push(line);
+      } else if (!/\.(jpg|jpeg|png)(\?|$)/i.test(trimmed)) {
+        const fileName = `${prefix}-${String(index++).padStart(6, '0')}.m4s`;
+        downloads.push({ url: new URL(trimmed, baseUrl), fileName });
+        localLines.push(fileName);
+      }
     }
-    if (/\.(jpg|jpeg|png)(\?|$)/i.test(trimmed)) continue;
-    const segmentUrl = new URL(trimmed, manifestUrl);
-    const response = await fetch(segmentUrl, { headers, redirect: 'follow', signal: AbortSignal.timeout(45_000), cache: 'no-store' });
-    if (!response.ok || !response.body) throw new Error('HLS segment unavailable');
-    const bytes = new Uint8Array(await response.arrayBuffer());
-    if (bytes.length === 0) throw new Error('HLS segment is empty');
-    const segmentName = `segment-${String(segmentIndex++).padStart(6, '0')}.bin`;
-    await fs.writeFile(join(tempDirectory, segmentName), bytes);
-    localManifest.push(segmentName);
-  }
+    if (downloads.length === 0) throw new Error('No HLS media segments found');
+    for (let start = 0; start < downloads.length; start += 12) {
+      await Promise.all(downloads.slice(start, start + 12).map((item) => downloadFile(item.url, item.fileName)));
+    }
+    return localLines.join('\n');
+  };
 
-  const playlistPath = join(tempDirectory, 'video.m3u8');
-  await fs.writeFile(playlistPath, localManifest.join('\n'), 'utf8');
-  return playlistPath;
+  const videoPlaylist = join(tempDirectory, 'video.m3u8');
+  await fs.writeFile(videoPlaylist, await rewriteManifest(manifest, manifestUrl, 'video'), 'utf8');
+  let audioPlaylist: string | undefined;
+  if (audioUrl) {
+    try {
+      const audioManifest = await fetchText(audioUrl);
+      audioPlaylist = join(tempDirectory, 'audio.m3u8');
+      await fs.writeFile(audioPlaylist, await rewriteManifest(audioManifest, audioUrl, 'audio'), 'utf8');
+    } catch { audioPlaylist = undefined; }
+  }
+  return { videoPlaylist, audioPlaylist };
 }
 
 export async function GET(request: Request) {
@@ -374,7 +394,8 @@ export async function GET(request: Request) {
 
   const contentType = sourceResponse.headers.get('content-type') || resolved.contentType || '';
   const isM3u8 = resolved.streamUrl.pathname.endsWith('.m3u8') || /mpegurl/i.test(contentType);
-  const isDirectVideo = /^(video\/|application\/octet-stream)/i.test(contentType) && !isM3u8;
+  const directPath = /\.(mp4|webm)(?:$|\?|\/)/i.test(resolved.streamUrl.pathname + resolved.streamUrl.search);
+  const isDirectVideo = (/^(video\/|application\/octet-stream)/i.test(contentType) || directPath) && !isM3u8 && !/^(text\/|application\/(?:json|x-mpegURL))/i.test(contentType);
 
   if (isDirectVideo) {
     const headers = new Headers({
@@ -401,23 +422,28 @@ export async function GET(request: Request) {
   const tempDirectory = await fs.mkdtemp(join(tmpdir(), 'lumi-download-'));
   const outputPath = join(tempDirectory, 'video.mp4');
   let ffmpegError = '';
-  let ffmpegInput = resolved.streamUrl.toString();
-  if (resolved.streamUrl.hostname === 'cinesrc.st' || resolved.streamUrl.hostname.endsWith('.workers.dev') || resolved.streamUrl.hostname.endsWith('.bingr.one') || resolved.streamUrl.hostname.endsWith('.hscow.com') || resolved.streamUrl.hostname.endsWith('.rousav.tech')) {
-    try {
-      ffmpegInput = await materializeBingrHls(resolved.streamUrl, resolved.referer || origin, resolved.origin || origin, tempDirectory);
-    } catch (error) {
-      await fs.rm(tempDirectory, { recursive: true, force: true }).catch(() => undefined);
-      return NextResponse.json({ error: error instanceof Error ? error.message : 'HLS source could not be prepared' }, { status: 502 });
-    }
+  let ffmpegInputs: string[];
+  let audioPlaylist: string | undefined;
+  try {
+    const materialized = await materializeHls(resolved.streamUrl, resolved.referer || origin, resolved.origin || resolved.streamUrl.origin, tempDirectory);
+    ffmpegInputs = [materialized.videoPlaylist];
+    audioPlaylist = materialized.audioPlaylist;
+  } catch (error) {
+    await fs.rm(tempDirectory, { recursive: true, force: true }).catch(() => undefined);
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'HLS source could not be prepared' }, { status: 502 });
   }
   const mergeResult = await new Promise<{ code: number | null }>((resolve) => {
     const ffmpeg = spawn(executable, [
       '-nostdin', '-hide_banner', '-loglevel', 'error', '-y',
+      '-protocol_whitelist', 'file,http,https,tcp,tls,crypto,data',
+      '-rw_timeout', '30000000', '-timeout', '30000000',
+      '-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '15', '-reconnect_at_eof', '1',
       '-user_agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36',
       '-referer', resolved.referer || origin,
       '-headers', 'Accept: */*\r\nOrigin: ' + (resolved.origin || resolved.streamUrl.origin) + '\r\n',
-      '-i', ffmpegInput,
-      '-map', '0:v:0', '-map', '0:a?',
+      '-i', ffmpegInputs[0],
+      ...(audioPlaylist ? ['-i', audioPlaylist] : []),
+      '-map', '0:v:0', ...(audioPlaylist ? ['-map', '1:a:0'] : ['-map', '0:a?']),
       '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k',
       '-movflags', '+faststart+frag_keyframe+empty_moov',
       '-f', 'mp4', outputPath,

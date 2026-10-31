@@ -2620,41 +2620,27 @@ function PlayPageClient() {
                 </div>
               </div>
 
-              <div className='mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
-                <div className='flex min-w-0 items-center gap-3 px-1'>
-                  <div className='flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.12] to-white/[0.04] shadow-inner shadow-white/[0.03]'>
-                    <Download className='h-5 w-5 text-white/80' />
-                  </div>
-                  <div className='min-w-0'>
-                    <p className='text-sm font-semibold text-white'>Save this {tmdbMediaTypeRef.current === 'tv' ? 'episode' : 'movie'}</p>
-                    <p className='truncate text-xs text-white/50'>High-quality video • MP4 download</p>
-                  </div>
-                </div>
+              <div className='relative mt-3 flex justify-end'>
                 <button
                   type='button'
+                  title={downloadStatus === 'preparing' ? 'Preparing download' : downloadStatus === 'ready' ? 'Downloaded' : downloadStatus === 'error' ? 'Retry download' : 'Download MP4'}
+                  aria-label={downloadStatus === 'preparing' ? 'Preparing download' : downloadStatus === 'ready' ? 'Downloaded' : downloadStatus === 'error' ? 'Retry download' : 'Download MP4'}
                   disabled={downloadStatus === 'preparing'}
                   onClick={() => void downloadCurrentMovie()}
-                  className='group inline-flex h-12 w-full items-center justify-center gap-2.5 rounded-2xl border border-white/15 bg-gradient-to-r from-violet-500/90 via-fuchsia-500/85 to-indigo-500/90 px-5 text-sm font-bold text-white shadow-[0_12px_35px_rgba(124,58,237,0.28)] transition duration-200 hover:-translate-y-0.5 hover:border-white/30 hover:shadow-[0_16px_42px_rgba(124,58,237,0.38)] active:translate-y-0 disabled:cursor-wait disabled:opacity-70 sm:w-auto sm:min-w-44'
+                  className='group flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-gradient-to-br from-violet-500 via-fuchsia-500 to-indigo-500 text-white shadow-[0_8px_24px_rgba(124,58,237,0.28)] transition duration-200 hover:scale-105 hover:border-white/30 disabled:cursor-wait disabled:opacity-70'
                 >
                   {downloadStatus === 'preparing' ? (
                     <span className='h-4 w-4 animate-spin rounded-full border-2 border-white/35 border-t-white' />
                   ) : downloadStatus === 'ready' ? (
-                    <Download className='h-4 w-4' />
+                    <Check className='h-4 w-4' />
+                  ) : downloadStatus === 'error' ? (
+                    <RefreshCw className='h-4 w-4' />
                   ) : (
                     <Download className='h-4 w-4 transition-transform group-hover:translate-y-0.5' />
                   )}
-                  <span>
-                    {downloadStatus === 'preparing'
-                      ? 'Preparing download...'
-                      : downloadStatus === 'ready'
-                        ? 'Downloaded'
-                        : downloadStatus === 'error'
-                          ? 'Try again'
-                          : 'Download MP4'}
-                  </span>
                 </button>
                 {downloadError ? (
-                  <p role='alert' className='w-full rounded-xl border border-red-400/20 bg-red-950/50 px-3 py-2 text-xs text-red-100 sm:absolute sm:mt-20 sm:right-0 sm:w-auto sm:max-w-[22rem]'>
+                  <p role='alert' className='absolute right-11 top-1/2 max-w-64 -translate-y-1/2 truncate rounded-lg border border-red-400/20 bg-red-950/90 px-2.5 py-1.5 text-xs text-red-100 shadow-xl'>
                     {downloadError}
                   </p>
                 ) : null}

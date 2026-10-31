@@ -27,10 +27,11 @@ async function cacheRequest(request: Request, paramsUrl: URL) {
   } catch {
     return NextResponse.json({ error: 'Invalid stream URL' }, { status: 400 });
   }
+  const allowedCinesrcHost = url.hostname === 'cinesrc.st' || url.hostname.endsWith('.bright67.online') || url.hostname.includes('cinesrc');
   if (
     url.protocol !== 'https:' ||
-    url.hostname !== 'cinesrc.st' ||
-    (!url.pathname.startsWith('/api/playlist/') && !/\.m3u8(?:$|\?)/i.test(url.pathname + url.search))
+    (!allowedCinesrcHost && !/\.m3u8(?:$|\?|\/)/i.test(url.pathname + url.search)) ||
+    (!url.pathname.startsWith('/api/playlist/') && !/\.m3u8(?:$|\?|\/)/i.test(url.pathname + url.search))
   ) {
     return NextResponse.json({ error: 'Unsupported CineSrc stream URL' }, { status: 400 });
   }

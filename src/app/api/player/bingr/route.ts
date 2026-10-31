@@ -70,7 +70,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Invalid TMDB ID' }, { status: 400 });
   const mediaType = normalizeTmdbPlayerMediaType(params.get('type'));
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15000);
+  const timeout = setTimeout(() => controller.abort(), 45000);
   const options = {
     signal: controller.signal,
     redirect: 'manual' as const,
@@ -81,16 +81,13 @@ export async function GET(request: Request) {
     const detailsUrl = new URL('https://api.bingr.one');
     detailsUrl.pathname = `/api/details/${mediaType}/${Number(tmdbId)}`;
     const detailsResponse = await fetch(detailsUrl, options);
-    if (!detailsResponse.ok) {
+    let details: { title?: string; year?: string; imdb_id?: string } = {};
+    if (detailsResponse.ok) {
+      failureCode = 'metadata-response';
+      details = (await detailsResponse.json().catch(() => ({}))) as typeof details;
+    } else {
       failureCode = `metadata-http-${detailsResponse.status}`;
-      throw new Error('Metadata unavailable');
     }
-    failureCode = 'metadata-response';
-    const details = (await detailsResponse.json()) as {
-      title?: string;
-      year?: string;
-      imdb_id?: string;
-    };
     const query: Record<string, string | number> = {};
     if (typeof details.title === 'string')
       query.title = details.title.slice(0, 300);
@@ -212,6 +209,17 @@ export async function GET(request: Request) {
       } catch {
         // Probe the next candidate when a CDN source is expired or unavailable.
       }
+    }
+    try {
+      const watched = await resolveBingrWatchPage(String(tmdbId), mediaType, season, episode, controller.signal);
+      if (watched) {
+        return NextResponse.json(
+          { streamUrl: bingrMediaProxyUrl(watched.href), title: details.title },
+          { headers: { 'Cache-Control': 'no-store' } },
+        );
+      }
+    } catch {
+      // Continue to a consistent provider error response.
     }
     failureCode = 'no-supported-media';
     throw new Error('No supported stream');
