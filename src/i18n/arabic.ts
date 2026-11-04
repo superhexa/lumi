@@ -331,6 +331,50 @@ export const arabicTranslation = {
     searchingPlaybackSources: 'جارٍ البحث عن مصادر للتشغيل...',
     sourceUnavailable:
       'المصدر الحالي غير متاح مؤقتاً أو لم يتم العثور على العنوان المطلوب. ارجع وجرّب كلمة بحث أخرى.',
+    downloadTitle: 'حمّل هذا الفيلم',
+    downloadSubtitle:
+      'اختر جودة التورنت. نقل الملف بالكامل يعمل داخل متصفحك — يأتيك الفيلم من الأقران مباشرة إلى جهازك.',
+    downloadQualityEyebrow: 'تنزيل تورنت',
+    downloadSeeds: '‏{{seeds}} موزع',
+    downloadLoadingListing: 'جارٍ تحميل جودات التورنت...',
+    downloadLoadFailed: 'تعذر تحميل قائمة التورنت الآن. يُرجى المحاولة لاحقاً.',
+    downloadNoTorrents:
+      'هذا الفيلم غير متوفر في كتالوج التورنت بعد. حاول مجدداً بعد إصداره الرسمي.',
+    downloadFetchTorrentFailed: 'تعذّر تجهيز التورنت. يُرجى إعادة المحاولة.',
+    downloadWebRtcUnsupported:
+      'هذا المتصفح لا يستطيع الانضمام إلى شبكة التورنت: ميزة WebRTC معطلة أو غير متوفرة.',
+    downloadNoPeersFailed:
+      'لم يتم الوصول إلى أي أقران لهذا التورنت حالياً. التنزيل داخل المتصفح يعتمد على شبكة WebTorrent — جرّب جودة أخرى أو أعد المحاولة لاحقاً.',
+    downloadPeersLine: '‏{{percent}}% · ‏{{peers}} من الأقران · ‏{{speed}}/ث',
+    downloadNoPeersHint: 'لا يزال البحث في الشبكة جارياً — قد ينضم الأقران في أي وقت. إن لم يتصل أحد بعد، استخدم ملف ‎.torrent أو رابط المغناطيس أدناه.',
+    downloadSaveButton: 'احفظ على جهازك',
+    downloadSavingLabel: 'جارٍ حفظ الملف...',
+    downloadSavingNote: 'يتم تدفق الفيديو من متصفحك إلى المجلد الذي اخترته.',
+    downloadSaved: 'تم حفظ الفيديو على جهازك.',
+    downloadSaveFailed: 'لم يكتمل حفظ الملف. يُرجى إعادة المحاولة مرة أخرى.',
+    cancelDownload: 'إلغاء التنزيل',
+    downloadingLabel: 'جارٍ التنزيل',
+    startingDownload: 'جارٍ تجهيز التورنت...',
+    connectingLabel: 'جارٍ الاتصال بشبكة التورنت...',
+    finishedLabel: 'اكتمل التنزيل',
+    downloadManualTitle: 'احصل على الفيلم في كل الأحوال',
+    downloadManualHint:
+      'المتصفح لا يصل إلا إلى أقران WebRTC. احفظ ملف ‎.torrent وافتحه في أي برنامج تورنت (qBittorrent أو Flud أو Transmission...) — فهو يتواصل مع جميع المتتبعات ويجد الموزعين دائماً.',
+    downloadSaveTorrentButton: 'احفظ ملف ‎.torrent',
+    downloadCopyMagnetButton: 'انسخ رابط المغناطيس',
+    downloadTorrentSaved: 'تم حفظ ملف ‎.torrent على جهازك.',
+    downloadMagnetCopied: 'تم نسخ رابط المغناطيس.',
+    downloadRelayTitle: 'تنزيل عبر وسيط شبكة UDP الكاملة',
+    downloadRelayConnecting: 'جارٍ انضمام الوسيط إلى الشبكة...',
+    downloadRelayNote:
+      'لم يستطع متصفحك الوصول إلى أقران WebRTC لهذا التورنت، لذلك انضم وسيط الموقع إلى الشبكة الكاملة (متتبعات UDP + DHT) من جهة الشبكة ويدفق الفيلم إليك الآن. لا يُخزَّن أي شيء على الخادم.',
+    downloadRelaySaveButton: 'احفظ الفيلم الآن',
+    downloadRelaySaveNote: 'يدفق الفيلم من الوسيط إلى المجلد الذي اخترته أثناء التنزيل.',
+    downloadRelaySaveFailed: 'لم يكتمل حفظ الفيلم المُمرَّر عبر الوسيط. يُرجى إعادة المحاولة.',
+    downloadRelayUnavailable:
+      'الوسيط غير متاح حالياً. استخدم ملف ‎.torrent أو رابط المغناطيس أدناه مع أي برنامج تورنت، أو أعد المحاولة بعد قليل.',
+    downloadBrowserOnlyNote:
+      'يعمل التورنت في متصفحك، وعندما تكون شبكة المتصفح فارغة ينضم وسيط الموقع إلى شبكة UDP الكاملة ويدفق الفيلم إليك. لا يُخزَّن أي شيء على الخادم.',
   },
   my: {
     allActivity: 'كل النشاط',

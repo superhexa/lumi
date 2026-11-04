@@ -317,6 +317,58 @@ export const resources = {
         searchingPlaybackSources: 'Searching playback sources...',
         sourceUnavailable:
           'The current source is temporarily unavailable, or no matching title was found. Go back and try a different keyword.',
+        downloadTitle: 'Download this movie',
+        downloadSubtitle:
+          'Pick a torrent quality. The whole transfer runs in your browser — the movie flows peer-to-peer straight to your device.',
+        downloadQualityEyebrow: 'Torrent download',
+        downloadSeeds: '{{seeds}} seeds',
+        downloadLoadingListing: 'Loading torrent qualities...',
+        downloadLoadFailed:
+          "Couldn't load the torrent listing right now. Please try again later.",
+        downloadNoTorrents:
+          'This movie is not in the torrent catalog yet. Try again after its web release.',
+        downloadFetchTorrentFailed:
+          "The torrent couldn't be prepared. Please try again.",
+        downloadWebRtcUnsupported:
+          'This browser cannot join the torrent swarm: WebRTC is disabled or unavailable.',
+        downloadNoPeersFailed:
+          'No peers could be reached for this torrent right now. In-browser downloads share the WebTorrent swarm — try a different quality or retry later.',
+        downloadPeersLine:
+          '{{percent}}% · {{peers}} peers · {{speed}}/s',
+        downloadNoPeersHint:
+          'Still searching the swarm — peers can join at any time. If none connect yet, use the .torrent or magnet fallback below.',
+        downloadSaveButton: 'Save to device',
+        downloadSavingLabel: 'Saving file...',
+        downloadSavingNote:
+          'The video is streaming from your browser to your chosen folder.',
+        downloadSaved: 'Video saved to your device.',
+        downloadSaveFailed:
+          "Saving the file didn't finish. Please try once more.",
+        cancelDownload: 'Cancel download',
+        downloadingLabel: 'Downloading',
+        startingDownload: 'Preparing torrent...',
+        connectingLabel: 'Connecting to the swarm...',
+        finishedLabel: 'Download complete',
+        downloadManualTitle: 'Get the movie anyway',
+        downloadManualHint:
+          'Browsers can only reach WebRTC peers. Save the .torrent file and open it in any torrent app (qBittorrent, Flud, Transmission...) — it talks to every tracker and always finds seeders.',
+        downloadSaveTorrentButton: 'Save .torrent file',
+        downloadCopyMagnetButton: 'Copy magnet link',
+        downloadTorrentSaved: '.torrent file saved to your device.',
+        downloadMagnetCopied: 'Magnet link copied.',
+        downloadRelayTitle: 'Relay download via the full UDP swarm',
+        downloadRelayConnecting: 'Relay peer is joining the swarm...',
+        downloadRelayNote:
+          "Your browser could not reach WebRTC peers for this torrent, so the site's relay peer joined the complete torrent swarm (UDP trackers + DHT) on the network side and is streaming the movie through for you. Nothing is stored on the server.",
+        downloadRelaySaveButton: 'Save movie now',
+        downloadRelaySaveNote:
+          'The movie is streaming through the relay into your chosen folder as it downloads.',
+        downloadRelaySaveFailed:
+          "Saving the relayed movie didn't finish. Please try once more.",
+        downloadRelayUnavailable:
+          'The relay peer is offline right now. Use the .torrent file or magnet link below with any torrent app, or retry in a moment.',
+        downloadBrowserOnlyNote:
+          'Torrenting runs in your browser, and when the browser swarm is empty the site relay joins the full UDP swarm and streams the movie through. Nothing is stored on the server.',
       },
       my: {
         allActivity: 'All activity',

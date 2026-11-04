@@ -54,6 +54,7 @@ import {
 } from '@/lib/tmdb-player-sources';
 import { SearchResult } from '@/lib/types';
 
+import MovieDownloadModal from '@/components/MovieDownloadModal';
 import PageLayout from '@/components/PageLayout';
 import TmdbDetailModal from '@/components/TmdbDetailModal';
 
@@ -63,6 +64,7 @@ interface TmdbPlayDetail {
   id: number;
   mediaType: 'movie' | 'tv';
   title: string;
+  imdbId?: string;
   logo?: string;
   overview: string;
   backdrop: string;
@@ -410,8 +412,6 @@ function PlayPageClient() {
     null,
   );
   const [sourceMenuOpen, setSourceMenuOpen] = useState(false);
-  const [downloadStatus, setDownloadStatus] = useState<'idle' | 'preparing' | 'ready' | 'error'>('idle');
-  const [downloadError, setDownloadError] = useState<string | null>(null);
   const sourceMenuRegionRef = useRef<HTMLDivElement | null>(null);
   const sourceMenuPanelRef = useRef<HTMLDivElement | null>(null);
   const sourceTriggerRef = useRef<HTMLButtonElement | null>(null);
@@ -555,6 +555,7 @@ function PlayPageClient() {
   const [isPlayerFullscreen, setIsPlayerFullscreen] = useState(false);
   const [playerFullscreenError, setPlayerFullscreenError] = useState(false);
   const [popupPlayerError, setPopupPlayerError] = useState(false);
+  const [movieDownloadOpen, setMovieDownloadOpen] = useState(false);
 
   useEffect(() => {
     const syncFullscreenState = () => {
@@ -582,113 +583,6 @@ function PlayPageClient() {
     } catch (fullscreenError) {
       console.error('Unable to enter player fullscreen:', fullscreenError);
       setPlayerFullscreenError(true);
-    }
-  };
-
-  const downloadOnDevice = async (streamInfoUrl: URL, filename: string) => {
-    const infoResponse = await fetch(streamInfoUrl, { cache: 'no-store', credentials: 'same-origin' });
-    if (!infoResponse.ok) {
-      const payload = await infoResponse.json().catch(() => null) as { error?: string } | null;
-      throw new Error(payload?.error || 'CineSrc stream was not found');
-    }
-    const info = await infoResponse.json() as { streamUrl: string };
-    const firstUrl = new URL(info.streamUrl);
-    let manifestUrl = firstUrl;
-    let manifest = await (await fetch(firstUrl.toString(), { cache: 'no-store' })).text();
-
-    if (manifest.includes('#EXT-X-STREAM-INF')) {
-      const lines = manifest.split(/\r?\n/);
-      let selected: URL | null = null;
-      let selectedPixels = -1;
-      for (let index = 0; index < lines.length; index++) {
-        if (!lines[index].startsWith('#EXT-X-STREAM-INF:')) continue;
-        const next = lines[index + 1]?.trim();
-        if (!next || next.startsWith('#')) continue;
-        const candidate = new URL(next, manifestUrl);
-        const resolution = lines[index].match(/RESOLUTION=(\d+)x(\d+)/i);
-        const pixels = resolution ? Number(resolution[1]) * Number(resolution[2]) : 0;
-        if (pixels >= selectedPixels) { selected = candidate; selectedPixels = pixels; }
-      }
-      if (!selected) throw new Error('No CineSrc video quality was found');
-      manifestUrl = selected;
-      manifest = await (await fetch(manifestUrl.toString(), { cache: 'no-store' })).text();
-    }
-
-    const parts: BlobPart[] = [];
-    for (const line of manifest.split(/\r?\n/)) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith('#')) {
-        const mapMatch = trimmed.match(/#EXT-X-MAP:URI="([^"]+)"/i);
-        if (mapMatch) {
-          const response = await fetch(new URL(mapMatch[1], manifestUrl).toString(), { cache: 'no-store' });
-          if (!response.ok) throw new Error('CineSrc video initialization failed');
-          parts.push(await response.arrayBuffer());
-        }
-        continue;
-      }
-      if (/\.(jpg|jpeg|png)(\?|$)/i.test(trimmed) && !manifest.includes('#EXT-X-MAP')) continue;
-      const response = await fetch(new URL(trimmed, manifestUrl).toString(), { cache: 'no-store' });
-      if (!response.ok) throw new Error('A CineSrc video segment could not be downloaded');
-      parts.push(await response.arrayBuffer());
-    }
-    if (parts.length === 0) throw new Error('CineSrc returned an empty video stream');
-    const blob = new Blob(parts, { type: 'video/mp4' });
-    if (!blob.size) throw new Error('The CineSrc download was empty');
-    const objectUrl = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = objectUrl;
-    anchor.download = filename;
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
-  };
-
-  const downloadCurrentMovie = async () => {
-    const tmdbId = tmdbPlayerIdRef.current;
-    if (!tmdbId || downloadStatus === 'preparing') return;
-    setDownloadStatus('preparing');
-    setDownloadError(null);
-    const url = new URL('/api/player/download', window.location.origin);
-    url.searchParams.set('tmdbId', String(tmdbId));
-    url.searchParams.set('type', tmdbMediaTypeRef.current);
-    url.searchParams.set('provider', playerProviderRef.current);
-    if (tmdbMediaTypeRef.current === 'tv') {
-      url.searchParams.set('season', String(currentSeasonRef.current));
-      url.searchParams.set('episode', String(currentEpisodeIndexRef.current + 1));
-    }
-    url.searchParams.set('title', displayTitle || videoTitleRef.current || `Movie ${tmdbId}`);
-    url.searchParams.set('year', videoYearRef.current || '');
-    try {
-      if (playerProviderRef.current === 'cinesrc') {
-        url.searchParams.set('streamInfo', '1');
-        await downloadOnDevice(url, `${(displayTitle || videoTitleRef.current || `Movie ${tmdbId}`).replace(/[\\/:*?"<>|]/g, ' ').trim() || `Movie ${tmdbId}`}.mp4`);
-        setDownloadStatus('ready');
-        return;
-      }
-      const response = await fetch(url, { cache: 'no-store', credentials: 'same-origin' });
-      if (!response.ok) {
-        const payload = await response.json().catch(() => null) as { error?: string } | null;
-        throw new Error(payload?.error || 'This source could not be downloaded');
-      }
-      const blob = await response.blob();
-      if (!blob.size) throw new Error('The download was empty');
-      const disposition = response.headers.get('content-disposition') || '';
-      const utf8Name = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
-      const plainName = disposition.match(/filename="([^"]+)"/i)?.[1];
-      const filename = utf8Name ? decodeURIComponent(utf8Name) : plainName || `${displayTitle || `Movie ${tmdbId}`}.mp4`;
-      const objectUrl = URL.createObjectURL(blob);
-      const anchor = document.createElement('a');
-      anchor.href = objectUrl;
-      anchor.download = filename;
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
-      setDownloadStatus('ready');
-    } catch (error) {
-      setDownloadStatus('error');
-      setDownloadError(error instanceof Error ? error.message : 'Download failed');
     }
   };
 
@@ -1680,67 +1574,7 @@ function PlayPageClient() {
   };
 
   useEffect(() => {
-    if (playerProviderRef.current !== 'cinesrc') return;
-
-    const cacheDiscoveredStream = (streamUrl: string) => {
-      try {
-        const url = new URL(streamUrl, window.location.origin);
-        if (url.protocol !== 'https:' || !/\.m3u8(?:$|\?|\/)/i.test(url.pathname + url.search)) return;
-        void fetch('/api/player/cinesrc-cache', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            tmdbId: tmdbPlayerIdRef.current,
-            type: tmdbMediaTypeRef.current,
-            season: currentSeasonRef.current,
-            episode: currentEpisodeIndexRef.current + 1,
-            url: url.toString(),
-          }),
-          cache: 'no-store',
-        }).catch(() => undefined);
-      } catch {
-        // Ignore unrelated resource URLs.
-      }
-    };
-
-    const scanResources = () => {
-      for (const entry of performance.getEntriesByType('resource')) {
-        cacheDiscoveredStream(entry.name);
-      }
-    };
-
-    const interval = window.setInterval(scanResources, 2000);
-    scanResources();
-    return () => window.clearInterval(interval);
-  }, [playerEmbedUrl, tmdbDetail?.id]);
-
-  useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      if (playerProviderRef.current === 'cinesrc') {
-        const payload = JSON.stringify(event.data);
-        const matches = payload.match(/https?:\\?\/\\?\/[^"'\\\s]+\.m3u8[^"'\\\s]*/gi);
-        for (const match of matches || []) {
-          try {
-            const value = match.replace(/\\u0026/gi, '&').replace(/\\\//g, '/').replace(/\\\\/g, '/');
-            const url = new URL(value);
-            void fetch('/api/player/cinesrc-cache', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                tmdbId: tmdbPlayerIdRef.current,
-                type: tmdbMediaTypeRef.current,
-                season: currentSeasonRef.current,
-                episode: currentEpisodeIndexRef.current + 1,
-                url: url.toString(),
-              }),
-              cache: 'no-store',
-            }).catch(() => undefined);
-          } catch {
-            // Ignore malformed provider messages.
-          }
-        }
-      }
-
       if (
         !tmdbEmbedIframeRef.current ||
         event.source !== tmdbEmbedIframeRef.current.contentWindow
@@ -2173,6 +2007,9 @@ function PlayPageClient() {
   const displayOverview = tmdbDetail?.overview || detail?.desc || '';
   const displayPoster =
     tmdbDetail?.poster || tmdbDetail?.backdrop || videoCover;
+  const downloadableMovie =
+    (tmdbDetail?.mediaType || tmdbMediaType || 'movie') === 'movie' &&
+    Boolean(tmdbDetail?.title || videoTitle || detail?.title);
   const displayType =
     tmdbDetail?.mediaType === 'tv'
       ? t('common.series')
@@ -2531,6 +2368,17 @@ function PlayPageClient() {
               <h1 className='line-clamp-2 min-w-0 flex-1 text-xl font-semibold leading-tight tracking-wide text-white drop-shadow-lg'>
                 {displayTitle}
               </h1>
+              {downloadableMovie ? (
+                <button
+                  type='button'
+                  aria-label={t('play.downloadTitle')}
+                  title={t('play.downloadTitle')}
+                  onClick={() => setMovieDownloadOpen(true)}
+                  className='ui-glass-control inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl'
+                >
+                  <Download className='h-5 w-5' />
+                </button>
+              ) : null}
               <button
                 type='button'
                 aria-label='Popup player'
@@ -2594,6 +2442,17 @@ function PlayPageClient() {
                     />
                   ) : null}
 
+                  {downloadableMovie ? (
+                    <button
+                      type='button'
+                      aria-label={t('play.downloadTitle')}
+                      title={t('play.downloadTitle')}
+                      onClick={() => setMovieDownloadOpen(true)}
+                      className='ui-glass-control absolute left-3 top-3 z-[510] inline-flex h-10 w-10 items-center justify-center rounded-xl'
+                    >
+                      <Download className='h-5 w-5' />
+                    </button>
+                  ) : null}
                   <button
                     type='button'
                     aria-label='Popup player'
@@ -2683,32 +2542,6 @@ function PlayPageClient() {
                     </div>
                   )}
                 </div>
-              </div>
-
-              <div className='relative mt-3 flex justify-end'>
-                <button
-                  type='button'
-                  title={downloadStatus === 'preparing' ? 'Preparing download' : downloadStatus === 'ready' ? 'Downloaded' : downloadStatus === 'error' ? 'Retry download' : 'Download MP4'}
-                  aria-label={downloadStatus === 'preparing' ? 'Preparing download' : downloadStatus === 'ready' ? 'Downloaded' : downloadStatus === 'error' ? 'Retry download' : 'Download MP4'}
-                  disabled={downloadStatus === 'preparing'}
-                  onClick={() => void downloadCurrentMovie()}
-                  className='group flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-gradient-to-br from-violet-500 via-fuchsia-500 to-indigo-500 text-white shadow-[0_8px_24px_rgba(124,58,237,0.28)] transition duration-200 hover:scale-105 hover:border-white/30 disabled:cursor-wait disabled:opacity-70'
-                >
-                  {downloadStatus === 'preparing' ? (
-                    <span className='h-4 w-4 animate-spin rounded-full border-2 border-white/35 border-t-white' />
-                  ) : downloadStatus === 'ready' ? (
-                    <Check className='h-4 w-4' />
-                  ) : downloadStatus === 'error' ? (
-                    <RefreshCw className='h-4 w-4' />
-                  ) : (
-                    <Download className='h-4 w-4 transition-transform group-hover:translate-y-0.5' />
-                  )}
-                </button>
-                {downloadError ? (
-                  <p role='alert' className='absolute right-11 top-1/2 max-w-64 -translate-y-1/2 truncate rounded-lg border border-red-400/20 bg-red-950/90 px-2.5 py-1.5 text-xs text-red-100 shadow-xl'>
-                    {downloadError}
-                  </p>
-                ) : null}
               </div>
 
               {episodePanel}
@@ -3428,6 +3261,14 @@ function PlayPageClient() {
           </div>
         </div>
       </div>
+
+      <MovieDownloadModal
+        open={movieDownloadOpen}
+        onClose={() => setMovieDownloadOpen(false)}
+        movieTitle={tmdbDetail?.title || videoTitle}
+        movieYear={tmdbDetail?.year || videoYear}
+        imdbId={tmdbDetail?.imdbId}
+      />
 
       <TmdbDetailModal
         open={recommendedDetailOpen}

@@ -60,6 +60,7 @@
     "swiper": "^12.2.0",
     "tailwind-merge": "^2.6.1",
     "vidstack": "^0.6.15",
+    "webtorrent": "1.9.4",
     "zod": "^3.25.76"
   },
   "devDependencies": {
