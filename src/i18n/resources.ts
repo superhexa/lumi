@@ -367,6 +367,51 @@ export const resources = {
           "Saving the relayed movie didn't finish. Please try once more.",
         downloadRelayUnavailable:
           'The relay peer is offline right now. Use the .torrent file or magnet link below with any torrent app, or retry in a moment.',
+        subtitlesTitle: 'Subtitles & sync',
+        subtitlesIdle: 'Ready to load subtitles',
+        subtitlesLoading: 'Finding subtitles...',
+        subtitlesLoadingHint:
+          'Searching a matching subtitle track for this title...',
+        subtitlesReady: 'Subtitles loaded',
+        subtitlesUnavailable:
+          'No subtitles were found for this title. Load your own subtitle file below.',
+        subtitlesLoadFailed:
+          "Couldn't load subtitles right now. Check your connection and retry.",
+        subtitlesOffset: 'Subtitle timing',
+        subtitlesEarlier: 'Show subtitles earlier',
+        subtitlesLater: 'Show subtitles later',
+        subtitlesReset: 'Reset timing',
+        subtitlesDrift: 'Drift correction',
+        subtitlesDriftStretch: 'Stretch · 25 → 23.976 fps',
+        subtitlesDriftShrink: 'Compress · 23.976 → 25 fps',
+        subtitlesDriftHint:
+          'Use these when subtitles start in sync but fall further behind or ahead as the movie plays. Matched track: {{fps}} fps.',
+        subtitlesDriftApplied: 'Drift correction applied.',
+        subtitlesBadge: 'Subtitles & sync',
+        subtitlesLoadFile: 'Load subtitle file',
+        subtitlesFileLoaded: 'Subtitle file loaded.',
+        subtitlesFileInvalid:
+          "That file doesn't contain readable subtitles.",
+        subtitlesLanguage: 'Language',
+        subtitlesEnabled: 'Subtitles on',
+        subtitlesDisabled: 'Subtitles off',
+        subtitlesKeyboardHint:
+          'While this panel is open: [ earlier · ] later · \\ reset',
+        subtitlesSecondsAhead: '{{value}}s earlier',
+        subtitlesSecondsBehind: '{{value}}s later',
+        subtitlesOnTime: 'In sync',
+        subtitlesClose: 'Close subtitles panel',
+        subtitlesUnknownFile: 'Matched subtitle track',
+        subtitlesEstimatedSync:
+          'This source does not share exact playback time, so the subtitles use an estimated clock. Use the timing controls to align them, or open the movie in Luma player for frame-accurate sync.',
+        subtitlesUseLumaPlayer: 'Open in Luma player with synced subtitles',
+        subtitlesAnchorTitle: 'Manual sync',
+        subtitlesAnchorHint:
+          'Type the time shown on the player (mm:ss or hh:mm:ss) and press Sync to line the subtitles up exactly.',
+        subtitlesAnchorPlaceholder: '00:00',
+        subtitlesAnchorApply: 'Sync now',
+        subtitlesAnchorApplied: 'Subtitle clock synced to {{time}}.',
+        subtitlesAnchorInvalid: 'Enter a time like 12:34 or 1:02:03.',
         downloadBrowserOnlyNote:
           'Torrenting runs in your browser, and when the browser swarm is empty the site relay joins the full UDP swarm and streams the movie through. Nothing is stored on the server.',
       },

@@ -12,7 +12,12 @@ import { useTranslation } from 'react-i18next';
 import '@vidstack/react/player/styles/default/theme.css';
 import '@vidstack/react/player/styles/default/layouts/video.css';
 
-const { MediaPlayer, MediaProvider } = Vidstack;
+import { subtitleLanguageFromLocale } from '@/lib/subtitles';
+
+import { DirectPlayerSubtitles } from '@/components/DirectPlayerSubtitles';
+import { LumaMediaProvider } from '@/components/LumaMediaProvider';
+
+const { MediaPlayer } = Vidstack;
 const { DefaultVideoLayout, defaultLayoutIcons } = VidstackLayout;
 
 interface DismissibleMenuElement extends HTMLElement {
@@ -26,7 +31,7 @@ interface ArchiveAlternative {
 
 function DirectPlayer() {
   const params = useSearchParams();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const player = useRef<Vidstack.MediaPlayerInstance>(null);
   const shell = useRef<HTMLElement>(null);
   const [streamUrl, setStreamUrl] = useState('');
@@ -37,10 +42,16 @@ function DirectPlayer() {
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [playbackTime, setPlaybackTime] = useState(0);
   const alternatives = useRef<ArchiveAlternative[]>([]);
   const resumeValue = Number(params.get('t'));
   const resume = Number.isFinite(resumeValue) ? Math.max(0, resumeValue) : 0;
   const provider = params.get('provider') === 'archive' ? 'archive' : 'bingr';
+  const tmdbId = params.get('tmdbId') || '';
+  const mediaType = params.get('type') === 'tv' ? 'tv' : 'movie';
+  const season = Number(params.get('season')) || 1;
+  const episode = Number(params.get('episode')) || 1;
+  const subtitleLanguage = subtitleLanguageFromLocale(i18n.language);
   const query = new URLSearchParams({
     tmdbId: params.get('tmdbId') || '',
     type: params.get('type') || 'movie',
@@ -207,17 +218,31 @@ function DirectPlayer() {
           currentTime={resume}
           preload='auto'
           style={{ width: '100%', height: '100dvh' }}
-          onTimeUpdate={() => send('timeupdate')}
+          onTimeUpdate={() => {
+            send('timeupdate');
+            setPlaybackTime(player.current?.currentTime ?? 0);
+          }}
           onPlay={() => send('play')}
           onPause={() => send('pause')}
-          onSeeked={() => send('seeked')}
+          onSeeked={() => {
+            send('seeked');
+            setPlaybackTime(player.current?.currentTime ?? 0);
+          }}
           onEnded={() => send('ended')}
           onError={() => provider === 'archive' ? tryNextArchiveStream() : setFailed(true)}
         >
-          <MediaProvider />
+          <LumaMediaProvider />
           <DefaultVideoLayout
             icons={defaultLayoutIcons}
             menuContainer='.direct-player-shell'
+          />
+          <DirectPlayerSubtitles
+            tmdbId={tmdbId}
+            mediaType={mediaType}
+            season={season}
+            episode={episode}
+            preferredLanguage={subtitleLanguage}
+            currentTime={playbackTime}
           />
         </MediaPlayer>
       ) : (

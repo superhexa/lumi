@@ -77,4 +77,16 @@ describe('bounded Bingr media relay', () => {
       rewriteBingrPlaylist('<html>blocked</html>', new URL(media)),
     ).toThrow();
   });
+
+  it('keeps provider subtitles available without auto-enabling them', () => {
+    const result = rewriteBingrPlaylist(
+      '#EXTM3U\n#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",NAME="English",DEFAULT=YES,AUTOSELECT=YES,URI="subs.m3u8"',
+      new URL(media),
+    );
+    expect(result).toContain('DEFAULT=NO');
+    expect(result).toContain('AUTOSELECT=NO');
+    expect(result).toContain(
+      bingrMediaProxyUrl(new URL('subs.m3u8', media).href),
+    );
+  });
 });

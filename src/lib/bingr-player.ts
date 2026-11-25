@@ -64,7 +64,19 @@ export function rewriteBingrPlaylist(body: string, base: URL): string {
     .map((line) => {
       if (!line || !line.trim()) return line;
       if (line.startsWith('#')) {
-        return line.replace(
+        let output = line;
+        // Luma renders its own subtitle layer with live timing controls. Keep
+        // provider subtitle renditions available but never auto-enable them,
+        // otherwise the native track and the overlay would both show.
+        if (
+          output.startsWith('#EXT-X-MEDIA:') &&
+          /TYPE=SUBTITLES/i.test(output)
+        ) {
+          output = output
+            .replace(/DEFAULT=YES/gi, 'DEFAULT=NO')
+            .replace(/AUTOSELECT=YES/gi, 'AUTOSELECT=NO');
+        }
+        return output.replace(
           /URI="([^"]+)"/g,
           (_, uri: string) => `URI="${rewrite(uri)}"`,
         );

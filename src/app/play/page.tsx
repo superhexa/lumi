@@ -40,6 +40,7 @@ import {
   savePlayRecord,
   subscribeToDataUpdates,
 } from '@/lib/db.client';
+import { subtitleLanguageFromLocale } from '@/lib/subtitles';
 import { buildTmdbDetailPageUrl } from '@/lib/tmdb-detail-url';
 import {
   type TmdbPlayerMediaType,
@@ -54,6 +55,7 @@ import {
 } from '@/lib/tmdb-player-sources';
 import { SearchResult } from '@/lib/types';
 
+import { DirectPlayerSubtitles } from '@/components/DirectPlayerSubtitles';
 import MovieDownloadModal from '@/components/MovieDownloadModal';
 import PageLayout from '@/components/PageLayout';
 import TmdbDetailModal from '@/components/TmdbDetailModal';
@@ -551,6 +553,10 @@ function PlayPageClient() {
   const tmdbEmbedIframeRef = useRef<HTMLIFrameElement | null>(null);
   const playerFrameRef = useRef<HTMLDivElement | null>(null);
   const tmdbEmbedProgressRef = useRef<TmdbEmbedProgressState | null>(null);
+  const embedExactClockRef = useRef<{ time: number; at: number } | null>(null);
+  const embedPlayingRef = useRef(false);
+  const [embedSubtitleTime, setEmbedSubtitleTime] = useState(0);
+  const [embedSubtitleExact, setEmbedSubtitleExact] = useState(false);
   const historyResumeKeysRef = useRef<Set<string>>(new Set());
   const [isPlayerFullscreen, setIsPlayerFullscreen] = useState(false);
   const [playerFullscreenError, setPlayerFullscreenError] = useState(false);
@@ -846,6 +852,7 @@ function PlayPageClient() {
       type: input.mediaType,
       provider: normalizeTmdbPlayerProvider(input.provider),
       tmdbLanguage: getCurrentTmdbLanguage(),
+      subtitleLang: getCurrentTmdbLanguage().startsWith('ar') ? 'ar' : 'en',
     });
 
     if (input.mediaType === 'tv') {
@@ -1598,16 +1605,39 @@ function PlayPageClient() {
         state.playTime = parsed.currentTime;
         state.hasExactTime = true;
         state.startedAt = null;
-      } else if (
-        ['play', 'playing', 'ready'].includes(parsed.kind) &&
-        state.startedAt === null
-      ) {
-        state.startedAt = Date.now();
+        embedExactClockRef.current = {
+          time: parsed.currentTime,
+          at: Date.now(),
+        };
+        embedPlayingRef.current = true;
+        setEmbedSubtitleExact(true);
+      } else if (['play', 'playing'].includes(parsed.kind)) {
+        embedPlayingRef.current = true;
+        if (state.hasExactTime && !embedExactClockRef.current) {
+          embedExactClockRef.current = { time: state.playTime, at: Date.now() };
+        }
+        if (state.startedAt === null && !state.hasExactTime) {
+          state.startedAt = Date.now();
+        }
+      } else if (parsed.kind === 'ready') {
+        embedPlayingRef.current = true;
+        if (state.startedAt === null && !state.hasExactTime) {
+          state.startedAt = Date.now();
+        }
       } else if (
         ['pause', 'paused', 'ended', 'complete'].includes(parsed.kind)
       ) {
-        saveTmdbEmbedPlayProgress(true);
+        const clock = embedExactClockRef.current;
+        if (clock) {
+          state.playTime =
+            clock.time + Math.max(0, (Date.now() - clock.at) / 1000);
+          embedExactClockRef.current = null;
+        } else if (state.startedAt !== null) {
+          state.playTime += Math.max(0, (Date.now() - state.startedAt) / 1000);
+        }
         state.startedAt = null;
+        embedPlayingRef.current = false;
+        saveTmdbEmbedPlayProgress(true);
       }
 
       if (
@@ -1631,6 +1661,45 @@ function PlayPageClient() {
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, [tmdbDetail]);
+
+  // Interpolates the playback clock reported by third-party iframes so Luma's
+  // subtitle overlay can follow along even between time messages. When a
+  // provider never reports time, the clock starts when the iframe loads and the
+  // user can still correct it with the subtitle timing controls.
+  useEffect(() => {
+    embedExactClockRef.current = null;
+    embedPlayingRef.current = false;
+    setEmbedSubtitleExact(false);
+    setEmbedSubtitleTime(0);
+    if (!playerEmbedUrl) return;
+    if (playerProvider === 'bingr' || playerProvider === 'archive') return;
+
+    const tick = () => {
+      const state = tmdbEmbedProgressRef.current;
+      const clock = embedExactClockRef.current;
+      let time = 0;
+      if (clock) {
+        time =
+          clock.time +
+          (embedPlayingRef.current ? (Date.now() - clock.at) / 1000 : 0);
+      } else if (typeof state?.startedAt === 'number') {
+        time =
+          state.playTime +
+          (embedPlayingRef.current
+            ? (Date.now() - state.startedAt) / 1000
+            : 0);
+      } else if (state) {
+        time = state.playTime;
+      }
+      setEmbedSubtitleTime((previous) =>
+        Math.abs(previous - time) > 0.12 ? time : previous,
+      );
+    };
+
+    tick();
+    const interval = window.setInterval(tick, 250);
+    return () => window.clearInterval(interval);
+  }, [playerEmbedUrl, playerProvider]);
 
   useEffect(() => {
     if (!playerEmbedUrl) return;
@@ -2436,9 +2505,54 @@ function PlayPageClient() {
                       }}
                       onLoad={() => {
                         setIsVideoLoading(false);
+                        const progress = tmdbEmbedProgressRef.current;
+                        if (
+                          progress &&
+                          progress.startedAt === null &&
+                          !progress.hasExactTime
+                        ) {
+                          progress.startedAt = Date.now();
+                          embedPlayingRef.current = true;
+                        }
                         postTmdbEmbedResume();
                       }}
                       className='h-full w-full rounded-[var(--ui-radius-card)] border-0 bg-black'
+                    />
+                  ) : null}
+
+                  {playerEmbedUrl &&
+                  tmdbMode &&
+                  tmdbPlayerId &&
+                  playerProvider !== 'bingr' &&
+                  playerProvider !== 'archive' ? (
+                    <DirectPlayerSubtitles
+                      tmdbId={String(tmdbPlayerId)}
+                      mediaType={tmdbMediaType}
+                      season={currentSeason}
+                      episode={currentEpisodeIndex + 1}
+                      preferredLanguage={subtitleLanguageFromLocale(
+                        i18n.language,
+                      )}
+                      currentTime={embedSubtitleTime}
+                      variant='overlay'
+                      syncEstimated={!embedSubtitleExact}
+                      onSwitchToLuma={() => {
+                        void switchTmdbPlayback({ provider: 'bingr' });
+                      }}
+                      onAnchorTime={(seconds) => {
+                        const progress = tmdbEmbedProgressRef.current;
+                        if (progress) {
+                          progress.playTime = seconds;
+                          progress.hasExactTime = true;
+                          progress.startedAt = null;
+                        }
+                        embedExactClockRef.current = {
+                          time: seconds,
+                          at: Date.now(),
+                        };
+                        embedPlayingRef.current = true;
+                        setEmbedSubtitleExact(true);
+                      }}
                     />
                   ) : null}
 
