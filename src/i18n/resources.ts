@@ -308,9 +308,11 @@ export const resources = {
         sourceMayShowAds: 'May open ads or redirect',
         currentSource: 'Currently selected',
         featuredSource: 'Huge source',
-        archiveSourceDescription: 'Verified public catalog · multiple resolutions',
+        archiveSourceDescription:
+          'Verified public catalog · multiple resolutions',
         noEpisodes: 'No episodes are available for this season.',
         retry: 'Retry',
+        chooseAnotherSource: 'Choose another source',
         readyStartingPlayback: 'Ready. Starting playback...',
         resolvingPlaybackSource: 'Resolving playback source...',
         runtimeMinutes: '{{count}} min',
@@ -333,8 +335,7 @@ export const resources = {
           'This browser cannot join the torrent swarm: WebRTC is disabled or unavailable.',
         downloadNoPeersFailed:
           'No peers could be reached for this torrent right now. In-browser downloads share the WebTorrent swarm — try a different quality or retry later.',
-        downloadPeersLine:
-          '{{percent}}% · {{peers}} peers · {{speed}}/s',
+        downloadPeersLine: '{{percent}}% · {{peers}} peers · {{speed}}/s',
         downloadNoPeersHint:
           'Still searching the swarm — peers can join at any time. If none connect yet, use the .torrent or magnet fallback below.',
         downloadSaveButton: 'Save to device',
@@ -368,15 +369,26 @@ export const resources = {
         downloadRelayUnavailable:
           'The relay peer is offline right now. Use the .torrent file or magnet link below with any torrent app, or retry in a moment.',
         subtitlesTitle: 'Subtitles & sync',
+        subtitlesEyebrow: 'Luma subtitles',
         subtitlesIdle: 'Ready to load subtitles',
+        subtitlesWaitingForPlayback: 'Waiting for playback',
+        subtitlesWaitingHint:
+          'Subtitles start loading as soon as the movie begins, so they never slow down the page.',
         subtitlesLoading: 'Finding subtitles...',
         subtitlesLoadingHint:
           'Searching a matching subtitle track for this title...',
         subtitlesReady: 'Subtitles loaded',
         subtitlesUnavailable:
           'No subtitles were found for this title. Load your own subtitle file below.',
+        subtitlesUnavailableShort: 'Not found',
         subtitlesLoadFailed:
           "Couldn't load subtitles right now. Check your connection and retry.",
+        subtitlesLoadFailedShort: 'Load failed',
+        subtitlesSearchLanguage: 'Search all languages',
+        subtitlesClearSearch: 'Clear language search',
+        subtitlesNoLanguageResults: 'No language matches that search.',
+        subtitlesLanguageCount: '{{total}} languages',
+        subtitlesCueCount: '{{total}} lines',
         subtitlesOffset: 'Subtitle timing',
         subtitlesEarlier: 'Show subtitles earlier',
         subtitlesLater: 'Show subtitles later',
@@ -390,8 +402,7 @@ export const resources = {
         subtitlesBadge: 'Subtitles & sync',
         subtitlesLoadFile: 'Load subtitle file',
         subtitlesFileLoaded: 'Subtitle file loaded.',
-        subtitlesFileInvalid:
-          "That file doesn't contain readable subtitles.",
+        subtitlesFileInvalid: "That file doesn't contain readable subtitles.",
         subtitlesLanguage: 'Language',
         subtitlesEnabled: 'Subtitles on',
         subtitlesDisabled: 'Subtitles off',

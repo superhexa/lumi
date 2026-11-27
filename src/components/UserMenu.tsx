@@ -105,7 +105,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({
       ref={panelRef}
       role='dialog'
       aria-label={t('common.siteMenu')}
-      className='ui-glass-panel fixed z-[1001] max-h-[calc(100dvh-24px)] w-[calc(100vw-24px)] max-w-[280px] overflow-y-auto rounded-[20px] border border-cyan-300/15 p-2 shadow-[0_24px_70px_rgba(0,0,0,.68),0_8px_30px_rgba(34,211,238,.08)] sm:w-[280px]'
+      className='ui-glass-panel fixed z-[1001] max-h-[calc(100dvh-24px)] w-[calc(100vw-24px)] max-w-[280px] overflow-y-auto rounded-[20px] border border-white/15 p-2 shadow-[0_24px_70px_rgba(0,0,0,.68),0_8px_30px_rgba(255,255,255,.05)] sm:w-[280px]'
       style={{ top: menuPosition.top, left: menuPosition.left }}
       initial={
         shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -8, scale: 0.96 }

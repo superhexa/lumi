@@ -17,7 +17,7 @@ function LanguageBadge({ language }: { language: AppLanguage }) {
     <span
       aria-hidden='true'
       dir='auto'
-      className='grid h-7 min-w-7 place-items-center rounded-full border border-cyan-300/25 bg-gradient-to-br from-cyan-300/20 to-blue-400/10 px-1 text-[11px] font-bold tracking-wide text-cyan-100 shadow-inner shadow-white/10'
+      className='grid h-7 min-w-7 place-items-center rounded-full border border-white/25 bg-gradient-to-br from-white/20 to-white/5 px-1 text-[11px] font-bold tracking-wide text-amber-50 shadow-inner shadow-white/10'
     >
       {language === 'ar' ? 'ع' : 'EN'}
     </span>

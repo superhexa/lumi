@@ -20,6 +20,7 @@ import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useWarpRouteTransition } from '@/hooks/useWarpRouteTransition';
+
 import WarpLoadingOverlay from '@/components/WarpLoadingOverlay';
 
 interface MobileBottomNavProps {
@@ -92,10 +93,10 @@ export default function MobileBottomNav({
             onBeforeNavigate: onClose,
           })
         }
-        className={`group flex min-h-[58px] items-center gap-3 rounded-2xl border px-3 py-2 transition duration-200 active:scale-[.98] ${active ? 'border-cyan-300/25 bg-cyan-400/[0.12] text-white' : 'border-white/[0.06] bg-white/[0.035] text-zinc-200 hover:border-cyan-300/15 hover:bg-white/[0.07]'}`}
+        className={`group flex min-h-[58px] items-center gap-3 rounded-2xl border px-3 py-2 transition duration-200 active:scale-[.98] ${active ? 'border-white/20 bg-white/[0.12] text-white' : 'border-white/[0.06] bg-white/[0.035] text-zinc-200 hover:border-white/15 hover:bg-white/[0.07]'}`}
       >
         <span
-          className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${active ? 'bg-cyan-400 text-slate-950' : 'bg-white/[0.06] text-cyan-300'}`}
+          className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${active ? 'bg-[var(--ui-accent)] text-zinc-950' : 'bg-white/[0.06] text-[var(--ui-accent)]'}`}
         >
           <Icon className='h-[19px] w-[19px]' />
         </span>
@@ -103,7 +104,7 @@ export default function MobileBottomNav({
           {item.label}
         </span>
         <ChevronLeft
-          className={`h-4 w-4 rtl:rotate-180 ${active ? 'text-cyan-300' : 'text-zinc-600'}`}
+          className={`h-4 w-4 rtl:rotate-180 ${active ? 'text-[var(--ui-accent)]' : 'text-zinc-600'}`}
         />
       </Link>
     );
@@ -134,7 +135,7 @@ export default function MobileBottomNav({
               role='dialog'
               aria-modal='true'
               aria-label={t('common.menu')}
-              className={`absolute inset-y-0 flex w-[min(88vw,360px)] flex-col border-e border-white/[0.08] bg-[linear-gradient(145deg,#08111b_0%,#05070a_42%,#020304_100%)] text-white shadow-[28px_0_80px_rgba(0,0,0,.78)] ${isRtl ? 'inset-inline-end-0' : 'inset-inline-start-0'}`}
+              className={`absolute inset-y-0 flex w-[min(88vw,360px)] flex-col border-e border-white/[0.08] bg-[linear-gradient(160deg,rgba(30,30,33,.98)_0%,rgba(10,10,12,.99)_55%,#050506_100%)] text-white shadow-[28px_0_80px_rgba(0,0,0,.78)] ${isRtl ? 'inset-inline-end-0' : 'inset-inline-start-0'}`}
               style={{
                 paddingTop: 'env(safe-area-inset-top)',
                 paddingBottom: 'env(safe-area-inset-bottom)',
@@ -154,7 +155,7 @@ export default function MobileBottomNav({
             >
               <div className='flex h-[72px] shrink-0 items-center justify-between border-b border-white/[0.07] px-4'>
                 <div className='flex items-center gap-2'>
-                  <span className='grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-cyan-400 to-blue-500 text-slate-950 shadow-[0_8px_24px_rgba(34,211,238,.2)]'>
+                  <span className='grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-[#f6ead0] to-[#c8b184] text-zinc-950 shadow-[0_8px_24px_rgba(239,226,196,.22)]'>
                     <Film className='h-5 w-5' />
                   </span>
                   <span className='text-lg font-black tracking-tight'>
@@ -172,11 +173,11 @@ export default function MobileBottomNav({
               </div>
 
               <nav className='scrollbar-hide flex-1 overflow-y-auto px-4 py-5 sm:px-5'>
-                <p className='mb-2 px-2 text-[11px] font-black uppercase tracking-[0.2em] text-cyan-300/60'>
+                <p className='mb-2 px-2 text-[11px] font-black uppercase tracking-[0.2em] text-[var(--ui-accent)]/60'>
                   {t('common.menu')}
                 </p>
                 <div className='grid gap-2'>{navItems.map(renderItem)}</div>
-                <p className='mb-2 mt-6 px-2 text-[11px] font-black uppercase tracking-[0.2em] text-cyan-300/60'>
+                <p className='mb-2 mt-6 px-2 text-[11px] font-black uppercase tracking-[0.2em] text-[var(--ui-accent)]/60'>
                   {t('common.categories')}
                 </p>
                 <div className='grid grid-cols-1 gap-2 min-[380px]:grid-cols-2'>

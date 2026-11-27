@@ -1,4 +1,6 @@
 /** @jest-environment node */
+import { deflateRawSync } from 'node:zlib';
+
 import { GET } from '@/app/api/player/subtitles/route';
 
 const SRT = [
@@ -31,6 +33,80 @@ async function gzip(text: string): Promise<ArrayBuffer> {
   return new Response(stream).arrayBuffer();
 }
 
+function crc32(bytes: Uint8Array): number {
+  let crc = 0xffffffff;
+  for (let index = 0; index < bytes.length; index++) {
+    crc ^= bytes[index];
+    for (let bit = 0; bit < 8; bit++) {
+      crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1));
+    }
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+/** Builds a minimal single-file ZIP using deflate, like YIFY serves. */
+function buildZip(name: string, content: string): Uint8Array {
+  const encoder = new TextEncoder();
+  const nameBytes = encoder.encode(name);
+  const raw = encoder.encode(content);
+  const compressed = new Uint8Array(deflateRawSync(raw));
+  const crc = crc32(raw);
+
+  const local = new Uint8Array(30 + nameBytes.length + compressed.length);
+  const localView = new DataView(local.buffer);
+  localView.setUint32(0, 0x04034b50, true);
+  localView.setUint16(4, 20, true);
+  localView.setUint16(6, 0, true);
+  localView.setUint16(8, 8, true);
+  localView.setUint16(10, 0, true);
+  localView.setUint16(12, 0, true);
+  localView.setUint32(14, crc, true);
+  localView.setUint32(18, compressed.length, true);
+  localView.setUint32(22, raw.length, true);
+  localView.setUint16(26, nameBytes.length, true);
+  localView.setUint16(28, 0, true);
+  local.set(nameBytes, 30);
+  local.set(compressed, 30 + nameBytes.length);
+
+  const central = new Uint8Array(46 + nameBytes.length);
+  const centralView = new DataView(central.buffer);
+  centralView.setUint32(0, 0x02014b50, true);
+  centralView.setUint16(4, 20, true);
+  centralView.setUint16(6, 20, true);
+  centralView.setUint16(8, 0, true);
+  centralView.setUint16(10, 8, true);
+  centralView.setUint16(12, 0, true);
+  centralView.setUint16(14, 0, true);
+  centralView.setUint32(16, crc, true);
+  centralView.setUint32(20, compressed.length, true);
+  centralView.setUint32(24, raw.length, true);
+  centralView.setUint16(28, nameBytes.length, true);
+  centralView.setUint16(30, 0, true);
+  centralView.setUint16(32, 0, true);
+  centralView.setUint16(34, 0, true);
+  centralView.setUint16(36, 0, true);
+  centralView.setUint32(38, 0, true);
+  centralView.setUint32(42, 0, true);
+  central.set(nameBytes, 46);
+
+  const eocd = new Uint8Array(22);
+  const eocdView = new DataView(eocd.buffer);
+  eocdView.setUint32(0, 0x06054b50, true);
+  eocdView.setUint16(4, 0, true);
+  eocdView.setUint16(6, 0, true);
+  eocdView.setUint16(8, 1, true);
+  eocdView.setUint16(10, 1, true);
+  eocdView.setUint32(12, central.length, true);
+  eocdView.setUint32(16, local.length, true);
+  eocdView.setUint16(20, 0, true);
+
+  const archive = new Uint8Array(local.length + central.length + eocd.length);
+  archive.set(local, 0);
+  archive.set(central, local.length);
+  archive.set(eocd, local.length + central.length);
+  return archive;
+}
+
 beforeEach(() => {
   fetchMock = jest.fn();
   global.fetch = fetchMock as unknown as typeof fetch;
@@ -55,9 +131,7 @@ describe('subtitle route', () => {
 
   it('returns 404 when the title has no IMDb mapping', async () => {
     const response = await GET(
-      new Request(
-        'http://localhost/api/player/subtitles?tmdbId=27205&lang=ar',
-      ),
+      new Request('http://localhost/api/player/subtitles?tmdbId=27205&lang=ar'),
     );
     expect(response.status).toBe(404);
   });
@@ -198,5 +272,54 @@ describe('subtitle route', () => {
       ),
     );
     expect(response.status).toBe(404);
+  });
+
+  it('extracts a ZIP subtitle from YIFY when the other catalogs are empty', async () => {
+    const zip = buildZip('Test.Movie.2010.English.srt', SRT);
+
+    fetchMock.mockImplementation((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('rest.opensubtitles.org')) {
+        return Promise.resolve(jsonResponse([]));
+      }
+      if (url.includes('opensubtitles-v3.strem.io')) {
+        return Promise.resolve(jsonResponse({ subtitles: [] }));
+      }
+      if (url.includes('/movie-imdb/tt1234567')) {
+        return Promise.resolve(
+          new Response(
+            '<a href="/subtitles/test-movie-2010-english-yify-123">English</a>',
+            { status: 200, headers: { 'Content-Type': 'text/html' } },
+          ),
+        );
+      }
+      if (url.endsWith('/subtitle/test-movie-2010-english-yify-123.zip')) {
+        return Promise.resolve(
+          new Response(zip.buffer as ArrayBuffer, {
+            status: 200,
+            headers: { 'Content-Type': 'application/zip' },
+          }),
+        );
+      }
+      return Promise.resolve(new Response('not found', { status: 404 }));
+    });
+
+    const response = await GET(
+      new Request(
+        'https://luma.example/api/player/subtitles?tmdbId=123&type=movie&lang=en&imdbId=tt1234567',
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as {
+      cues: Array<{ text: string }>;
+      meta: { source: string; fileName: string };
+    };
+    expect(body.meta.source).toBe('yifysubtitles');
+    expect(body.meta.fileName).toContain('test-movie-2010-english');
+    expect(body.cues.map((cue) => cue.text)).toEqual([
+      'First line',
+      'Second line',
+    ]);
   });
 });

@@ -36,7 +36,9 @@ describe('extractBingrWatchToken', () => {
 
   it('reads an escaped RSC token', () => {
     expect(
-      extractBingrWatchToken('self.__next_f.push(["$","{\\"token\\":\\"xyz.123\\"}"])'),
+      extractBingrWatchToken(
+        'self.__next_f.push(["$","{\\"token\\":\\"xyz.123\\"}"])',
+      ),
     ).toBe('xyz.123');
   });
 
@@ -71,7 +73,7 @@ describe('rankBingrStreams', () => {
         quality: '1080p',
         label: 'Original',
       },
-      { url: 'https://example.com/not-a-playlist.mp4' },
+      { url: 'https://example.com/notes.txt' },
     ]);
 
     expect(ranked.map((stream) => stream.label)).toEqual([
@@ -79,5 +81,18 @@ describe('rankBingrStreams', () => {
       'Edge',
       'HEVC',
     ]);
+  });
+
+  it('accepts MP4 sources alongside HLS', () => {
+    const ranked = rankBingrStreams([
+      {
+        url: 'https://img.rousav.tech/media/abc/movie.mp4',
+        type: 'mp4',
+        quality: '1080p',
+        label: 'MP4',
+      },
+    ]);
+    expect(ranked).toHaveLength(1);
+    expect(ranked[0]?.label).toBe('MP4');
   });
 });

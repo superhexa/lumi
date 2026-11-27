@@ -72,8 +72,14 @@ export async function GET(request: Request) {
       });
     }
     // Some upstreams deliberately give media an HTML MIME type. Never serve it
-    // as executable HTML on our own origin.
-    outputHeaders.set('Content-Type', 'application/octet-stream');
+    // as executable HTML on our own origin, but keep real audio/video types so
+    // MP4 sources remain playable.
+    outputHeaders.set(
+      'Content-Type',
+      /^(?:video|audio)\//i.test(upstreamContentType)
+        ? upstreamContentType
+        : 'application/octet-stream',
+    );
     for (const name of ['content-range', 'accept-ranges']) {
       const value = response.headers.get(name);
       if (value) outputHeaders.set(name, value);

@@ -4,8 +4,14 @@ import {
   Captions,
   CaptionsOff,
   Check,
+  FileText,
+  Gauge,
+  Languages,
   Loader2,
   RotateCcw,
+  Search,
+  Sparkles,
+  Timer,
   Upload,
   X,
 } from 'lucide-react';
@@ -22,6 +28,8 @@ import {
   formatSubtitleOffset,
   normalizeSubtitleTiming,
   parseSubtitleText,
+  resolveSubtitleLanguage,
+  SUBTITLE_LANGUAGES,
 } from '@/lib/subtitles';
 
 interface SubtitlesResponse {
@@ -29,9 +37,17 @@ interface SubtitlesResponse {
   cues?: SubtitleCue[];
   meta?: {
     fileName?: string;
+    source?: string;
     cueCount?: number;
     fps?: number;
   };
+}
+
+interface SubtitleMeta {
+  fileName: string;
+  source: string;
+  cueCount: number;
+  fps?: number;
 }
 
 export interface DirectPlayerSubtitlesProps {
@@ -45,6 +61,12 @@ export interface DirectPlayerSubtitlesProps {
   variant?: 'embedded' | 'overlay';
   /** True when the playback time is estimated rather than reported. */
   syncEstimated?: boolean;
+  /**
+   * Only begin resolving subtitles once the player has actually loaded. This
+   * keeps slow networks from fetching subtitle catalogs while the page is
+   * still loading.
+   */
+  playerReady?: boolean;
   /** Offered when the current source cannot report exact playback time. */
   onSwitchToLuma?: () => void;
   /**
@@ -58,7 +80,15 @@ type SubtitleStatus = 'idle' | 'loading' | 'ready' | 'empty' | 'error';
 
 const SYNC_STORAGE_PREFIX = 'luma:subtitle-sync:v1';
 const ENABLED_STORAGE_KEY = 'luma:subtitle-enabled:v1';
+const CUE_CACHE_PREFIX = 'luma:subtitle-cues:v2';
+const CUE_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const MAX_SUBTITLE_FILE_BYTES = 8 * 1024 * 1024;
+
+interface CachedCues {
+  at: number;
+  cues: SubtitleCue[];
+  meta: SubtitleMeta;
+}
 
 function timingStorageKey(
   mediaType: 'movie' | 'tv',
@@ -68,6 +98,16 @@ function timingStorageKey(
   language: SubtitleLanguage,
 ): string {
   return `${SYNC_STORAGE_PREFIX}:${mediaType}:${tmdbId}:${season}:${episode}:${language}`;
+}
+
+function cueCacheKey(
+  mediaType: 'movie' | 'tv',
+  tmdbId: string,
+  season: number,
+  episode: number,
+  language: SubtitleLanguage,
+): string {
+  return `${CUE_CACHE_PREFIX}:${mediaType}:${tmdbId}:${season}:${episode}:${language}`;
 }
 
 function readStoredTiming(key: string) {
@@ -90,6 +130,55 @@ function writeStoredTiming(
     window.localStorage.setItem(key, JSON.stringify(timing));
   } catch {
     // Storage can be unavailable in private mode; the feature still works.
+  }
+}
+
+function sanitizeCues(input: unknown): SubtitleCue[] {
+  if (!Array.isArray(input)) return [];
+  return input.filter(
+    (cue): cue is SubtitleCue =>
+      Boolean(cue) &&
+      Number.isFinite(cue.start) &&
+      Number.isFinite(cue.end) &&
+      cue.end > cue.start &&
+      typeof cue.text === 'string' &&
+      cue.text.trim().length > 0,
+  );
+}
+
+function readCachedCues(key: string): CachedCues | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.sessionStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as CachedCues;
+    if (!parsed || Date.now() - parsed.at > CUE_CACHE_TTL_MS) return null;
+    const cues = sanitizeCues(parsed.cues);
+    if (cues.length === 0) return null;
+    return {
+      at: parsed.at,
+      cues,
+      meta: {
+        fileName: parsed.meta?.fileName || '',
+        source: parsed.meta?.source || '',
+        cueCount: cues.length,
+        fps: parsed.meta?.fps,
+      },
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedCues(key: string, cues: SubtitleCue[], meta: SubtitleMeta) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage.setItem(
+      key,
+      JSON.stringify({ at: Date.now(), cues, meta } satisfies CachedCues),
+    );
+  } catch {
+    // Quota can be tight in private mode; the network path still works.
   }
 }
 
@@ -128,12 +217,19 @@ function readEnabledPreference(): boolean {
   }
 }
 
+function sourceLabel(source?: string): string {
+  if (source === 'opensubtitles') return 'OpenSubtitles';
+  if (source === 'stremio') return 'Stremio';
+  if (source === 'yifysubtitles') return 'YIFY';
+  return '';
+}
+
 /**
- * Luma's own subtitle layer for the direct player.
+ * Luma's own subtitle layer for the direct player and iframe overlays.
  *
- * Because the player renders the cues, timing can be corrected live:
- * delay buttons shift every cue, the slider gives fine control, and the
- * optional length fit stretches drifting tracks. Corrections are saved per
+ * Because the player renders the cues, timing can be corrected live: delay
+ * buttons shift every cue, the slider gives fine control, and the optional
+ * length fit stretches drifting tracks. Corrections are saved per
  * movie/episode/language, so a fix is remembered on the next watch.
  */
 export function DirectPlayerSubtitles({
@@ -145,6 +241,7 @@ export function DirectPlayerSubtitles({
   currentTime,
   variant = 'embedded',
   syncEstimated = false,
+  playerReady = true,
   onSwitchToLuma,
   onAnchorTime,
 }: DirectPlayerSubtitlesProps) {
@@ -154,21 +251,23 @@ export function DirectPlayerSubtitles({
     ? 'rtl'
     : 'ltr';
   const [language, setLanguage] = useState<SubtitleLanguage>(preferredLanguage);
+  const [languageQuery, setLanguageQuery] = useState('');
   const [panelOpen, setPanelOpen] = useState(false);
   const [status, setStatus] = useState<SubtitleStatus>('idle');
   const [enabled, setEnabled] = useState(readEnabledPreference);
   const [cues, setCues] = useState<SubtitleCue[]>([]);
-  const [fileName, setFileName] = useState('');
-  const [sourceFps, setSourceFps] = useState<number | null>(null);
+  const [meta, setMeta] = useState<SubtitleMeta | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [offsetMs, setOffsetMs] = useState(0);
   const [scale, setScale] = useState(1);
   const [reloadKey, setReloadKey] = useState(0);
   const [anchorValue, setAnchorValue] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const selectedLanguageRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     setLanguage(preferredLanguage);
+    setReloadKey(0);
   }, [preferredLanguage]);
 
   useEffect(() => {
@@ -179,12 +278,33 @@ export function DirectPlayerSubtitles({
     }
   }, [enabled]);
 
+  // Resolve subtitles only after the player is ready. Cached cues are applied
+  // instantly, so a second visit starts with subtitles already in place.
   useEffect(() => {
+    if (!playerReady) return;
     const controller = new AbortController();
+    const cacheKey = cueCacheKey(mediaType, tmdbId, season, episode, language);
+
+    if (reloadKey === 0) {
+      const cached = readCachedCues(cacheKey);
+      if (cached) {
+        const stored = readStoredTiming(
+          timingStorageKey(mediaType, tmdbId, season, episode, language),
+        );
+        setCues(cached.cues);
+        setMeta(cached.meta);
+        setOffsetMs(stored.offsetMs);
+        setScale(stored.scale);
+        setStatus('ready');
+        setNotice(null);
+        return () => controller.abort();
+      }
+    }
+
     setStatus('loading');
     setNotice(null);
     setCues([]);
-    setFileName('');
+    setMeta(null);
 
     const query = new URLSearchParams({
       tmdbId,
@@ -196,57 +316,54 @@ export function DirectPlayerSubtitles({
       query.set('episode', String(episode));
     }
 
-    void fetch(`/api/player/subtitles?${query.toString()}`, {
-      cache: 'no-store',
-      signal: controller.signal,
-    })
-      .then(async (response) => {
-        if (response.status === 404) return null;
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        return (await response.json()) as SubtitlesResponse | null;
-      })
-      .then((payload) => {
+    void (async () => {
+      try {
+        const response = await fetch(
+          `/api/player/subtitles?${query.toString()}`,
+          { cache: 'no-store', signal: controller.signal },
+        );
         if (controller.signal.aborted) return;
-        if (!payload) {
+        if (response.status === 404) {
           setStatus('empty');
           return;
         }
-        const nextCues = Array.isArray(payload?.cues)
-          ? payload.cues.filter(
-              (cue) =>
-                cue &&
-                Number.isFinite(cue.start) &&
-                Number.isFinite(cue.end) &&
-                cue.end > cue.start &&
-                typeof cue.text === 'string' &&
-                cue.text.trim().length > 0,
-            )
-          : [];
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const payload = (await response.json()) as SubtitlesResponse | null;
+        if (controller.signal.aborted) return;
+        const nextCues = sanitizeCues(payload?.cues);
         if (nextCues.length === 0) {
           setStatus('empty');
           return;
         }
+        const nextMeta: SubtitleMeta = {
+          fileName: payload?.meta?.fileName || '',
+          source: payload?.meta?.source || '',
+          cueCount: nextCues.length,
+          fps:
+            Number.isFinite(payload?.meta?.fps) && (payload?.meta?.fps || 0) > 0
+              ? Number(payload?.meta?.fps)
+              : undefined,
+        };
+        writeCachedCues(cacheKey, nextCues, nextMeta);
         const stored = readStoredTiming(
           timingStorageKey(mediaType, tmdbId, season, episode, language),
         );
         setCues(nextCues);
-        setFileName(payload.meta?.fileName || '');
-        setSourceFps(
-          Number.isFinite(payload.meta?.fps) && (payload.meta?.fps || 0) > 0
-            ? Number(payload.meta?.fps)
-            : null,
-        );
+        setMeta(nextMeta);
         setOffsetMs(stored.offsetMs);
         setScale(stored.scale);
         setStatus('ready');
-      })
-      .catch(() => {
-        if (controller.signal.aborted) return;
-        setStatus('error');
-      });
+      } catch {
+        if (!controller.signal.aborted) setStatus('error');
+      }
+    })();
 
     return () => controller.abort();
-  }, [tmdbId, mediaType, season, episode, language, reloadKey]);
+  }, [playerReady, tmdbId, mediaType, season, episode, language, reloadKey]);
+
+  useEffect(() => {
+    if (!playerReady) setStatus('idle');
+  }, [playerReady]);
 
   useEffect(() => {
     if (status !== 'ready') return;
@@ -269,9 +386,19 @@ export function DirectPlayerSubtitles({
     setOffsetMs((current) => clampSubtitleOffset(current + deltaMs));
   }, []);
 
+  const selectLanguage = useCallback((code: SubtitleLanguage) => {
+    setLanguage(code);
+    setReloadKey(0);
+  }, []);
+
   useEffect(() => {
     if (!panelOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setPanelOpen(false);
+        return;
+      }
       if (event.metaKey || event.ctrlKey || event.altKey) return;
       if (event.key === '[') {
         event.preventDefault();
@@ -287,6 +414,20 @@ export function DirectPlayerSubtitles({
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [panelOpen, nudge]);
+
+  useEffect(() => {
+    if (!panelOpen || typeof document === 'undefined') return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [panelOpen]);
+
+  useEffect(() => {
+    if (!panelOpen) return;
+    selectedLanguageRef.current?.scrollIntoView({ block: 'nearest' });
+  }, [panelOpen, language]);
 
   const handleDrift = useCallback(
     (ratio: number) => {
@@ -325,7 +466,11 @@ export function DirectPlayerSubtitles({
           return;
         }
         setCues(parsed);
-        setFileName(file.name);
+        setMeta({
+          fileName: file.name,
+          source: 'local',
+          cueCount: parsed.length,
+        });
         setOffsetMs(0);
         setScale(1);
         setStatus('ready');
@@ -338,6 +483,18 @@ export function DirectPlayerSubtitles({
     [language, t],
   );
 
+  const filteredLanguages = useMemo(() => {
+    const query = languageQuery.trim().toLowerCase();
+    if (!query) return SUBTITLE_LANGUAGES;
+    return SUBTITLE_LANGUAGES.filter(
+      (entry) =>
+        entry.label.toLowerCase().includes(query) ||
+        entry.native.toLowerCase().includes(query) ||
+        entry.code.toLowerCase().includes(query),
+    );
+  }, [languageQuery]);
+
+  const languageInfo = resolveSubtitleLanguage(language);
   const offsetLabel =
     Math.abs(offsetMs) < 50
       ? t('play.subtitlesOnTime')
@@ -349,18 +506,20 @@ export function DirectPlayerSubtitles({
             value: formatSubtitleOffset(offsetMs).replace('+', ''),
           });
 
-  const statusLabel =
-    status === 'loading'
+  const statusLabel = !playerReady
+    ? t('play.subtitlesWaitingForPlayback')
+    : status === 'loading'
       ? t('play.subtitlesLoading')
       : status === 'empty'
-        ? t('play.subtitlesUnavailable')
+        ? t('play.subtitlesUnavailableShort')
         : status === 'error'
-          ? t('play.subtitlesLoadFailed')
+          ? t('play.subtitlesLoadFailedShort')
           : status === 'ready'
             ? t('play.subtitlesReady')
             : t('play.subtitlesIdle');
 
   const hasSubtitles = status === 'ready' && cues.length > 0;
+  const isLoading = status === 'loading' || (!playerReady && enabled);
 
   return (
     <>
@@ -370,14 +529,7 @@ export function DirectPlayerSubtitles({
             isOverlay ? 'bottom-[6.5rem]' : 'bottom-[5.5rem] md:bottom-24'
           }`}
         >
-          <span
-            dir='auto'
-            className='max-w-[min(92%,52rem)] whitespace-pre-line rounded-md bg-black/70 px-3 py-1.5 text-center text-[clamp(0.9rem,2.4vw,1.7rem)] font-semibold leading-snug text-white'
-            style={{
-              textShadow:
-                '0 1px 3px rgba(0,0,0,0.95), 0 0 10px rgba(0,0,0,0.9)',
-            }}
-          >
+          <span dir='auto' className='subtitle-cue-text'>
             {activeCue.text}
           </span>
         </div>
@@ -395,10 +547,10 @@ export function DirectPlayerSubtitles({
           aria-label={t('play.subtitlesTitle')}
           title={t('play.subtitlesTitle')}
           className={`ui-glass-control inline-flex h-10 items-center gap-1.5 rounded-xl px-2.5 text-xs font-semibold ${
-            hasSubtitles && enabled ? 'text-amber-300' : ''
+            hasSubtitles && enabled ? 'text-[var(--ui-accent)]' : ''
           }`}
         >
-          {status === 'loading' ? (
+          {isLoading ? (
             <Loader2 className='h-4 w-4 animate-spin' />
           ) : hasSubtitles && enabled ? (
             <Captions className='h-4 w-4' />
@@ -406,326 +558,426 @@ export function DirectPlayerSubtitles({
             <CaptionsOff className='h-4 w-4' />
           )}
           <span className='hidden sm:inline'>CC</span>
+          {hasSubtitles && enabled ? (
+            <span className='hidden rounded-full bg-[var(--ui-accent)]/15 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide text-[var(--ui-accent)] sm:inline'>
+              {languageInfo.code}
+            </span>
+          ) : null}
         </button>
 
         {panelOpen ? (
           <div
-            dir={uiDirection}
-            role='region'
-            aria-label={t('play.subtitlesTitle')}
-            className='ui-glass-panel max-h-[70vh] w-[min(88vw,19rem)] overflow-y-auto p-4'
-            style={{ borderRadius: 'var(--ui-radius-panel)' }}
+            className='subtitle-sheet-backdrop'
+            role='presentation'
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) setPanelOpen(false);
+            }}
           >
-            <div className='flex items-start justify-between gap-3'>
-              <div className='min-w-0'>
-                <p className='ui-token-text-primary text-sm font-bold'>
-                  {t('play.subtitlesTitle')}
-                </p>
-                <p className='ui-token-text-muted mt-0.5 flex items-center gap-1.5 text-[11px] leading-4'>
-                  {status === 'loading' ? (
-                    <Loader2 className='h-3 w-3 shrink-0 animate-spin' />
-                  ) : hasSubtitles ? (
-                    <Check className='h-3 w-3 shrink-0 text-emerald-400' />
-                  ) : null}
-                  {statusLabel}
-                </p>
+            <div
+              dir={uiDirection}
+              role='dialog'
+              aria-modal='true'
+              aria-label={t('play.subtitlesTitle')}
+              className='subtitle-sheet'
+              onMouseDown={(event) => event.stopPropagation()}
+            >
+              <div className='subtitle-sheet-dragger' />
+              <div className='subtitle-sheet-header'>
+                <div className='min-w-0'>
+                  <p className='subtitle-sheet-eyebrow'>
+                    {t('play.subtitlesEyebrow')}
+                  </p>
+                  <h3 className='subtitle-sheet-title'>
+                    {t('play.subtitlesTitle')}
+                  </h3>
+                  <div className='mt-1.5 flex flex-wrap items-center gap-1.5'>
+                    <span className='subtitle-status-pill' data-status={status}>
+                      {status === 'loading' ? (
+                        <Loader2 className='h-3 w-3 animate-spin' />
+                      ) : status === 'ready' ? (
+                        <Check className='h-3 w-3' />
+                      ) : null}
+                      {statusLabel}
+                    </span>
+                    {hasSubtitles ? (
+                      <span className='subtitle-status-pill'>
+                        {languageInfo.native}
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+                <button
+                  type='button'
+                  onClick={() => setPanelOpen(false)}
+                  aria-label={t('play.subtitlesClose')}
+                  title={t('play.subtitlesClose')}
+                  className='ui-glass-control inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full'
+                >
+                  <X className='h-4 w-4' />
+                </button>
               </div>
-              <button
-                type='button'
-                onClick={() => setPanelOpen(false)}
-                aria-label={t('play.subtitlesClose')}
-                title={t('play.subtitlesClose')}
-                className='ui-glass-control inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg'
-              >
-                <X className='h-4 w-4' />
-              </button>
-            </div>
 
-            {isOverlay && syncEstimated ? (
-              <div className='mt-3 rounded-xl border border-amber-400/30 bg-amber-400/10 px-3 py-2'>
-                <p className='text-[11px] leading-4 text-amber-200/90'>
-                  {t('play.subtitlesEstimatedSync')}
-                </p>
-                {onSwitchToLuma ? (
+              <div className='subtitle-sheet-body'>
+                {isOverlay && syncEstimated ? (
+                  <div className='rounded-2xl border border-amber-300/25 bg-amber-300/10 px-3.5 py-2.5'>
+                    <p className='text-[11px] leading-4 text-amber-100/90'>
+                      {t('play.subtitlesEstimatedSync')}
+                    </p>
+                    {onSwitchToLuma ? (
+                      <button
+                        type='button'
+                        onClick={() => {
+                          setPanelOpen(false);
+                          onSwitchToLuma();
+                        }}
+                        className='mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-[var(--ui-accent)] px-3 py-2 text-[11px] font-black text-zinc-950 transition hover:brightness-105'
+                      >
+                        <Sparkles className='h-3.5 w-3.5' />
+                        {t('play.subtitlesUseLumaPlayer')}
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                <section>
+                  <div className='subtitle-section-label'>
+                    <span className='inline-flex items-center gap-1.5'>
+                      <Languages className='h-3.5 w-3.5' />
+                      {t('play.subtitlesLanguage')}
+                    </span>
+                    <span className='normal-case tracking-normal text-[10px] font-semibold text-zinc-500'>
+                      {t('play.subtitlesLanguageCount', {
+                        total: SUBTITLE_LANGUAGES.length,
+                      })}
+                    </span>
+                  </div>
+
+                  <div className='subtitle-search mt-2'>
+                    <Search className='h-3.5 w-3.5 shrink-0 text-zinc-500' />
+                    <input
+                      type='search'
+                      value={languageQuery}
+                      onChange={(event) => setLanguageQuery(event.target.value)}
+                      placeholder={t('play.subtitlesSearchLanguage')}
+                      aria-label={t('play.subtitlesSearchLanguage')}
+                      autoComplete='off'
+                    />
+                    {languageQuery ? (
+                      <button
+                        type='button'
+                        onClick={() => setLanguageQuery('')}
+                        aria-label={t('play.subtitlesClearSearch')}
+                        className='shrink-0 text-zinc-500 transition hover:text-white'
+                      >
+                        <X className='h-3.5 w-3.5' />
+                      </button>
+                    ) : null}
+                  </div>
+
+                  <div className='subtitle-language-grid mt-2'>
+                    {filteredLanguages.map((entry) => {
+                      const selected = entry.code === language;
+                      return (
+                        <button
+                          key={entry.code}
+                          ref={selected ? selectedLanguageRef : undefined}
+                          type='button'
+                          onClick={() => selectLanguage(entry.code)}
+                          aria-pressed={selected}
+                          dir={entry.rtl ? 'rtl' : 'ltr'}
+                          className={`subtitle-language-option ${
+                            selected ? 'is-active' : ''
+                          }`}
+                        >
+                          <span className='subtitle-language-native'>
+                            {entry.native}
+                          </span>
+                          <span className='subtitle-language-label'>
+                            {entry.label}
+                          </span>
+                        </button>
+                      );
+                    })}
+                    {filteredLanguages.length === 0 ? (
+                      <p className='col-span-full py-3 text-center text-[11px] text-zinc-500'>
+                        {t('play.subtitlesNoLanguageResults')}
+                      </p>
+                    ) : null}
+                  </div>
+                </section>
+
+                {hasSubtitles ? (
+                  <>
+                    <div className='subtitle-card flex items-center justify-between gap-3'>
+                      <div className='min-w-0'>
+                        <p className='text-xs font-bold text-zinc-100'>
+                          {enabled
+                            ? t('play.subtitlesEnabled')
+                            : t('play.subtitlesDisabled')}
+                        </p>
+                        <p
+                          className='mt-0.5 truncate text-[10px] text-zinc-500'
+                          title={meta?.fileName || ''}
+                        >
+                          {meta?.fileName || t('play.subtitlesUnknownFile')}
+                        </p>
+                        <div className='mt-1 flex flex-wrap items-center gap-1.5 text-[9px] font-bold uppercase tracking-wide text-zinc-500'>
+                          {sourceLabel(meta?.source) ? (
+                            <span className='rounded-full border border-white/10 bg-white/[0.05] px-1.5 py-0.5'>
+                              {sourceLabel(meta?.source)}
+                            </span>
+                          ) : null}
+                          <span className='inline-flex items-center gap-1'>
+                            <FileText className='h-3 w-3' />
+                            {t('play.subtitlesCueCount', {
+                              total: meta?.cueCount ?? cues.length,
+                            })}
+                          </span>
+                          {meta?.fps ? (
+                            <span className='tabular-nums'>
+                              {meta.fps.toFixed(2)} fps
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                      <button
+                        type='button'
+                        role='switch'
+                        aria-checked={enabled}
+                        aria-label={t('play.subtitlesEnabled')}
+                        onClick={() => setEnabled((value) => !value)}
+                        className='subtitle-toggle'
+                        data-on={enabled}
+                      >
+                        <span
+                          className='subtitle-toggle-knob'
+                          style={
+                            enabled
+                              ? { right: '0.125rem' }
+                              : { left: '0.125rem' }
+                          }
+                        />
+                      </button>
+                    </div>
+
+                    <section>
+                      <div className='subtitle-section-label'>
+                        <span className='inline-flex items-center gap-1.5'>
+                          <Timer className='h-3.5 w-3.5' />
+                          {t('play.subtitlesOffset')}
+                        </span>
+                        <span
+                          className='text-[11px] font-bold tabular-nums text-zinc-200'
+                          dir='ltr'
+                        >
+                          {formatSubtitleOffset(offsetMs)}s
+                        </span>
+                      </div>
+                      <p className='mt-1 text-[11px] text-zinc-400' dir='auto'>
+                        {offsetLabel}
+                      </p>
+
+                      <input
+                        type='range'
+                        min={-10000}
+                        max={10000}
+                        step={100}
+                        value={offsetMs}
+                        dir='ltr'
+                        onChange={(event) =>
+                          setOffsetMs(
+                            clampSubtitleOffset(Number(event.target.value)),
+                          )
+                        }
+                        aria-label={t('play.subtitlesOffset')}
+                        className='subtitle-range mt-1'
+                      />
+
+                      <div className='mt-1.5 grid grid-cols-3 gap-1.5 sm:grid-cols-6'>
+                        {[
+                          { delta: -5000, label: '-5s' },
+                          { delta: -1000, label: '-1s' },
+                          { delta: -500, label: '-0.5s' },
+                          { delta: 500, label: '+0.5s' },
+                          { delta: 1000, label: '+1s' },
+                          { delta: 5000, label: '+5s' },
+                        ].map(({ delta, label }) => (
+                          <button
+                            key={delta}
+                            type='button'
+                            onClick={() => nudge(delta)}
+                            aria-label={t(
+                              delta < 0
+                                ? 'play.subtitlesEarlier'
+                                : 'play.subtitlesLater',
+                            )}
+                            className='ui-glass-control rounded-xl px-1 py-1.5 text-[11px] font-bold tabular-nums'
+                            dir='ltr'
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className='mt-2 flex gap-1.5'>
+                        <button
+                          type='button'
+                          onClick={() => {
+                            setOffsetMs(0);
+                            setScale(1);
+                            setNotice(null);
+                          }}
+                          className='ui-glass-control inline-flex w-full items-center justify-center gap-1.5 rounded-xl px-2 py-1.5 text-[11px] font-bold'
+                        >
+                          <RotateCcw className='h-3 w-3' />
+                          {t('play.subtitlesReset')}
+                        </button>
+                      </div>
+
+                      <div className='subtitle-card mt-2.5'>
+                        <div className='flex items-center justify-between gap-2'>
+                          <span className='inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500'>
+                            <Gauge className='h-3.5 w-3.5' />
+                            {t('play.subtitlesDrift')}
+                          </span>
+                          <span
+                            className='text-[11px] font-bold tabular-nums text-zinc-200'
+                            dir='ltr'
+                          >
+                            ×{scale.toFixed(3)}
+                          </span>
+                        </div>
+                        <div className='mt-2 grid grid-cols-2 gap-1.5'>
+                          <button
+                            type='button'
+                            onClick={() => handleDrift(1.04271)}
+                            className='ui-glass-control rounded-xl px-2 py-1.5 text-[10px] font-bold'
+                            dir='ltr'
+                          >
+                            {t('play.subtitlesDriftStretch')}
+                          </button>
+                          <button
+                            type='button'
+                            onClick={() => handleDrift(0.95904)}
+                            className='ui-glass-control rounded-xl px-2 py-1.5 text-[10px] font-bold'
+                            dir='ltr'
+                          >
+                            {t('play.subtitlesDriftShrink')}
+                          </button>
+                        </div>
+                        <p className='mt-1.5 text-[10px] leading-4 text-zinc-500'>
+                          {t('play.subtitlesDriftHint', {
+                            fps: meta?.fps ? meta.fps.toFixed(2) : '—',
+                          })}
+                        </p>
+                      </div>
+                    </section>
+                  </>
+                ) : isLoading ? (
+                  <div className='subtitle-card space-y-2'>
+                    <div className='subtitle-skeleton h-3 w-1/2' />
+                    <div className='subtitle-skeleton h-3 w-4/5' />
+                    <div className='subtitle-skeleton h-3 w-2/3' />
+                    <p className='pt-1 text-[11px] leading-5 text-zinc-400'>
+                      {playerReady
+                        ? t('play.subtitlesLoadingHint')
+                        : t('play.subtitlesWaitingHint')}
+                    </p>
+                  </div>
+                ) : (
+                  <div className='subtitle-card space-y-2'>
+                    <p className='text-[11px] leading-5 text-zinc-400'>
+                      {status === 'empty'
+                        ? t('play.subtitlesUnavailable')
+                        : status === 'error'
+                          ? t('play.subtitlesLoadFailed')
+                          : t('play.subtitlesWaitingHint')}
+                    </p>
+                    {playerReady ? (
+                      <button
+                        type='button'
+                        onClick={() => setReloadKey((value) => value + 1)}
+                        className='ui-glass-control w-full rounded-xl px-3 py-2 text-xs font-bold'
+                      >
+                        {t('play.retry')}
+                      </button>
+                    ) : null}
+                  </div>
+                )}
+
+                {isOverlay && onAnchorTime ? (
+                  <div className='subtitle-card'>
+                    <p className='text-[11px] font-bold text-zinc-100'>
+                      {t('play.subtitlesAnchorTitle')}
+                    </p>
+                    <p className='mt-1 text-[10px] leading-4 text-zinc-500'>
+                      {t('play.subtitlesAnchorHint')}
+                    </p>
+                    <div className='mt-2 flex gap-1.5' dir='ltr'>
+                      <input
+                        type='text'
+                        inputMode='numeric'
+                        value={anchorValue}
+                        onChange={(event) => setAnchorValue(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') {
+                            event.preventDefault();
+                            applyAnchor();
+                          }
+                        }}
+                        placeholder={t('play.subtitlesAnchorPlaceholder')}
+                        aria-label={t('play.subtitlesAnchorTitle')}
+                        className='ui-glass-control h-9 min-w-0 flex-1 rounded-xl px-2.5 text-xs font-bold tabular-nums text-white outline-none'
+                      />
+                      <button
+                        type='button'
+                        onClick={applyAnchor}
+                        className='rounded-xl bg-[var(--ui-accent)] px-3 py-1 text-[11px] font-black text-zinc-950'
+                      >
+                        {t('play.subtitlesAnchorApply')}
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+
+                <div>
+                  <input
+                    ref={fileInputRef}
+                    type='file'
+                    accept='.srt,.vtt,.ass,.ssa,.txt,text/vtt,application/x-subrip'
+                    className='hidden'
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      event.target.value = '';
+                      void handleFile(file);
+                    }}
+                  />
                   <button
                     type='button'
-                    onClick={() => {
-                      setPanelOpen(false);
-                      onSwitchToLuma();
-                    }}
-                    className='mt-2 w-full rounded-lg bg-amber-400 px-2 py-1.5 text-[11px] font-bold text-zinc-950'
+                    onClick={() => fileInputRef.current?.click()}
+                    className='ui-glass-control inline-flex w-full items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold'
                   >
-                    {t('play.subtitlesUseLumaPlayer')}
+                    <Upload className='h-3.5 w-3.5' />
+                    {t('play.subtitlesLoadFile')}
                   </button>
+                </div>
+
+                {notice ? (
+                  <p
+                    role='status'
+                    className='text-[11px] leading-4 text-zinc-400'
+                  >
+                    {notice}
+                  </p>
+                ) : null}
+
+                {hasSubtitles ? (
+                  <p className='text-[10px] leading-4 text-zinc-500'>
+                    {t('play.subtitlesKeyboardHint')}
+                  </p>
                 ) : null}
               </div>
-            ) : null}
-
-            {isOverlay && onAnchorTime ? (
-              <div className='mt-3 rounded-xl border border-[var(--ui-glass-divider)] bg-white/[0.04] px-3 py-2'>
-                <p className='ui-token-text-primary text-[11px] font-bold'>
-                  {t('play.subtitlesAnchorTitle')}
-                </p>
-                <p className='ui-token-text-muted mt-1 text-[10px] leading-4'>
-                  {t('play.subtitlesAnchorHint')}
-                </p>
-                <div className='mt-2 flex gap-1.5' dir='ltr'>
-                  <input
-                    type='text'
-                    inputMode='numeric'
-                    value={anchorValue}
-                    onChange={(event) => setAnchorValue(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') {
-                        event.preventDefault();
-                        applyAnchor();
-                      }
-                    }}
-                    placeholder={t('play.subtitlesAnchorPlaceholder')}
-                    aria-label={t('play.subtitlesAnchorTitle')}
-                    className='ui-glass-control h-8 min-w-0 flex-1 rounded-lg px-2 text-xs font-semibold tabular-nums text-[var(--ui-token-text-primary)] outline-none'
-                  />
-                  <button
-                    type='button'
-                    onClick={applyAnchor}
-                    className='rounded-lg bg-amber-400 px-2.5 py-1 text-[11px] font-bold text-zinc-950'
-                  >
-                    {t('play.subtitlesAnchorApply')}
-                  </button>
-                </div>
-              </div>
-            ) : null}
-
-            <div className='mt-3 flex items-center justify-between gap-2'>
-              <span className='ui-token-text-subtle text-[10px] font-semibold uppercase tracking-wider'>
-                {t('play.subtitlesLanguage')}
-              </span>
-              <div className='flex gap-1'>
-                <button
-                  type='button'
-                  onClick={() => setLanguage('ar')}
-                  aria-pressed={language === 'ar'}
-                  className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${
-                    language === 'ar'
-                      ? 'bg-white text-zinc-950'
-                      : 'ui-glass-control'
-                  }`}
-                >
-                  العربية
-                </button>
-                <button
-                  type='button'
-                  onClick={() => setLanguage('en')}
-                  aria-pressed={language === 'en'}
-                  className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${
-                    language === 'en'
-                      ? 'bg-white text-zinc-950'
-                      : 'ui-glass-control'
-                  }`}
-                >
-                  English
-                </button>
-              </div>
             </div>
-
-            {hasSubtitles ? (
-              <>
-                <div className='mt-3 flex items-center justify-between gap-2 rounded-xl border border-[var(--ui-glass-divider)] bg-white/[0.04] px-3 py-2'>
-                  <div className='min-w-0'>
-                    <p className='ui-token-text-primary text-xs font-semibold'>
-                      {enabled
-                        ? t('play.subtitlesEnabled')
-                        : t('play.subtitlesDisabled')}
-                    </p>
-                    <p
-                      className='ui-token-text-subtle mt-0.5 truncate text-[10px]'
-                      title={fileName}
-                    >
-                      {fileName || t('play.subtitlesUnknownFile')}
-                    </p>
-                  </div>
-                  <button
-                    type='button'
-                    role='switch'
-                    aria-checked={enabled}
-                    onClick={() => setEnabled((value) => !value)}
-                    className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
-                      enabled ? 'bg-emerald-400' : 'bg-white/20'
-                    }`}
-                  >
-                    <span
-                      className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${
-                        enabled ? 'left-[1.375rem]' : 'left-0.5'
-                      }`}
-                    />
-                  </button>
-                </div>
-
-                <div className='mt-4'>
-                  <div className='flex items-center justify-between gap-2'>
-                    <span className='ui-token-text-subtle text-[10px] font-semibold uppercase tracking-wider'>
-                      {t('play.subtitlesOffset')}
-                    </span>
-                    <span
-                      className='ui-token-text-primary text-xs font-bold tabular-nums'
-                      dir='ltr'
-                    >
-                      {formatSubtitleOffset(offsetMs)}s
-                    </span>
-                  </div>
-                  <p
-                    className='ui-token-text-muted mt-1 text-[11px]'
-                    dir='auto'
-                  >
-                    {offsetLabel}
-                  </p>
-
-                  <input
-                    type='range'
-                    min={-10000}
-                    max={10000}
-                    step={100}
-                    value={offsetMs}
-                    dir='ltr'
-                    onChange={(event) =>
-                      setOffsetMs(clampSubtitleOffset(Number(event.target.value)))
-                    }
-                    aria-label={t('play.subtitlesOffset')}
-                    className='mt-2 w-full accent-amber-400'
-                  />
-
-                  <div className='mt-2 grid grid-cols-4 gap-1.5'>
-                    {[
-                      { delta: -1000, label: '-1s' },
-                      { delta: -500, label: '-0.5s' },
-                      { delta: 500, label: '+0.5s' },
-                      { delta: 1000, label: '+1s' },
-                    ].map(({ delta, label }) => (
-                      <button
-                        key={delta}
-                        type='button'
-                        onClick={() => nudge(delta)}
-                        aria-label={t(
-                          delta < 0
-                            ? 'play.subtitlesEarlier'
-                            : 'play.subtitlesLater',
-                        )}
-                        className='ui-glass-control rounded-lg px-1 py-1.5 text-[11px] font-semibold tabular-nums'
-                        dir='ltr'
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className='mt-2 flex gap-1.5'>
-                    <button
-                      type='button'
-                      onClick={() => {
-                        setOffsetMs(0);
-                        setScale(1);
-                        setNotice(null);
-                      }}
-                      className='ui-glass-control inline-flex w-full items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-[11px] font-semibold'
-                    >
-                      <RotateCcw className='h-3 w-3' />
-                      {t('play.subtitlesReset')}
-                    </button>
-                  </div>
-
-                  <div className='mt-3'>
-                    <div className='flex items-center justify-between gap-2'>
-                      <span className='ui-token-text-subtle text-[10px] font-semibold uppercase tracking-wider'>
-                        {t('play.subtitlesDrift')}
-                      </span>
-                      <span
-                        className='ui-token-text-primary text-xs font-bold tabular-nums'
-                        dir='ltr'
-                      >
-                        ×{scale.toFixed(3)}
-                      </span>
-                    </div>
-                    <div className='mt-1.5 space-y-1.5'>
-                      <button
-                        type='button'
-                        onClick={() => handleDrift(1.04271)}
-                        className='ui-glass-control w-full rounded-lg px-2 py-1.5 text-[11px] font-semibold'
-                        dir='ltr'
-                      >
-                        {t('play.subtitlesDriftStretch')}
-                      </button>
-                      <button
-                        type='button'
-                        onClick={() => handleDrift(0.95904)}
-                        className='ui-glass-control w-full rounded-lg px-2 py-1.5 text-[11px] font-semibold'
-                        dir='ltr'
-                      >
-                        {t('play.subtitlesDriftShrink')}
-                      </button>
-                    </div>
-                    <p className='ui-token-text-subtle mt-1.5 text-[10px] leading-4'>
-                      {t('play.subtitlesDriftHint', {
-                        fps: sourceFps ? sourceFps.toFixed(2) : '—',
-                      })}
-                    </p>
-                  </div>
-                </div>
-
-                <p className='ui-token-text-subtle mt-3 text-[10px] leading-4'>
-                  {t('play.subtitlesKeyboardHint')}
-                </p>
-              </>
-            ) : status === 'loading' ? (
-              <p className='ui-token-text-muted mt-4 text-xs leading-5'>
-                {t('play.subtitlesLoadingHint')}
-              </p>
-            ) : (
-              <div className='mt-4 space-y-2'>
-                <p className='ui-token-text-muted text-xs leading-5'>
-                  {status === 'empty'
-                    ? t('play.subtitlesUnavailable')
-                    : t('play.subtitlesLoadFailed')}
-                </p>
-                <button
-                  type='button'
-                  onClick={() => setReloadKey((value) => value + 1)}
-                  className='ui-glass-control w-full rounded-lg px-3 py-2 text-xs font-semibold'
-                >
-                  {t('play.retry')}
-                </button>
-              </div>
-            )}
-
-            <div className='mt-3'>
-              <input
-                ref={fileInputRef}
-                type='file'
-                accept='.srt,.vtt,.txt,text/vtt,application/x-subrip'
-                className='hidden'
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  event.target.value = '';
-                  void handleFile(file);
-                }}
-              />
-              <button
-                type='button'
-                onClick={() => fileInputRef.current?.click()}
-                className='ui-glass-control inline-flex w-full items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold'
-              >
-                <Upload className='h-3.5 w-3.5' />
-                {t('play.subtitlesLoadFile')}
-              </button>
-            </div>
-
-            {notice ? (
-              <p
-                role='status'
-                className='ui-token-text-muted mt-2 text-[11px] leading-4'
-              >
-                {notice}
-              </p>
-            ) : null}
           </div>
         ) : null}
       </div>

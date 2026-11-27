@@ -40,6 +40,7 @@ function DirectPlayer() {
   >('application/x-mpegurl');
   const [title, setTitle] = useState('');
   const [failed, setFailed] = useState(false);
+  const [playerReady, setPlayerReady] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [playbackTime, setPlaybackTime] = useState(0);
@@ -65,8 +66,11 @@ function DirectPlayer() {
   useEffect(() => {
     const controller = new AbortController();
     setFailed(false);
+    setPlayerReady(false);
     setStreamUrl('');
-    void fetch(`/api/player/${provider}?${queryString}`, { signal: controller.signal })
+    void fetch(`/api/player/${provider}?${queryString}`, {
+      signal: controller.signal,
+    })
       .then(async (response) => {
         const data = (await response.json()) as {
           streamUrl: string;
@@ -84,10 +88,14 @@ function DirectPlayer() {
           throw new Error('Unavailable source');
         }
         if (!controller.signal.aborted) {
-          alternatives.current = provider === 'archive' && Array.isArray(data.alternatives) ? data.alternatives : [];
+          alternatives.current =
+            provider === 'archive' && Array.isArray(data.alternatives)
+              ? data.alternatives
+              : [];
           setTitle(data.title || '');
           setStreamType(
-            (data.contentType === 'video/webm' || data.contentType === 'video/ogg'
+            (data.contentType === 'video/webm' ||
+            data.contentType === 'video/ogg'
               ? data.contentType
               : data.contentType === 'video/mp4'
                 ? 'video/mp4'
@@ -222,14 +230,20 @@ function DirectPlayer() {
             send('timeupdate');
             setPlaybackTime(player.current?.currentTime ?? 0);
           }}
-          onPlay={() => send('play')}
+          onCanPlay={() => setPlayerReady(true)}
+          onPlay={() => {
+            setPlayerReady(true);
+            send('play');
+          }}
           onPause={() => send('pause')}
           onSeeked={() => {
             send('seeked');
             setPlaybackTime(player.current?.currentTime ?? 0);
           }}
           onEnded={() => send('ended')}
-          onError={() => provider === 'archive' ? tryNextArchiveStream() : setFailed(true)}
+          onError={() =>
+            provider === 'archive' ? tryNextArchiveStream() : setFailed(true)
+          }
         >
           <LumaMediaProvider />
           <DefaultVideoLayout
@@ -243,20 +257,40 @@ function DirectPlayer() {
             episode={episode}
             preferredLanguage={subtitleLanguage}
             currentTime={playbackTime}
+            playerReady={playerReady}
           />
         </MediaPlayer>
       ) : (
         <div className='flex h-full flex-col items-center justify-center gap-4 p-6 text-center'>
-          <p role='status'>
+          <p role='status' className='text-sm font-semibold text-zinc-200'>
             {t(failed ? 'play.playerLoadFailed' : 'common.loading')}
           </p>
           {failed ? (
-            <button
-              className='ui-glass-control px-4 py-2'
-              onClick={() => setAttempt((value) => value + 1)}
-            >
-              {t('play.retry')}
-            </button>
+            <div className='flex flex-wrap items-center justify-center gap-2'>
+              <button
+                type='button'
+                className='ui-glass-control px-4 py-2 text-sm font-semibold'
+                onClick={() => setAttempt((value) => value + 1)}
+              >
+                {t('play.retry')}
+              </button>
+              <button
+                type='button'
+                className='ui-glass-control px-4 py-2 text-sm font-semibold'
+                onClick={() => {
+                  if (window.parent !== window) {
+                    window.parent.postMessage(
+                      { type: 'LUMA_OPEN_SOURCES' },
+                      window.location.origin,
+                    );
+                  } else {
+                    window.history.back();
+                  }
+                }}
+              >
+                {t('play.chooseAnotherSource')}
+              </button>
+            </div>
           ) : null}
         </div>
       )}

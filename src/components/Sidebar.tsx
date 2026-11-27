@@ -1,29 +1,19 @@
-﻿/* eslint-disable @typescript-eslint/no-explicit-any */
+﻿'use client';
 
-'use client';
-
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
   ArrowLeft,
   Clapperboard,
   HeartPulse,
   Home,
-  Menu,
   Origami,
   Search,
+  Sparkles,
   Tv,
   UserRound,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useLayoutEffect,
-  useState,
-} from 'react';
+import { createContext, useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useWarpRouteTransition } from '@/hooks/useWarpRouteTransition';
@@ -35,7 +25,7 @@ interface SidebarContextType {
 }
 
 const SidebarContext = createContext<SidebarContextType>({
-  isCollapsed: false,
+  isCollapsed: true,
 });
 
 export const useSidebar = () => useContext(SidebarContext);
@@ -46,325 +36,118 @@ interface SidebarProps {
   showBackButton?: boolean;
 }
 
-// Cache collapsed state on the window to avoid a flash during remounts.
-declare global {
-  interface Window {
-    __sidebarCollapsed?: boolean;
-  }
-}
-
 const Sidebar = ({
-  onToggle,
   activePath = '/',
   showBackButton = false,
 }: SidebarProps) => {
   const { t } = useTranslation();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const shouldReduceMotion = useReducedMotion();
   const { showWarpLoading, navigateLinkWithWarpLoading } =
     useWarpRouteTransition();
-  // 鑻ュ悓涓€娆?SPA 浼氳瘽涓凡缁忚鍙栬繃鎶樺彔鐘舵€侊紝鍒欑洿鎺ュ鐢紝閬垮厤闂儊
-  const [isCollapsed, setIsCollapsed] = useState<boolean>(true);
 
-  // 褰撴姌鍙犵姸鎬佸彉鍖栨椂锛屽悓姝ュ埌 <html> data 灞炴€э紝渚涢灞?CSS 浣跨敤
-  useLayoutEffect(() => {
-    if (typeof document !== 'undefined') {
-      if (isCollapsed) {
-        document.documentElement.dataset.sidebarCollapsed = 'true';
-      } else {
-        delete document.documentElement.dataset.sidebarCollapsed;
-      }
-    }
-  }, [isCollapsed]);
+  const active = activePath || pathname;
+  const activeType = searchParams.get('type');
 
-  const [active, setActive] = useState(activePath);
-
-  useEffect(() => {
-    // 浼樺厛浣跨敤浼犲叆鐨?activePath
-    if (activePath) {
-      setActive(activePath);
-    } else {
-      // 鍚﹀垯浣跨敤褰撳墠璺緞
-      const getCurrentFullPath = () => {
-        const queryString = searchParams.toString();
-        return queryString ? `${pathname}?${queryString}` : pathname;
-      };
-      const fullPath = getCurrentFullPath();
-      setActive(fullPath);
-    }
-  }, [activePath, pathname, searchParams]);
-
-  const setSidebarCollapsed = useCallback(
-    (collapsed: boolean) => {
-      setIsCollapsed(collapsed);
-      if (typeof window !== 'undefined') {
-        window.__sidebarCollapsed = collapsed;
-      }
-      onToggle?.(collapsed);
-    },
-    [onToggle],
-  );
-
-  const openSidebar = useCallback(() => {
-    setSidebarCollapsed(false);
-  }, [setSidebarCollapsed]);
-
-  const handleToggle = useCallback(() => {
-    setSidebarCollapsed(!isCollapsed);
-  }, [isCollapsed, setSidebarCollapsed]);
-
-  const collapseSidebar = useCallback(() => {
-    setSidebarCollapsed(true);
-  }, [setSidebarCollapsed]);
-
-  const contextValue = {
-    isCollapsed,
+  const isActive = (href: string) => {
+    const type = href.match(/type=([^&]+)/)?.[1];
+    if (type) return pathname === '/discover' && activeType === type;
+    return pathname === href || active === href;
   };
 
-  const menuItems = [
+  const items = [
+    { icon: Home, label: t('common.home'), href: '/' },
     {
       icon: Clapperboard,
       label: t('common.movies'),
       href: '/discover?type=movie',
     },
-    {
-      icon: Tv,
-      label: t('common.series'),
-      href: '/discover?type=tv',
-    },
-    {
-      icon: Origami,
-      label: t('common.anime'),
-      href: '/discover?type=anime',
-    },
+    { icon: Tv, label: t('common.series'), href: '/discover?type=tv' },
+    { icon: Origami, label: t('common.anime'), href: '/discover?type=anime' },
     {
       icon: HeartPulse,
       label: t('common.shows'),
       href: '/discover?type=show',
     },
+    { icon: Search, label: t('common.search'), href: '/search' },
+    { icon: UserRound, label: t('common.myLibrary'), href: '/my' },
   ];
 
   return (
-    <SidebarContext.Provider value={contextValue}>
+    <SidebarContext.Provider value={{ isCollapsed: false }}>
       <WarpLoadingOverlay visible={showWarpLoading} />
-      {/* Hide the desktop sidebar on mobile. */}
-      <div className='hidden md:block'>
-        <div
-          data-sidebar
-          onMouseLeave={collapseSidebar}
-          className='fixed left-4 top-4 z-[730] w-[232px]'
-        >
+      <aside
+        aria-label={t('common.menu')}
+        className='fixed inset-y-0 start-0 z-[730] hidden w-[4.6rem] md:block'
+      >
+        <div className='group/rail absolute inset-y-3 start-3 flex w-[4.1rem] flex-col overflow-hidden rounded-[26px] border border-white/15 bg-[linear-gradient(165deg,rgba(32,32,35,.92),rgba(9,9,11,.96))] shadow-[0_24px_70px_rgba(0,0,0,.6),inset_0_1px_0_rgba(255,255,255,.18)] backdrop-blur-2xl transition-[width] duration-300 ease-out hover:w-[14.5rem] focus-within:w-[14.5rem]'>
+          <div className='pointer-events-none absolute inset-x-0 top-0 h-24 bg-[radial-gradient(80%_100%_at_50%_0%,rgba(255,255,255,.12),transparent_70%)]' />
+
+          <div className='relative flex h-[4.4rem] shrink-0 items-center gap-3 px-3'>
+            <span className='grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-[linear-gradient(150deg,#f6ead0,#c8b184)] text-zinc-950 shadow-[0_10px_28px_rgba(239,226,196,.24)]'>
+              <Sparkles className='h-5 w-5' />
+            </span>
+            <span className='truncate text-lg font-black tracking-tight text-white opacity-0 transition-opacity duration-200 group-hover/rail:opacity-100 group-focus-within/rail:opacity-100'>
+              Lumi
+            </span>
+          </div>
+
+          <nav className='relative flex-1 space-y-1 overflow-y-auto overflow-x-hidden px-2 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'>
+            {items.map((item) => {
+              const Icon = item.icon;
+              const activeItem = isActive(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={activeItem ? 'page' : undefined}
+                  onClick={(event) =>
+                    navigateLinkWithWarpLoading(event, item.href)
+                  }
+                  className={`group/item relative flex h-12 items-center gap-3 rounded-2xl px-2.5 transition-colors duration-200 ${
+                    activeItem
+                      ? 'bg-[linear-gradient(100deg,rgba(239,226,196,.18),rgba(255,255,255,.04))] text-white shadow-[inset_0_1px_0_rgba(255,255,255,.16)]'
+                      : 'text-zinc-400 hover:bg-white/[0.07] hover:text-white'
+                  }`}
+                >
+                  {activeItem ? (
+                    <span className='absolute start-0 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-full bg-[var(--ui-accent)] shadow-[0_0_12px_rgba(239,226,196,.7)]' />
+                  ) : null}
+                  <span
+                    className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl transition-colors ${
+                      activeItem
+                        ? 'bg-[var(--ui-accent)] text-zinc-950'
+                        : 'bg-white/[0.055] text-zinc-300 group-hover/item:bg-white/[0.1] group-hover/item:text-white'
+                    }`}
+                  >
+                    <Icon className='h-[18px] w-[18px]' />
+                  </span>
+                  <span className='truncate text-sm font-semibold opacity-0 transition-opacity duration-200 group-hover/rail:opacity-100 group-focus-within/rail:opacity-100'>
+                    {item.label}
+                  </span>
+                </Link>
+              );
+            })}
+          </nav>
+
           {showBackButton ? (
-            <div
-              className={`ui-glass-pill flex h-11 w-fit items-center overflow-hidden ${
-                !isCollapsed ? 'ui-glass-control-active' : ''
-              }`}
-            >
+            <div className='relative shrink-0 border-t border-white/[0.08] p-2'>
               <button
                 type='button'
-                aria-label={
-                  isCollapsed
-                    ? t('common.openSidebar')
-                    : t('nav.collapseSidebar')
-                }
-                onMouseEnter={openSidebar}
-                onFocus={openSidebar}
-                onClick={handleToggle}
-                className='flex h-full w-11 items-center justify-center text-zinc-300 transition-colors hover:bg-[var(--ui-glass-row-hover)] hover:text-white'
-              >
-                <Menu className='h-5 w-5 shrink-0' />
-              </button>
-              <div className='ui-glass-divider h-5 w-px' />
-              <button
-                type='button'
-                aria-label={t('common.back')}
                 onClick={() => window.history.back()}
-                className='flex h-full w-11 items-center justify-center text-zinc-300 transition-colors hover:bg-[var(--ui-glass-row-hover)] hover:text-white'
+                className='flex h-12 w-full items-center gap-3 rounded-2xl px-2.5 text-zinc-400 transition-colors hover:bg-white/[0.07] hover:text-white'
               >
-                <ArrowLeft className='h-5 w-5 shrink-0' />
+                <span className='grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/[0.055]'>
+                  <ArrowLeft className='h-[18px] w-[18px] rtl:rotate-180' />
+                </span>
+                <span className='truncate text-sm font-semibold opacity-0 transition-opacity duration-200 group-hover/rail:opacity-100 group-focus-within/rail:opacity-100'>
+                  {t('common.back')}
+                </span>
               </button>
             </div>
-          ) : (
-            <button
-              type='button'
-              aria-label={
-                isCollapsed ? t('common.openSidebar') : t('nav.collapseSidebar')
-              }
-              onMouseEnter={openSidebar}
-              onFocus={openSidebar}
-              onClick={handleToggle}
-              className={`ui-glass-control flex h-11 w-11 items-center justify-center ${
-                !isCollapsed ? 'ui-glass-control-active' : ''
-              }`}
-            >
-              <Menu className='h-5 w-5 shrink-0' />
-            </button>
-          )}
-          <AnimatePresence>
-            {!isCollapsed ? (
-              <motion.div
-                key='desktop-sidebar-panel'
-                className='ui-glass-panel mt-2 flex max-h-[calc(100vh-5.25rem)] flex-col overflow-hidden p-2'
-                style={{
-                  originX: 0,
-                  originY: 0,
-                }}
-                initial={
-                  shouldReduceMotion
-                    ? { opacity: 0 }
-                    : {
-                        opacity: 0,
-                        scale: 0.88,
-                        y: -8,
-                        filter: 'blur(8px)',
-                      }
-                }
-                animate={
-                  shouldReduceMotion
-                    ? { opacity: 1 }
-                    : { opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }
-                }
-                exit={
-                  shouldReduceMotion
-                    ? { opacity: 0 }
-                    : {
-                        opacity: 0,
-                        scale: 0.9,
-                        y: -6,
-                        filter: 'blur(6px)',
-                      }
-                }
-                transition={
-                  shouldReduceMotion
-                    ? { duration: 0 }
-                    : {
-                        type: 'spring',
-                        stiffness: 520,
-                        damping: 38,
-                        mass: 0.7,
-                      }
-                }
-              >
-                {/* Primary navigation */}
-                <nav className='space-y-1'>
-                  <Link
-                    href='/'
-                    onClick={(event) => {
-                      setActive('/');
-                      collapseSidebar();
-                      navigateLinkWithWarpLoading(event, '/');
-                    }}
-                    data-active={active === '/'}
-                    className={`ui-glass-row group flex items-center px-2 py-2 pl-4 text-zinc-300 hover:text-white data-[active=true]:bg-white/[0.075] data-[active=true]:text-white data-[active=true]:ring-1 data-[active=true]:ring-white/[0.08] font-medium duration-200 min-h-[40px] ${
-                      isCollapsed ? 'w-full max-w-none mx-0' : 'mx-0'
-                    } gap-3 justify-start`}
-                  >
-                    <div className='w-4 h-4 flex items-center justify-center'>
-                      <Home className='h-4 w-4 text-zinc-400 group-hover:text-white data-[active=true]:text-white' />
-                    </div>
-                    {!isCollapsed && (
-                      <span className='whitespace-nowrap transition-opacity duration-200 opacity-100'>
-                        {t('common.home')}
-                      </span>
-                    )}
-                  </Link>
-                  <Link
-                    href='/search'
-                    onClick={(event) => {
-                      setActive('/search');
-                      collapseSidebar();
-                      navigateLinkWithWarpLoading(event, '/search');
-                    }}
-                    data-active={active === '/search'}
-                    className={`ui-glass-row group flex items-center px-2 py-2 pl-4 text-zinc-300 hover:text-white data-[active=true]:bg-white/[0.075] data-[active=true]:text-white data-[active=true]:ring-1 data-[active=true]:ring-white/[0.08] font-medium duration-200 min-h-[40px] ${
-                      isCollapsed ? 'w-full max-w-none mx-0' : 'mx-0'
-                    } gap-3 justify-start`}
-                  >
-                    <div className='w-4 h-4 flex items-center justify-center'>
-                      <Search className='h-4 w-4 text-zinc-400 group-hover:text-white data-[active=true]:text-white' />
-                    </div>
-                    {!isCollapsed && (
-                      <span className='whitespace-nowrap transition-opacity duration-200 opacity-100'>
-                        {t('common.search')}
-                      </span>
-                    )}
-                  </Link>
-                  <Link
-                    href='/my'
-                    onClick={(event) => {
-                      setActive('/my');
-                      collapseSidebar();
-                      navigateLinkWithWarpLoading(event, '/my');
-                    }}
-                    data-active={active === '/my'}
-                    className={`ui-glass-row group flex items-center px-2 py-2 pl-4 text-zinc-300 hover:text-white data-[active=true]:bg-white/[0.075] data-[active=true]:text-white data-[active=true]:ring-1 data-[active=true]:ring-white/[0.08] font-medium duration-200 min-h-[40px] ${
-                      isCollapsed ? 'w-full max-w-none mx-0' : 'mx-0'
-                    } gap-3 justify-start`}
-                  >
-                    <div className='w-4 h-4 flex items-center justify-center'>
-                      <UserRound className='h-4 w-4 text-zinc-400 group-hover:text-white data-[active=true]:text-white' />
-                    </div>
-                    {!isCollapsed && (
-                      <span className='whitespace-nowrap transition-opacity duration-200 opacity-100'>
-                        {t('common.myLibrary')}
-                      </span>
-                    )}
-                  </Link>
-                </nav>
-
-                {/* Divider */}
-                <div className='ui-glass-divider mx-3 mt-3 h-px'></div>
-
-                {/* Category navigation */}
-                <div className='overflow-y-auto pt-3'>
-                  <div className='space-y-1'>
-                    {menuItems.map((item) => {
-                      // Check whether the current path matches this item.
-                      const typeMatch = item.href.match(/type=([^&]+)/)?.[1];
-
-                      // Decode URLs before comparison.
-                      const decodedActive = decodeURIComponent(active);
-                      const decodedItemHref = decodeURIComponent(item.href);
-
-                      const isActive =
-                        decodedActive === decodedItemHref ||
-                        (decodedActive.startsWith('/discover') &&
-                          decodedActive.includes(`type=${typeMatch}`));
-                      const Icon = item.icon;
-                      return (
-                        <Link
-                          key={item.label}
-                          href={item.href}
-                          onClick={(event) => {
-                            setActive(item.href);
-                            collapseSidebar();
-                            navigateLinkWithWarpLoading(event, item.href);
-                          }}
-                          data-active={isActive}
-                          className={`ui-glass-row group flex items-center px-2 py-2 pl-4 text-sm text-zinc-300 hover:text-white data-[active=true]:bg-white/[0.075] data-[active=true]:text-white data-[active=true]:ring-1 data-[active=true]:ring-white/[0.08] duration-200 min-h-[40px] ${
-                            isCollapsed ? 'w-full max-w-none mx-0' : 'mx-0'
-                          } gap-3 justify-start`}
-                        >
-                          <div className='w-4 h-4 flex items-center justify-center'>
-                            <Icon className='h-4 w-4 text-zinc-400 group-hover:text-white data-[active=true]:text-white' />
-                          </div>
-                          {!isCollapsed && (
-                            <span className='whitespace-nowrap transition-opacity duration-200 opacity-100'>
-                              {item.label}
-                            </span>
-                          )}
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </div>
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
+          ) : null}
         </div>
-        <div className='sidebar-offset w-0'></div>
-      </div>
+      </aside>
     </SidebarContext.Provider>
   );
 };

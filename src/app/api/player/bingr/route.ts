@@ -34,6 +34,22 @@ interface BingrWatchPage {
   manifestUrls: URL[];
 }
 
+/**
+ * Links a per-request timeout to the route's overall abort signal so a single
+ * stalled CDN cannot consume the whole budget. `AbortSignal.timeout` uses an
+ * unref'd timer, so idle requests never keep the process alive.
+ */
+function requestSignal(parent: AbortSignal, timeoutMs: number): AbortSignal {
+  const timeout = AbortSignal.timeout(timeoutMs);
+  const anySignal = (
+    AbortSignal as unknown as {
+      any?: (signals: AbortSignal[]) => AbortSignal;
+    }
+  ).any;
+  if (typeof anySignal === 'function') return anySignal([parent, timeout]);
+  return timeout;
+}
+
 function decodeBingrHtmlUrl(value: string): string {
   return value
     .replace(/\\u0026/gi, '&')
@@ -69,7 +85,7 @@ async function fetchBingrWatchPage(
 ): Promise<BingrWatchPage | null> {
   const pageUrl = watchPageUrl(tmdbId, mediaType, season, episode);
   const response = await fetch(pageUrl, {
-    signal,
+    signal: requestSignal(signal, 12_000),
     redirect: 'follow',
     headers: {
       ...HEADERS,
@@ -123,7 +139,7 @@ async function fetchBingrSources(
 
   try {
     const response = await fetch(url, {
-      signal,
+      signal: requestSignal(signal, 12_000),
       cache: 'no-store',
       headers: {
         ...HEADERS,
@@ -132,17 +148,29 @@ async function fetchBingrSources(
     });
     if (!response.ok) return null;
     const body = (await response.text()).trim();
-    if (!body.startsWith('v1.')) return null;
-    return decodeBingrSealedPayload<BingrSourcesPayload>(body);
+    if (!body) return null;
+    if (body.startsWith('v1.')) {
+      return decodeBingrSealedPayload<BingrSourcesPayload>(body);
+    }
+    try {
+      return JSON.parse(body) as BingrSourcesPayload;
+    } catch {
+      return null;
+    }
   } catch {
     return null;
   }
 }
 
-async function probeBingrManifest(
+interface ProbedMedia {
+  url: URL;
+  contentType: 'application/vnd.apple.mpegurl' | 'video/mp4';
+}
+
+async function probeBingrMedia(
   value: string,
   signal: AbortSignal,
-): Promise<URL | null> {
+): Promise<ProbedMedia | null> {
   let url: URL;
   try {
     url = validateBingrMediaUrl(value);
@@ -151,17 +179,58 @@ async function probeBingrManifest(
   }
   try {
     const response = await fetch(url, {
-      signal,
+      signal: requestSignal(signal, 12_000),
       redirect: 'follow',
-      headers: HEADERS,
+      headers: { ...HEADERS, Range: 'bytes=0-4095' },
     });
     if (!response.ok) return null;
-    const manifest = await response.text();
-    if (!manifest.trimStart().startsWith('#EXTM3U')) return null;
-    return url;
+    const contentType = (
+      response.headers.get('content-type') || ''
+    ).toLowerCase();
+    const looksLikePlaylist =
+      url.pathname.endsWith('.m3u8') || /mpegurl|x-mpegurl/.test(contentType);
+    if (looksLikePlaylist) {
+      const manifest = await response.text();
+      if (!manifest.trimStart().startsWith('#EXTM3U')) return null;
+      return { url, contentType: 'application/vnd.apple.mpegurl' };
+    }
+
+    const looksLikeMp4 =
+      url.pathname.endsWith('.mp4') ||
+      /video\/mp4|application\/mp4/.test(contentType);
+    if (!looksLikeMp4) return null;
+    const buffer = await response.arrayBuffer();
+    const bytes = new Uint8Array(buffer.slice(0, 16));
+    const hasFtyp =
+      bytes.length >= 8 &&
+      bytes[4] === 0x66 &&
+      bytes[5] === 0x74 &&
+      bytes[6] === 0x79 &&
+      bytes[7] === 0x70;
+    if (!hasFtyp && !/video\/mp4/.test(contentType)) return null;
+    return { url, contentType: 'video/mp4' };
   } catch {
     return null;
   }
+}
+
+function collectBingrStreams(
+  payloads: Array<BingrSourcesPayload | null>,
+): BingrSourcesPayload['streams'] {
+  const seen = new Set<string>();
+  const streams: NonNullable<BingrSourcesPayload['streams']> = [];
+  for (const payload of payloads) {
+    if (!payload) continue;
+    for (const stream of [
+      ...(payload.streams || []),
+      ...(payload.sources || []),
+    ]) {
+      if (!stream?.url || seen.has(stream.url)) continue;
+      seen.add(stream.url);
+      streams.push(stream);
+    }
+  }
+  return streams;
 }
 
 async function resolveBingrSourceStream(
@@ -170,7 +239,7 @@ async function resolveBingrSourceStream(
   season: number,
   episode: number,
   signal: AbortSignal,
-): Promise<URL | null> {
+): Promise<ProbedMedia | null> {
   const watch = await fetchBingrWatchPage(
     tmdbId,
     mediaType,
@@ -189,45 +258,55 @@ async function resolveBingrSourceStream(
     undefined,
     signal,
   );
-  if (!first) return null;
 
-  const serverIds = Array.from(
-    new Set(
-      (first.servers || [])
-        .map((server) => server.id)
-        .filter((id): id is string => Boolean(id) && id !== first.provider?.id),
-    ),
-  );
-
-  const tryPayload = async (
-    payload: BingrSourcesPayload | null,
-  ): Promise<URL | null> => {
-    if (!payload) return null;
-    for (const stream of rankBingrStreams(payload.streams || [])) {
-      const url = await probeBingrManifest(stream.url || '', signal);
-      if (url) return url;
+  const tryPayloads = async (
+    payloads: Array<BingrSourcesPayload | null>,
+  ): Promise<ProbedMedia | null> => {
+    const ranked = rankBingrStreams(collectBingrStreams(payloads) || []);
+    const seen = new Set<string>();
+    for (const stream of ranked.slice(0, 24)) {
+      const value = stream.url || '';
+      if (!value || seen.has(value)) continue;
+      seen.add(value);
+      const media = await probeBingrMedia(value, signal);
+      if (media) return media;
     }
     return null;
   };
 
-  let resolved = await tryPayload(first);
-  if (resolved) return resolved;
+  // Fast path: the default source list usually already contains a playable
+  // H.264 stream.
+  const firstMedia = await tryPayloads([first]);
+  if (firstMedia) return firstMedia;
 
-  for (const serverId of serverIds.slice(0, 6)) {
-    const payload = await fetchBingrSources(
-      watch.token,
-      tmdbId,
-      mediaType,
-      season,
-      episode,
-      serverId,
-      signal,
-    );
-    resolved = await tryPayload(payload);
-    if (resolved) return resolved;
-  }
+  const serverIds = Array.from(
+    new Set([
+      ...(first?.servers || [])
+        .map((server) => server.id)
+        .filter(
+          (id): id is string => Boolean(id) && id !== first?.provider?.id,
+        ),
+      ...SERVER_IDS,
+    ]),
+  ).slice(0, 12);
 
-  return null;
+  // Ask every server in parallel; each request has its own short timeout so
+  // one dead CDN cannot stall the whole resolution.
+  const payloads = await Promise.all(
+    serverIds.map((serverId) =>
+      fetchBingrSources(
+        watch.token as string,
+        tmdbId,
+        mediaType,
+        season,
+        episode,
+        serverId,
+        signal,
+      ),
+    ),
+  );
+
+  return tryPayloads(payloads);
 }
 
 export async function GET(request: Request) {
@@ -249,11 +328,16 @@ export async function GET(request: Request) {
   try {
     const detailsUrl = new URL('https://api.bingr.one');
     detailsUrl.pathname = `/api/details/${mediaType}/${Number(tmdbId)}`;
-    const detailsResponse = await fetch(detailsUrl, options);
+    const detailsResponse = await fetch(detailsUrl, {
+      ...options,
+      signal: requestSignal(controller.signal, 12_000),
+    });
     let details: { title?: string; year?: string; imdb_id?: string } = {};
     if (detailsResponse.ok) {
       failureCode = 'metadata-response';
-      details = (await detailsResponse.json().catch(() => ({}))) as typeof details;
+      details = (await detailsResponse
+        .json()
+        .catch(() => ({}))) as typeof details;
     } else {
       failureCode = `metadata-http-${detailsResponse.status}`;
     }
@@ -270,7 +354,11 @@ export async function GET(request: Request) {
       );
       if (sourceUrl) {
         return NextResponse.json(
-          { streamUrl: bingrMediaProxyUrl(sourceUrl.href), title: details.title },
+          {
+            streamUrl: bingrMediaProxyUrl(sourceUrl.url.href),
+            contentType: sourceUrl.contentType,
+            title: details.title,
+          },
           { headers: { 'Cache-Control': 'no-store' } },
         );
       }
@@ -297,6 +385,7 @@ export async function GET(request: Request) {
       SERVER_IDS.map((srv) =>
         fetch(`${API}/stream`, {
           ...options,
+          signal: requestSignal(controller.signal, 12_000),
           method: 'POST',
           headers: { ...HEADERS, 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -338,10 +427,14 @@ export async function GET(request: Request) {
       return rank(b) - rank(a);
     });
     for (const url of candidates.slice(0, 12)) {
-      const probed = await probeBingrManifest(url.href, controller.signal);
+      const probed = await probeBingrMedia(url.href, controller.signal);
       if (probed) {
         return NextResponse.json(
-          { streamUrl: bingrMediaProxyUrl(probed.href), title: details.title },
+          {
+            streamUrl: bingrMediaProxyUrl(probed.url.href),
+            contentType: probed.contentType,
+            title: details.title,
+          },
           { headers: { 'Cache-Control': 'no-store' } },
         );
       }
@@ -368,11 +461,12 @@ export async function GET(request: Request) {
         return rank(b) - rank(a);
       });
       for (const url of ordered) {
-        const probed = await probeBingrManifest(url.href, controller.signal);
+        const probed = await probeBingrMedia(url.href, controller.signal);
         if (probed) {
           return NextResponse.json(
             {
-              streamUrl: bingrMediaProxyUrl(probed.href),
+              streamUrl: bingrMediaProxyUrl(probed.url.href),
+              contentType: probed.contentType,
               title: details.title,
             },
             { headers: { 'Cache-Control': 'no-store' } },

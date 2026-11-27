@@ -1,6 +1,7 @@
 import BackToTop from './BackToTop';
 import DesktopTopHistory from './DesktopTopHistory';
 import DesktopTopSearch from './DesktopTopSearch';
+import MobileDock from './MobileDock';
 import MobileNavController from './MobileNavController';
 import Sidebar from './Sidebar';
 import { UserMenu } from './UserMenu';
@@ -21,6 +22,8 @@ const PageLayout = ({
   showDesktopTopSearch = false,
 }: PageLayoutProps) => {
   const isHomePage = activePath === '/';
+  const isPlayback =
+    activePath === '/play' || activePath.startsWith('/player/');
   const showBackButton = forceShowBackButton || ['/play'].includes(activePath);
 
   return (
@@ -31,13 +34,11 @@ const PageLayout = ({
         useHeroHeaderStyle={isHomePage || disableMobileTopPadding}
       />
 
-      <div className='flex md:grid md:grid-cols-[auto_1fr] w-full min-h-screen md:min-h-auto'>
-        <div className='hidden md:block'>
-          <Sidebar activePath={activePath} showBackButton={showBackButton} />
-        </div>
+      <div className='relative flex min-h-screen w-full'>
+        <Sidebar activePath={activePath} showBackButton={showBackButton} />
 
-        <div className='relative min-w-0 flex-1 transition-all duration-300'>
-          <div className='absolute right-4 top-4 z-[700] hidden md:flex items-center gap-2 [&>*]:m-0'>
+        <div className='relative min-w-0 flex-1 transition-all duration-300 md:ps-[5.2rem]'>
+          <div className='absolute end-4 top-4 z-[700] hidden md:flex items-center gap-2 [&>*]:m-0'>
             {showDesktopTopSearch ? (
               <>
                 <div className='shrink-0'>
@@ -58,9 +59,15 @@ const PageLayout = ({
               isHomePage || disableMobileTopPadding
                 ? 'pt-0 md:pt-0'
                 : 'pt-[calc(env(safe-area-inset-top)+4rem)] md:pt-0'
+            } ${
+              isPlayback
+                ? ''
+                : 'pb-[calc(5.6rem+env(safe-area-inset-bottom))] md:pb-0'
             }`}
             style={{
-              paddingBottom: 'env(safe-area-inset-bottom)',
+              paddingBottom: isPlayback
+                ? 'env(safe-area-inset-bottom)'
+                : undefined,
             }}
           >
             {children}
@@ -68,6 +75,8 @@ const PageLayout = ({
           <BackToTop />
         </div>
       </div>
+
+      <MobileDock />
     </div>
   );
 };

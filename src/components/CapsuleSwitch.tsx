@@ -61,13 +61,13 @@ const CapsuleSwitch: React.FC<CapsuleSwitchProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`relative inline-flex h-11 w-full items-center rounded-xl border border-cyan-300/10 bg-[#09111e]/95 p-1 shadow-[0_8px_24px_rgba(0,0,0,0.18)] backdrop-blur-xl md:w-auto md:min-w-[280px] ${
+      className={`relative inline-flex h-11 w-full items-center rounded-xl border border-white/10 bg-[#0d0d0f]/95 p-1 shadow-[0_8px_24px_rgba(0,0,0,0.18)] backdrop-blur-xl md:w-auto md:min-w-[280px] ${
         className || ''
       }`}
     >
       {indicatorStyle.width > 0 && (
         <div
-          className='absolute bottom-1 top-1 rounded-lg border border-cyan-300/20 bg-gradient-to-r from-cyan-400/20 to-blue-400/20 shadow-[0_4px_18px_rgba(34,211,238,0.12)] transition-all duration-300 ease-out'
+          className='absolute bottom-1 top-1 rounded-lg border border-white/20 bg-gradient-to-r from-white/20 to-white/5 shadow-[0_4px_18px_rgba(255,255,255,0.10)] transition-all duration-300 ease-out'
           style={{
             insetInlineStart: `${indicatorStyle.left}px`,
             width: `${indicatorStyle.width}px`,

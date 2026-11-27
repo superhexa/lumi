@@ -32,6 +32,8 @@ export interface BingrSourcesPayload {
   provider?: BingrSourceServer;
   servers?: BingrSourceServer[];
   streams?: BingrSourceStream[];
+  /** Some Bingr endpoints return the list under `sources`. */
+  sources?: BingrSourceStream[];
   at?: number;
 }
 
@@ -40,7 +42,10 @@ function base64UrlToBytes(value: string): Uint8Array {
   const padded =
     normalized.length % 4 === 0
       ? normalized
-      : normalized.padEnd(normalized.length + (4 - (normalized.length % 4)), '=');
+      : normalized.padEnd(
+          normalized.length + (4 - (normalized.length % 4)),
+          '=',
+        );
   const binary = atob(padded);
   const bytes = new Uint8Array(binary.length);
   for (let index = 0; index < binary.length; index++) {
@@ -165,7 +170,14 @@ export function rankBingrStreams(
     .filter((stream) => {
       const url = stream.url || '';
       if (!url.startsWith('https://')) return false;
-      return stream.type === 'hls' || url.includes('.m3u8');
+      const type = (stream.type || '').toLowerCase();
+      return (
+        type === 'hls' ||
+        type === 'mp4' ||
+        type === 'video/mp4' ||
+        url.includes('.m3u8') ||
+        url.includes('.mp4')
+      );
     })
     .slice()
     .sort((a, b) => {

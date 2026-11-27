@@ -557,6 +557,7 @@ function PlayPageClient() {
   const embedPlayingRef = useRef(false);
   const [embedSubtitleTime, setEmbedSubtitleTime] = useState(0);
   const [embedSubtitleExact, setEmbedSubtitleExact] = useState(false);
+  const [embedFrameReady, setEmbedFrameReady] = useState(false);
   const historyResumeKeysRef = useRef<Set<string>>(new Set());
   const [isPlayerFullscreen, setIsPlayerFullscreen] = useState(false);
   const [playerFullscreenError, setPlayerFullscreenError] = useState(false);
@@ -1662,6 +1663,17 @@ function PlayPageClient() {
     return () => window.removeEventListener('message', handleMessage);
   }, [tmdbDetail]);
 
+  // The direct player iframe asks the parent to surface its source picker when
+  // Bingr or Archive cannot produce a playable stream.
+  useEffect(() => {
+    const handleSourcesRequest = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type === 'LUMA_OPEN_SOURCES') setSourceMenuOpen(true);
+    };
+    window.addEventListener('message', handleSourcesRequest);
+    return () => window.removeEventListener('message', handleSourcesRequest);
+  }, []);
+
   // Interpolates the playback clock reported by third-party iframes so Luma's
   // subtitle overlay can follow along even between time messages. When a
   // provider never reports time, the clock starts when the iframe loads and the
@@ -1671,6 +1683,7 @@ function PlayPageClient() {
     embedPlayingRef.current = false;
     setEmbedSubtitleExact(false);
     setEmbedSubtitleTime(0);
+    setEmbedFrameReady(false);
     if (!playerEmbedUrl) return;
     if (playerProvider === 'bingr' || playerProvider === 'archive') return;
 
@@ -1685,9 +1698,7 @@ function PlayPageClient() {
       } else if (typeof state?.startedAt === 'number') {
         time =
           state.playTime +
-          (embedPlayingRef.current
-            ? (Date.now() - state.startedAt) / 1000
-            : 0);
+          (embedPlayingRef.current ? (Date.now() - state.startedAt) / 1000 : 0);
       } else if (state) {
         time = state.playTime;
       }
@@ -2505,6 +2516,7 @@ function PlayPageClient() {
                       }}
                       onLoad={() => {
                         setIsVideoLoading(false);
+                        setEmbedFrameReady(true);
                         const progress = tmdbEmbedProgressRef.current;
                         if (
                           progress &&
@@ -2536,6 +2548,7 @@ function PlayPageClient() {
                       currentTime={embedSubtitleTime}
                       variant='overlay'
                       syncEstimated={!embedSubtitleExact}
+                      playerReady={embedFrameReady}
                       onSwitchToLuma={() => {
                         void switchTmdbPlayback({ provider: 'bingr' });
                       }}

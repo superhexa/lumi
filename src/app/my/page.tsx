@@ -41,6 +41,7 @@ import {
 import { createLibraryBackup, parseLibraryBackup } from '@/lib/library-backup';
 import { normalizeSearchText } from '@/lib/search-normalize';
 import { buildTmdbHistoryPlayUrl, parseStorageKey } from '@/lib/tmdb-history';
+
 import PageLayout from '@/components/PageLayout';
 
 interface HistoryItem extends PlayRecord {
@@ -333,7 +334,7 @@ function LibraryClient() {
             <button
               type='button'
               onClick={() => router.push(favoriteUrl(item))}
-              className='relative block aspect-[2/3] w-full overflow-hidden rounded-[18px] border border-white/[0.08] bg-[#0a0a0a] text-start shadow-[0_14px_35px_rgba(0,0,0,.42)] transition duration-300 hover:-translate-y-1 hover:border-cyan-300/30 hover:shadow-[0_18px_45px_rgba(34,211,238,.09)]'
+              className='relative block aspect-[2/3] w-full overflow-hidden rounded-[18px] border border-white/[0.08] bg-[#0a0a0a] text-start shadow-[0_14px_35px_rgba(0,0,0,.42)] transition duration-300 hover:-translate-y-1 hover:border-white/25 hover:shadow-[0_18px_45px_rgba(255,255,255,.07)]'
             >
               {item.poster ? (
                 <img
@@ -348,7 +349,7 @@ function LibraryClient() {
               )}
               <span className='absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-black to-transparent' />
               {item.currentEpisode ? (
-                <span className='absolute bottom-3 start-3 rounded-full bg-black/75 px-2.5 py-1 text-[11px] font-bold text-cyan-100 backdrop-blur-md'>
+                <span className='absolute bottom-3 start-3 rounded-full bg-black/75 px-2.5 py-1 text-[11px] font-bold text-amber-50 backdrop-blur-md'>
                   {t('player.episode', {
                     season: 1,
                     episode: item.currentEpisode,
@@ -387,7 +388,7 @@ function LibraryClient() {
               onClick={() =>
                 router.push(buildTmdbHistoryPlayUrl(item.key, item))
               }
-              className='relative block aspect-[2/3] w-full overflow-hidden rounded-[18px] border border-white/[0.08] bg-[#0a0a0a] text-start shadow-[0_14px_35px_rgba(0,0,0,.42)] transition duration-300 hover:-translate-y-1 hover:border-cyan-300/30'
+              className='relative block aspect-[2/3] w-full overflow-hidden rounded-[18px] border border-white/[0.08] bg-[#0a0a0a] text-start shadow-[0_14px_35px_rgba(0,0,0,.42)] transition duration-300 hover:-translate-y-1 hover:border-white/25'
             >
               {item.cover ? (
                 <img
@@ -403,7 +404,7 @@ function LibraryClient() {
               <span className='absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-black to-transparent' />
               <span className='absolute bottom-3 start-3 end-3 h-1 overflow-hidden rounded-full bg-white/15'>
                 <span
-                  className='block h-full rounded-full bg-cyan-400'
+                  className='block h-full rounded-full bg-[var(--ui-accent)]'
                   style={{ width: `${getProgress(item)}%` }}
                 />
               </span>
@@ -442,7 +443,7 @@ function LibraryClient() {
         <div className='mx-auto max-w-[1500px]'>
           <header className='mb-7 flex items-end justify-between gap-4'>
             <div>
-              <p className='mb-2 text-[11px] font-black uppercase tracking-[0.22em] text-cyan-400'>
+              <p className='mb-2 text-[11px] font-black uppercase tracking-[0.22em] text-[var(--ui-accent)]'>
                 {t('my.personalCinema')}
               </p>
               <h1 className='text-3xl font-black tracking-tight text-white sm:text-5xl'>
@@ -457,7 +458,7 @@ function LibraryClient() {
                   ? !visibleFavorites.length
                   : !visibleHistory.length
               }
-              className='grid h-12 w-12 shrink-0 place-items-center rounded-full bg-cyan-400 text-slate-950 shadow-[0_12px_35px_rgba(34,211,238,.22)] transition active:scale-95 disabled:opacity-40 sm:h-14 sm:w-14'
+              className='grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[var(--ui-accent)] text-zinc-950 shadow-[0_12px_35px_rgba(239,226,196,.22)] transition active:scale-95 disabled:opacity-40 sm:h-14 sm:w-14'
               aria-label={t('my.shufflePlay')}
             >
               <Shuffle className='h-5 w-5' />
@@ -482,7 +483,7 @@ function LibraryClient() {
                 key={stat.label}
                 className='rounded-2xl border border-white/[0.07] bg-[#090909] p-3 sm:p-4'
               >
-                <stat.icon className='mb-2 h-4 w-4 text-cyan-400' />
+                <stat.icon className='mb-2 h-4 w-4 text-[var(--ui-accent)]' />
                 <p className='text-xl font-black text-white sm:text-2xl'>
                   {stat.value}
                 </p>
@@ -502,7 +503,7 @@ function LibraryClient() {
                 <button
                   type='button'
                   onClick={() => setTab('history')}
-                  className='text-xs font-bold text-cyan-300'
+                  className='text-xs font-bold text-[var(--ui-accent)]'
                 >
                   {t('common.viewAll')}
                 </button>
@@ -534,7 +535,7 @@ function LibraryClient() {
                       </span>
                       <span className='mt-2 block h-1 overflow-hidden rounded-full bg-white/15'>
                         <span
-                          className='block h-full rounded-full bg-cyan-400'
+                          className='block h-full rounded-full bg-[var(--ui-accent)]'
                           style={{ width: `${getProgress(item)}%` }}
                         />
                       </span>
@@ -553,7 +554,7 @@ function LibraryClient() {
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder={t('my.searchLibrary')}
                 aria-label={t('my.searchLibrary')}
-                className='h-12 w-full rounded-xl border-0 bg-white/[0.045] ps-10 pe-10 text-sm text-white outline-none placeholder:text-zinc-600 focus:bg-white/[0.07] focus:ring-1 focus:ring-cyan-400/30'
+                className='h-12 w-full rounded-xl border-0 bg-white/[0.045] ps-10 pe-10 text-sm text-white outline-none placeholder:text-zinc-600 focus:bg-white/[0.07] focus:ring-1 focus:ring-white/20'
               />
               {query ? (
                 <button
@@ -569,7 +570,7 @@ function LibraryClient() {
               type='button'
               onClick={() => setFiltersOpen((open) => !open)}
               aria-expanded={filtersOpen}
-              className={`grid h-12 w-12 shrink-0 place-items-center rounded-xl border transition ${filtersOpen ? 'border-cyan-400/40 bg-cyan-400/15 text-cyan-300' : 'border-white/[0.07] bg-white/[0.04] text-zinc-300'}`}
+              className={`grid h-12 w-12 shrink-0 place-items-center rounded-xl border transition ${filtersOpen ? 'border-white/30 bg-white/15 text-[var(--ui-accent)]' : 'border-white/[0.07] bg-white/[0.04] text-zinc-300'}`}
             >
               <ListFilter className='h-5 w-5' />
             </button>
@@ -583,7 +584,7 @@ function LibraryClient() {
                     key={value}
                     type='button'
                     onClick={() => setFormat(value)}
-                    className={`h-10 rounded-full px-4 text-xs font-bold ${format === value ? 'bg-cyan-400 text-slate-950' : 'border border-white/[0.07] bg-white/[0.04] text-zinc-300'}`}
+                    className={`h-10 rounded-full px-4 text-xs font-bold ${format === value ? 'bg-[var(--ui-accent)] text-zinc-950' : 'border border-white/[0.07] bg-white/[0.04] text-zinc-300'}`}
                   >
                     {t(
                       value === 'all'
@@ -660,7 +661,7 @@ function LibraryClient() {
                   setTab(value);
                   setDeleteKeys(new Set());
                 }}
-                className={`flex h-11 items-center justify-center gap-2 rounded-xl text-xs font-black transition sm:text-sm ${tab === value ? 'bg-cyan-400 text-slate-950 shadow-[0_8px_22px_rgba(34,211,238,.16)]' : 'text-zinc-500 hover:text-white'}`}
+                className={`flex h-11 items-center justify-center gap-2 rounded-xl text-xs font-black transition sm:text-sm ${tab === value ? 'bg-[var(--ui-accent)] text-zinc-950 shadow-[0_8px_22px_rgba(239,226,196,.16)]' : 'text-zinc-500 hover:text-white'}`}
               >
                 <Icon className='h-4 w-4' />
                 <span>{label}</span>
@@ -671,7 +672,7 @@ function LibraryClient() {
           {feedback ? (
             <p
               aria-live='polite'
-              className='mb-3 text-center text-xs text-cyan-300'
+              className='mb-3 text-center text-xs text-[var(--ui-accent)]'
             >
               {feedback}
             </p>
@@ -712,7 +713,7 @@ function LibraryClient() {
                       <span className='absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-black' />
                       <span className='absolute bottom-3 start-3 end-3 h-1 rounded-full bg-white/15'>
                         <span
-                          className='block h-full rounded-full bg-cyan-400'
+                          className='block h-full rounded-full bg-[var(--ui-accent)]'
                           style={{ width: `${getProgress(item)}%` }}
                         />
                       </span>

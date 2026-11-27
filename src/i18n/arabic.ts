@@ -321,6 +321,7 @@ export const arabicTranslation = {
     archiveSourceDescription: 'فهرس عام موثّق · عدة دقات وجودات',
     noEpisodes: 'لا تتوفر حلقات لهذا الموسم.',
     retry: 'إعادة المحاولة',
+    chooseAnotherSource: 'اختر مصدراً آخر',
     readyStartingPlayback: 'أصبح كل شيء جاهزاً. جارٍ بدء التشغيل...',
     resolvingPlaybackSource: 'جارٍ تجهيز مصدر التشغيل...',
     runtimeMinutes_one: '{{count}} دقيقة',
@@ -346,7 +347,8 @@ export const arabicTranslation = {
     downloadNoPeersFailed:
       'لم يتم الوصول إلى أي أقران لهذا التورنت حالياً. التنزيل داخل المتصفح يعتمد على شبكة WebTorrent — جرّب جودة أخرى أو أعد المحاولة لاحقاً.',
     downloadPeersLine: '‏{{percent}}% · ‏{{peers}} من الأقران · ‏{{speed}}/ث',
-    downloadNoPeersHint: 'لا يزال البحث في الشبكة جارياً — قد ينضم الأقران في أي وقت. إن لم يتصل أحد بعد، استخدم ملف ‎.torrent أو رابط المغناطيس أدناه.',
+    downloadNoPeersHint:
+      'لا يزال البحث في الشبكة جارياً — قد ينضم الأقران في أي وقت. إن لم يتصل أحد بعد، استخدم ملف ‎.torrent أو رابط المغناطيس أدناه.',
     downloadSaveButton: 'احفظ على جهازك',
     downloadSavingLabel: 'جارٍ حفظ الملف...',
     downloadSavingNote: 'يتم تدفق الفيديو من متصفحك إلى المجلد الذي اخترته.',
@@ -369,19 +371,32 @@ export const arabicTranslation = {
     downloadRelayNote:
       'لم يستطع متصفحك الوصول إلى أقران WebRTC لهذا التورنت، لذلك انضم وسيط الموقع إلى الشبكة الكاملة (متتبعات UDP + DHT) من جهة الشبكة ويدفق الفيلم إليك الآن. لا يُخزَّن أي شيء على الخادم.',
     downloadRelaySaveButton: 'احفظ الفيلم الآن',
-    downloadRelaySaveNote: 'يدفق الفيلم من الوسيط إلى المجلد الذي اخترته أثناء التنزيل.',
-    downloadRelaySaveFailed: 'لم يكتمل حفظ الفيلم المُمرَّر عبر الوسيط. يُرجى إعادة المحاولة.',
+    downloadRelaySaveNote:
+      'يدفق الفيلم من الوسيط إلى المجلد الذي اخترته أثناء التنزيل.',
+    downloadRelaySaveFailed:
+      'لم يكتمل حفظ الفيلم المُمرَّر عبر الوسيط. يُرجى إعادة المحاولة.',
     downloadRelayUnavailable:
       'الوسيط غير متاح حالياً. استخدم ملف ‎.torrent أو رابط المغناطيس أدناه مع أي برنامج تورنت، أو أعد المحاولة بعد قليل.',
     subtitlesTitle: 'الترجمة والمزامنة',
+    subtitlesEyebrow: 'ترجمة Luma',
     subtitlesIdle: 'جاهز لتحميل الترجمة',
+    subtitlesWaitingForPlayback: 'بانتظار بدء التشغيل',
+    subtitlesWaitingHint:
+      'تبدأ الترجمة بالتحميل فور بدء الفيلم، حتى لا تُبطئ تحميل الصفحة.',
     subtitlesLoading: 'جارٍ البحث عن الترجمة...',
     subtitlesLoadingHint: 'جارٍ البحث عن ملف ترجمة مطابق لهذا العنوان...',
     subtitlesReady: 'تم تحميل الترجمة',
     subtitlesUnavailable:
       'لم يتم العثور على ترجمة لهذا العنوان. حمّل ملف ترجمة من جهازك أدناه.',
+    subtitlesUnavailableShort: 'غير متوفرة',
     subtitlesLoadFailed:
       'تعذر تحميل الترجمة الآن. تحقق من اتصالك ثم أعد المحاولة.',
+    subtitlesLoadFailedShort: 'فشل التحميل',
+    subtitlesSearchLanguage: 'ابحث في كل اللغات',
+    subtitlesClearSearch: 'مسح البحث عن اللغة',
+    subtitlesNoLanguageResults: 'لا توجد لغة تطابق هذا البحث.',
+    subtitlesLanguageCount: '{{total}} لغة',
+    subtitlesCueCount: '{{total}} سطراً',
     subtitlesOffset: 'توقيت الترجمة',
     subtitlesEarlier: 'تقديم الترجمة',
     subtitlesLater: 'تأخير الترجمة',
